@@ -1,0 +1,44 @@
+<div class="border-b border-slate-200 bg-white shadow-sm">
+    <div class="flex h-11 items-center gap-2 overflow-x-auto px-3 lg:px-4">
+        <a
+            href="#"
+            class="secondary-nav-link font-semibold text-ehr-800"
+        >
+            ♧ Patients
+        </a>
+
+        <div
+            class="relative min-w-[15rem] max-w-sm flex-1"
+            x-data="{ open: false }"
+        >
+            <input
+                type="search"
+                name="q"
+                class="w-full rounded-md border-slate-200 py-1.5 pl-8 pr-2.5 text-xs"text-sm focus:border-ehr-500 focus:ring-ehr-500"
+                placeholder="Search patients by name, MRN, DOB..."
+                hx-get="{% url 'patients:search-results' %}"
+                hx-trigger="input changed delay:350ms, search"
+                hx-target="#patient-search-results"
+                hx-indicator="#patient-search-spinner"
+                @focus="open = true"
+                autocomplete="off"
+            >
+            <span class="pointer-events-none absolute left-2.5 top-2 text-slate-400">
+
+            <div
+                id="patient-search-results"
+                class="absolute left-0 right-0 top-12 z-40"
+            ></div>
+        </div>
+
+        <nav class="flex items-center gap-1 whitespace-nowrap">
+            <a class="secondary-nav-link" href="#">▦ Patient List</a>
+            <a class="secondary-nav-link" href="#">◷ Recent</a>
+            <a class="secondary-nav-link" href="#">⌂ Admit</a>
+            <a class="secondary-nav-link" href="#">⇄ Transfers</a>
+            <a class="secondary-nav-link" href="#">⌁ Discharge</a>
+            <a class="secondary-nav-link" href="#">♢ Alerts</a>
+            <button class="secondary-nav-link" type="button">••• More</button>
+        </nav>
+    </div>
+</div>

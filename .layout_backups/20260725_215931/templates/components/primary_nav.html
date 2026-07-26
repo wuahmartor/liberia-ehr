@@ -1,0 +1,56 @@
+<header class="bg-gradient-to-r from-ehr-900 to-ehr-800 text-white shadow">
+    <div class="flex h-10 items-center gap-2 px-3 lg:px-4">
+        <button
+            type="button"
+            class="rounded-md p-2 hover:bg-white/10 lg:hidden"
+            @click="mobileMenuOpen = !mobileMenuOpen"
+            aria-label="Toggle navigation"
+        >
+            ☰
+        </button>
+
+        <a
+            href="{% url 'core:dashboard' %}"
+            class="mr-3 flex items-center gap-2 font-semibold"
+        >
+            <span class="grid h-7 w-7 place-items-center rounded-md bg-white/15">
+                ✚
+            </span>
+            <span class="hidden xl:inline">Liberia EHR</span>
+        </a>
+
+        <nav class="hidden flex-1 items-center justify-between gap-1 lg:flex">
+            {% with active=active_primary_nav %}
+                <a class="primary-nav-link {% if active == 'clinical' %}primary-nav-link-active{% endif %}" href="#">Clinical</a>
+                <a class="primary-nav-link" href="#">Nursing</a>
+                <a class="primary-nav-link" href="#">Analytics</a>
+                <a class="primary-nav-link" href="#">AI / CDS</a>
+                <a class="primary-nav-link" href="#">Orders</a>
+                <a class="primary-nav-link" href="#">Medication</a>
+                <a class="primary-nav-link" href="#">Care Management</a>
+                <a class="primary-nav-link" href="#">Administration</a>
+            {% endwith %}
+        </nav>
+
+        <div class="ml-auto flex items-center gap-3">
+            <button class="relative rounded-full p-2 hover:bg-white/10" aria-label="Notifications">
+                🔔
+                <span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500"></span>
+            </button>
+
+            <button
+                type="button"
+                class="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-white/10"
+                @click="profileOpen = !profileOpen"
+            >
+                <span class="grid h-7 w-7 place-items-center rounded-full bg-amber-100 font-bold text-ehr-950">
+                    JD
+                </span>
+                <span class="hidden text-left xl:block">
+                    <span class="block text-xs font-semibold">Jane Doe</span>
+                    <span class="block text-[10px] text-white/70">RN</span>
+                </span>
+            </button>
+        </div>
+    </div>
+</header>

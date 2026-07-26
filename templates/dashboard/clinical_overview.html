@@ -1,0 +1,50 @@
+{% extends "layouts/app_shell.html" %}
+
+{% block title %}
+    Clinical Overview | Liberia EHR
+{% endblock %}
+
+{% block workspace %}
+<section class="mx-auto max-w-[1450px]">
+
+    <header class="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+            <h1 class="text-lg font-bold tracking-tight text-ehr-950">
+                Clinical Overview
+            </h1>
+
+            <p class="mt-0.5 text-xs text-slate-500">
+                Current patient status, trends, and decision support.
+            </p>
+        </div>
+
+        <select
+            class="rounded-md border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium shadow-sm
+                   focus:border-ehr-500 focus:ring-ehr-500"
+            name="time_range"
+            hx-get="{% url 'core:clinical-dashboard-partial' %}"
+            hx-trigger="change"
+            hx-target="#clinical-dashboard"
+            hx-swap="innerHTML"
+            hx-indicator="#clinical-dashboard-loading"
+        >
+            <option value="24h">Last 24 Hours</option>
+            <option value="48h">Last 48 Hours</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="encounter">Current Encounter</option>
+        </select>
+    </header>
+
+    <div
+        id="clinical-dashboard-loading"
+        class="htmx-indicator mb-3 rounded-md bg-ehr-50 px-3 py-2 text-xs text-ehr-800"
+    >
+        Updating clinical dashboard...
+    </div>
+
+    <div id="clinical-dashboard">
+        {% include "core/partials/clinical_dashboard.html" %}
+    </div>
+
+</section>
+{% endblock %}

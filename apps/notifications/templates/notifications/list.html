@@ -1,0 +1,17 @@
+{% extends "layouts/app_shell.html" %}
+
+{% block title %}
+    notifications List | Liberia EHR
+{% endblock %}
+
+{% block workspace %}
+<section>
+    <h1 class="text-2xl font-bold capitalize">
+        notifications List
+    </h1>
+
+    <div id="notifications-list" class="mt-5">
+        {% include "notifications/partials/list_content.html" %}
+    </div>
+</section>
+{% endblock %}

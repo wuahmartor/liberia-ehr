@@ -1,0 +1,50 @@
+{% load static %}
+<!doctype html>
+<html lang="en" class="h-full bg-slate-100">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <meta
+        name="description"
+        content="Liberia Electronic Health Record"
+    >
+
+    <title>
+        {% block title %}Liberia EHR{% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'dist/css/app.css' %}"
+    >
+
+    <script
+        src="https://unpkg.com/htmx.org@2.0.4"
+        defer
+    ></script>
+    <script
+        src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+        defer
+    ></script>
+    <script
+        src="{% static 'src/js/app.js' %}"
+        defer
+    ></script>
+</head>
+
+<body
+    class="h-full overflow-hidden bg-slate-100 text-slate-900"
+    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+    hx-indicator="#global-loading"
+>
+    {% block body %}{% endblock %}
+
+    {% include "components/loading_indicator.html" %}
+
+    <div id="modal-root"></div>
+    <div id="toast-root"></div>
+</body>
+</html>

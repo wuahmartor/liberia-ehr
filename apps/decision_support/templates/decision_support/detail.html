@@ -1,0 +1,17 @@
+{% extends "layouts/app_shell.html" %}
+
+{% block title %}
+    decision_support Details | Liberia EHR
+{% endblock %}
+
+{% block workspace %}
+<section>
+    <h1 class="text-2xl font-bold capitalize">
+        decision_support Details
+    </h1>
+
+    <div id="decision_support-detail" class="mt-5">
+        {% include "decision_support/partials/detail_content.html" %}
+    </div>
+</section>
+{% endblock %}

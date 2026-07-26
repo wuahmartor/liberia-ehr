@@ -1,0 +1,17 @@
+{% extends "layouts/app_shell.html" %}
+
+{% block title %}
+    ai_assistant Details | Liberia EHR
+{% endblock %}
+
+{% block workspace %}
+<section>
+    <h1 class="text-2xl font-bold capitalize">
+        ai_assistant Details
+    </h1>
+
+    <div id="ai_assistant-detail" class="mt-5">
+        {% include "ai_assistant/partials/detail_content.html" %}
+    </div>
+</section>
+{% endblock %}

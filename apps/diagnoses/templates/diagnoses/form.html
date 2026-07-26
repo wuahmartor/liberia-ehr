@@ -1,0 +1,26 @@
+{% extends "layouts/app_shell.html" %}
+
+{% block title %}
+    diagnoses Form | Liberia EHR
+{% endblock %}
+
+{% block workspace %}
+<section class="max-w-3xl">
+    <h1 class="text-2xl font-bold capitalize">
+        diagnoses Form
+    </h1>
+
+    <form method="post" class="mt-6 space-y-4">
+        {% csrf_token %}
+
+        {% include "diagnoses/partials/form_fields.html" %}
+
+        <button
+            type="submit"
+            class="rounded-lg bg-ehr-800 px-4 py-2 font-semibold text-white"
+        >
+            Save
+        </button>
+    </form>
+</section>
+{% endblock %}

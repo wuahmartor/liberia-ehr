@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div
+    x-data="ehrShell"
+    class="grid h-screen grid-rows-[auto_auto_minmax(0,1fr)]"
+>
+    {% include "components/primary_nav.html" %}
+
+    <div id="secondary-navigation">
+        {% include "components/secondary_nav.html" %}
+    </div>
+
+    <div class="grid min-h-0 grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)]">
+        <aside
+            id="patient-sidebar"
+            class="hidden min-h-0 overflow-y-auto bg-ehr-900 text-white lg:block"
+        >
+            {% include "components/patient_sidebar.html" %}
+        </aside>
+
+        <main
+            id="workspace"
+            class="min-h-0 min-w-0 overflow-y-auto bg-slate-50 p-3 md:p-4"
+        >
+            {% block workspace %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}

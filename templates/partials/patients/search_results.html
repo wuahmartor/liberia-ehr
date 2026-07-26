@@ -1,0 +1,30 @@
+{% if query %}
+<div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+    {% if patients %}
+        <ul class="divide-y divide-slate-100">
+            {% for patient in patients %}
+                <li>
+                    <button
+                        type="button"
+                        class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-ehr-50"
+                    >
+                        <span class="grid h-9 w-9 place-items-center rounded-full bg-ehr-100 font-semibold text-ehr-900">
+                            {{ patient.initials }}
+                        </span>
+                        <span>
+                            <span class="block font-semibold">{{ patient.full_name }}</span>
+                            <span class="block text-xs text-slate-500">
+                                MRN {{ patient.mrn }}
+                            </span>
+                        </span>
+                    </button>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="px-4 py-5 text-sm text-slate-500">
+            No patient matched “{{ query }}”.
+        </div>
+    {% endif %}
+</div>
+{% endif %}

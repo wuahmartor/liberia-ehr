@@ -1,0 +1,17 @@
+{% extends "layouts/app_shell.html" %}
+
+{% block title %}
+    patients Details | Liberia EHR
+{% endblock %}
+
+{% block workspace %}
+<section>
+    <h1 class="text-2xl font-bold capitalize">
+        patients Details
+    </h1>
+
+    <div id="patients-detail" class="mt-5">
+        {% include "patients/partials/detail_content.html" %}
+    </div>
+</section>
+{% endblock %}

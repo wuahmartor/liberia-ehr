@@ -1,0 +1,26 @@
+<article class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+    <div class="flex gap-2.5">
+        <div class="mt-0.5 text-base {{ icon_class }}">
+            {{ icon }}
+        </div>
+
+        <div class="min-w-0">
+            <h3 class="text-xs font-semibold text-slate-900">
+                {{ title }}
+            </h3>
+
+            <p class="mt-1 text-[11px] leading-4 text-slate-600">
+                {{ message }}
+            </p>
+
+            {% if action_label %}
+                <button
+                    type="button"
+                    class="btn-secondary mt-2"
+                >
+                    {{ action_label }}
+                </button>
+            {% endif %}
+        </div>
+    </div>
+</article>

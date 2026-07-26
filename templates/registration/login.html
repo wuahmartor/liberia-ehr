@@ -1,0 +1,24 @@
+{% extends "layouts/auth_shell.html" %}
+
+{% block title %}
+    Login | Liberia EHR
+{% endblock %}
+
+{% block auth_content %}
+<h1 class="text-2xl font-bold text-ehr-900">
+    Staff Login
+</h1>
+
+<form method="post" class="mt-6 space-y-4">
+    {% csrf_token %}
+
+    {{ form.as_p }}
+
+    <button
+        type="submit"
+        class="w-full rounded-lg bg-ehr-800 px-4 py-2 font-semibold text-white"
+    >
+        Login
+    </button>
+</form>
+{% endblock %}
