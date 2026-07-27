@@ -1,0 +1,416 @@
+{% load static %}
+
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+>
+<meta
+    name="description"
+    content="Secure login for the Liberia Electronic Health Record System"
+>
+<meta
+    name="theme-color"
+    content="#062a58"
+>
+<title>Secure Login | Liberia EHR</title>
+<link
+    href="{% static 'dist/css/app.css' %}"
+    rel="stylesheet"
+>
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    rel="stylesheet"
+>
+<style>
+    * {
+        box-sizing: border-box;
+    }
+    html,
+    body {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+    }
+    body {
+        background:
+            radial-gradient(
+                circle at top left,
+                rgba(14, 116, 144, 0.18),
+                transparent 35%
+            ),
+            linear-gradient(
+                135deg,
+                #f8fafc 0%,
+                #e2e8f0 100%
+            );
+        color: #0f172a;
+        font-family:
+            Inter,
+            ui-sans-serif,
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+    }
+    .login-page {
+        position: relative;
+        display: flex;
+        width: 100%;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+    .login-brand {
+        position: absolute;
+        top: 24px;
+        left: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .login-brand-icon {
+        display: flex;
+        width: 46px;
+        height: 46px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: #062a58;
+        color: white;
+        font-size: 20px;
+        box-shadow: 0 8px 20px rgba(6, 42, 88, 0.2);
+    }
+    .login-brand-name {
+        margin: 0;
+        color: #062a58;
+        font-size: 18px;
+        font-weight: 700;
+    }
+    .login-brand-description {
+        margin: 2px 0 0;
+        color: #64748b;
+        font-size: 12px;
+    }
+    .login-wrapper {
+        width: 100%;
+        max-width: 430px;
+    }
+    .login-card {
+        width: 100%;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow:
+            0 24px 60px rgba(15, 23, 42, 0.12),
+            0 4px 12px rgba(15, 23, 42, 0.06);
+    }
+    .login-card-header {
+        padding: 30px 30px 22px;
+        text-align: center;
+    }
+    .security-icon {
+        display: flex;
+        width: 58px;
+        height: 58px;
+        margin: 0 auto;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        background: #dbeafe;
+        color: #1e3a8a;
+        font-size: 25px;
+    }
+    .authorized-label {
+        margin: 16px 0 0;
+        color: #1d4ed8;
+        font-size: 13px;
+        font-weight: 700;
+    }
+    .login-heading {
+        margin: 6px 0 0;
+        color: #0f172a;
+        font-size: 30px;
+        line-height: 1.2;
+    }
+    .login-description {
+        margin: 9px 0 0;
+        color: #64748b;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    .login-form {
+        padding: 0 30px 30px;
+    }
+    .form-group {
+        margin-bottom: 18px;
+    }
+    .form-label {
+        display: block;
+        margin-bottom: 7px;
+        color: #334155;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    .login-form input[type="text"],
+    .login-form input[type="password"] {
+        display: block;
+        width: 100%;
+        min-height: 46px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        background: #ffffff;
+        padding: 11px 14px;
+        color: #0f172a;
+        font-size: 14px;
+        outline: none;
+        transition:
+            border-color 150ms ease,
+            box-shadow 150ms ease;
+    }
+    .login-form input[type="text"]:focus,
+    .login-form input[type="password"]:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+    }
+    .form-options {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+    .remember-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #475569;
+        font-size: 13px;
+    }
+    .remember-label input {
+        width: 16px;
+        height: 16px;
+    }
+    .forgot-link {
+        color: #1d4ed8;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .forgot-link:hover {
+        text-decoration: underline;
+    }
+    .login-button {
+        display: flex;
+        width: 100%;
+        min-height: 48px;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        border: 0;
+        border-radius: 10px;
+        background: #1e40af;
+        padding: 12px 18px;
+        color: #ffffff;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 7px 18px rgba(30, 64, 175, 0.22);
+        transition:
+            background 150ms ease,
+            transform 150ms ease;
+    }
+    .login-button:hover {
+        background: #1e3a8a;
+    }
+    .login-button:active {
+        transform: translateY(1px);
+    }
+    .login-button:focus {
+        outline: 3px solid rgba(59, 130, 246, 0.3);
+        outline-offset: 2px;
+    }
+    .form-error {
+        margin: 6px 0 0;
+        color: #dc2626;
+        font-size: 13px;
+    }
+    .non-field-errors {
+        margin-bottom: 18px;
+        border: 1px solid #fecaca;
+        border-radius: 10px;
+        background: #fef2f2;
+        padding: 12px 14px;
+        color: #b91c1c;
+        font-size: 13px;
+    }
+    .security-notice {
+        margin: 18px 0 0;
+        color: #64748b;
+        font-size: 11px;
+        line-height: 1.6;
+        text-align: center;
+    }
+    .login-footer {
+        margin: 18px 0 0;
+        color: #64748b;
+        font-size: 11px;
+        text-align: center;
+    }
+    @media (max-width: 640px) {
+        .login-page {
+            align-items: flex-start;
+            padding: 100px 16px 24px;
+        }
+        .login-brand {
+            top: 22px;
+            left: 50%;
+            width: max-content;
+            transform: translateX(-50%);
+        }
+        .login-card-header {
+            padding: 26px 22px 20px;
+        }
+        .login-form {
+            padding: 0 22px 24px;
+        }
+        .form-options {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+</style>
+</head>
+<body>
+    <main class="login-page">
+        <div class="login-brand">
+            <div class="login-brand-icon">
+                <i class="bi bi-heart-pulse-fill"></i>
+            </div>
+        <div>
+            <p class="login-brand-name">
+                Liberia EHR
+            </p>
+            <p class="login-brand-description">
+                Integrated Clinical Information System
+            </p>
+        </div>
+    </div>
+    <div class="login-wrapper">
+        <section
+            class="login-card"
+            aria-labelledby="login-heading"
+        >
+            <header class="login-card-header">
+                <div class="security-icon">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <p class="authorized-label">
+                    Authorized access
+                </p>
+                <h1
+                    id="login-heading"
+                    class="login-heading"
+                >
+                    Sign in
+                </h1>
+                <p class="login-description">
+                    Enter your assigned EHR username and password.
+                </p>
+            </header>
+            <form
+                method="post"
+                action="{% url 'accounts:login' %}"
+                class="login-form"
+            >
+                {% csrf_token %}
+                {% if next %}
+                    <input
+                        type="hidden"
+                        name="next"
+                        value="{{ next }}"
+                    >
+                {% endif %}
+                {% if form.non_field_errors %}
+                    <div
+                        class="non-field-errors"
+                        role="alert"
+                    >
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="form-group">
+                    <label
+                        for="{{ form.username.id_for_label }}"
+                        class="form-label"
+                    >
+                        Username
+                    </label>
+                    {{ form.username }}
+                    {% for error in form.username.errors %}
+                        <p class="form-error">
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                </div>
+                <div class="form-group">
+                    <label
+                        for="{{ form.password.id_for_label }}"
+                        class="form-label"
+                    >
+                        Password
+                    </label>
+                    {{ form.password }}
+                    {% for error in form.password.errors %}
+                        <p class="form-error">
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                </div>
+                <div class="form-options">
+                    <label class="remember-label">
+                        {{ form.remember_me }}
+                        <span>
+                            Keep me signed in
+                        </span>
+                    </label>
+                    <a
+                        href="{% url 'password_reset' %}"
+                        class="forgot-link"
+                    >
+                        Forgot password?
+                    </a>
+                </div>
+                <button
+                    type="submit"
+                    class="login-button"
+                >
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    <span>Login</span>
+                </button>
+                <p class="security-notice">
+                    Authorized personnel only. System access and activity
+                    may be monitored for security, privacy, and clinical
+                    auditing.
+                </p>
+            </form>
+        </section>
+        <p class="login-footer">
+            Liberia Electronic Health Record System
+            &middot;
+            Protected healthcare environment
+        </p>
+    </div>
+</main>
+</body>
+</html>

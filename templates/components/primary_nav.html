@@ -1,56 +1,393 @@
-<header class="bg-gradient-to-r from-ehr-900 to-ehr-800 text-white shadow">
-    <div class="flex h-10 items-center gap-2 px-3 lg:px-4">
+<style>
+    [x-cloak] {
+        display: none !important;
+    }
+</style>
+<header
+    x-data="{
+        profileOpen: false,
+        mobileMenuOpen: false
+    }"
+    class="
+        relative bg-gradient-to-r
+        from-ehr-900 to-ehr-800
+        text-white shadow
+    "
+>
+    <div class="flex h-11 items-center gap-2 px-3 lg:px-4">
         <button
             type="button"
-            class="rounded-md p-2 hover:bg-white/10 lg:hidden"
+            class="
+                rounded-md p-2
+                hover:bg-white/10
+                lg:hidden
+            "
             @click="mobileMenuOpen = !mobileMenuOpen"
             aria-label="Toggle navigation"
+            :aria-expanded="mobileMenuOpen.toString()"
         >
             ☰
         </button>
-
-        <a
-            href="{% url 'core:dashboard' %}"
-            class="mr-3 flex items-center gap-2 font-semibold"
+    <a
+        href="{% url 'core:dashboard' %}"
+        class="
+            mr-2 flex shrink-0 items-center
+            gap-2 font-semibold
+        "
+    >
+        <span
+            class="
+                grid h-7 w-7 place-items-center
+                rounded-md bg-white/15
+            "
         >
-            <span class="grid h-7 w-7 place-items-center rounded-md bg-white/15">
-                ✚
-            </span>
-            <span class="hidden xl:inline">Liberia EHR</span>
-        </a>
-
-        <nav class="hidden flex-1 items-center justify-between gap-1 lg:flex">
-            {% with active=active_primary_nav %}
-                <a class="primary-nav-link {% if active == 'clinical' %}primary-nav-link-active{% endif %}" href="#">Clinical</a>
-                <a class="primary-nav-link" href="#">Nursing</a>
-                <a class="primary-nav-link" href="#">Analytics</a>
-                <a class="primary-nav-link" href="#">AI / CDS</a>
-                <a class="primary-nav-link" href="#">Orders</a>
-                <a class="primary-nav-link" href="#">Medication</a>
-                <a class="primary-nav-link" href="#">Care Management</a>
-                <a class="primary-nav-link" href="#">Administration</a>
-            {% endwith %}
-        </nav>
-
-        <div class="ml-auto flex items-center gap-3">
-            <button class="relative rounded-full p-2 hover:bg-white/10" aria-label="Notifications">
-                🔔
-                <span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500"></span>
-            </button>
-
-            <button
-                type="button"
-                class="flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-white/10"
-                @click="profileOpen = !profileOpen"
+            ✚
+        </span>
+        <span class="hidden xl:inline">
+            Liberia EHR
+        </span>
+    </a>
+    <nav
+        class="
+            hidden min-w-0 flex-1
+            items-center justify-start
+            gap-0.5 lg:flex
+        "
+        aria-label="Primary navigation"
+    >
+        {% with active=active_primary_nav %}
+            <a
+                href="{% url 'core:clinical_dashboard' %}"
+                class="
+                    primary-nav-link shrink-0
+                    {% if active == 'clinical' %}
+                        primary-nav-link-active
+                    {% endif %}
+                "
             >
-                <span class="grid h-7 w-7 place-items-center rounded-full bg-amber-100 font-bold text-ehr-950">
-                    JD
-                </span>
-                <span class="hidden text-left xl:block">
-                    <span class="block text-xs font-semibold">Jane Doe</span>
-                    <span class="block text-[10px] text-white/70">RN</span>
-                </span>
-            </button>
-        </div>
+                Clinical
+            </a>
+            <a
+                href="#"
+                class="
+                    primary-nav-link shrink-0
+                    {% if active == 'nursing' %}
+                        primary-nav-link-active
+                    {% endif %}
+                "
+            >
+                Nursing
+            </a>
+            <a
+                href="{% url 'core:analytics_dashboard' %}"
+                class="
+                    primary-nav-link shrink-0
+                    {% if active == 'analytics' %}
+                        primary-nav-link-active
+                    {% endif %}
+                "
+            >
+                Analytics
+            </a>
+            <a
+                href="#"
+                class="
+                    primary-nav-link shrink-0
+                    {% if active == 'ai-cds' %}
+                        primary-nav-link-active
+                    {% endif %}
+                "
+            >
+                AI / CDS
+            </a>
+            <a
+                href="#"
+                class="
+                    primary-nav-link shrink-0
+                    {% if active == 'orders' %}
+                        primary-nav-link-active
+                    {% endif %}
+                "
+            >
+                Orders
+            </a>
+            <a
+                href="#"
+                class="
+                    primary-nav-link shrink-0
+                    {% if active == 'medications' %}
+                        primary-nav-link-active
+                    {% endif %}
+                "
+            >
+                Medication
+            </a>
+            <a
+                href="#"
+                class="
+                    primary-nav-link shrink-0
+                    {% if active == 'care-management' %}
+                        primary-nav-link-active
+                    {% endif %}
+                "
+            >
+                Care Management
+            </a>
+            <a
+                href="{% url 'core:administration_dashboard' %}"
+                class="
+                    primary-nav-link shrink-0
+                    {% if active == 'administration' %}
+                        primary-nav-link-active
+                    {% endif %}
+                "
+            >
+                Administration
+            </a>
+        {% endwith %}
+    </nav>
+    <div class="ml-auto flex shrink-0 items-center gap-1">
+        <button
+            type="button"
+            class="
+                relative rounded-full p-2
+                hover:bg-white/10
+            "
+            aria-label="Notifications"
+        >
+            🔔
+            <span
+                class="
+                    absolute right-1 top-1
+                    h-2 w-2 rounded-full
+                    bg-red-500
+                "
+            ></span>
+        </button>
+        {% if request.user.is_authenticated %}
+            <div
+                class="relative"
+                @click.outside="profileOpen = false"
+                @keydown.escape.window="profileOpen = false"
+            >
+                <button
+                    type="button"
+                    class="
+                        flex items-center gap-2
+                        rounded-md px-1.5 py-1
+                        hover:bg-white/10
+                        focus:outline-none
+                        focus:ring-2 focus:ring-white/40
+                    "
+                    @click="profileOpen = !profileOpen"
+                    :aria-expanded="profileOpen.toString()"
+                    aria-haspopup="menu"
+                >
+                    <span
+                        class="
+                            grid h-7 w-7 shrink-0
+                            place-items-center rounded-full
+                            bg-amber-100 text-xs
+                            font-bold uppercase
+                            text-ehr-950
+                        "
+                    >
+                        {% if request.user.first_name %}
+                            {{ request.user.first_name|first }}
+                            {{ request.user.last_name|first }}
+                        {% else %}
+                            {{ request.user.username|first }}
+                        {% endif %}
+                    </span>
+                    <span class="hidden min-w-0 text-left md:block">
+                        <span
+                            class="
+                                block max-w-32 truncate
+                                text-xs font-semibold
+                                xl:max-w-40
+                            "
+                        >
+                            {% if request.user.get_full_name %}
+                                {{ request.user.get_full_name }}
+                            {% else %}
+                                {{ request.user.username }}
+                            {% endif %}
+                        </span>
+                        <span
+                            class="
+                                block max-w-32 truncate
+                                text-[10px] text-white/70
+                                xl:max-w-40
+                            "
+                        >
+                            {% if request.user.is_superuser %}
+                                System Administrator
+                            {% elif request.user.profile.job_title %}
+                                {{ request.user.profile.job_title }}
+                            {% elif request.user.profile %}
+                                {{ request.user.profile.get_role_display }}
+                            {% else %}
+                                EHR User
+                            {% endif %}
+                        </span>
+                    </span>
+                    <svg
+                        class="
+                            hidden h-3.5 w-3.5
+                            text-white/70
+                            transition-transform
+                            md:block
+                        "
+                        :class="{ 'rotate-180': profileOpen }"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="
+                                M5.23 7.21a.75.75 0 011.06.02
+                                L10 11.17l3.71-3.94
+                                a.75.75 0 111.08 1.04
+                                l-4.25 4.5a.75.75 0 01-1.08 0
+                                l-4.25-4.5a.75.75 0 01.02-1.06z
+                            "
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                </button>
+                <div
+                    x-cloak
+                    x-show="profileOpen"
+                    x-transition.origin.top.right
+                    class="
+                        absolute right-0 z-50 mt-2
+                        w-64 overflow-hidden rounded-lg
+                        border border-slate-200
+                        bg-white text-slate-800
+                        shadow-xl
+                    "
+                    role="menu"
+                >
+                    <div
+                        class="
+                            border-b border-slate-100
+                            bg-slate-50 px-4 py-3
+                        "
+                    >
+                        <p
+                            class="
+                                truncate text-sm font-semibold
+                                text-slate-900
+                            "
+                        >
+                            {% if request.user.get_full_name %}
+                                {{ request.user.get_full_name }}
+                            {% else %}
+                                {{ request.user.username }}
+                            {% endif %}
+                        </p>
+                        <p
+                            class="
+                                mt-0.5 truncate
+                                text-xs text-slate-500
+                            "
+                        >
+                            {{ request.user.email|default:"No email address" }}
+                        </p>
+                        <div class="mt-2 flex flex-wrap gap-1.5">
+                            <span
+                                class="
+                                    rounded-full bg-ehr-100
+                                    px-2 py-0.5 text-[10px]
+                                    font-semibold text-ehr-800
+                                "
+                            >
+                                {% if request.user.is_superuser %}
+                                    System Administrator
+                                {% elif request.user.profile %}
+                                    {{ request.user.profile.get_role_display }}
+                                {% else %}
+                                    EHR User
+                                {% endif %}
+                            </span>
+                            {% if request.user.profile.facility %}
+                                <span
+                                    class="
+                                        max-w-40 truncate
+                                        rounded-full bg-slate-200
+                                        px-2 py-0.5 text-[10px]
+                                        font-medium text-slate-700
+                                    "
+                                >
+                                    {{ request.user.profile.facility }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="py-1">
+                        <a
+                            href="{% url 'accounts:profile' %}"
+                            class="
+                                flex items-center gap-3
+                                px-4 py-2 text-sm
+                                hover:bg-slate-50
+                            "
+                            role="menuitem"
+                        >
+                            <span aria-hidden="true">👤</span>
+                            <span>My Profile</span>
+                        </a>
+                        {% if request.user.is_staff %}
+                            <a
+                                href="{% url 'admin:index' %}"
+                                class="
+                                    flex items-center gap-3
+                                    px-4 py-2 text-sm
+                                    hover:bg-slate-50
+                                "
+                                role="menuitem"
+                            >
+                                <span aria-hidden="true">⚙️</span>
+                                <span>Administration</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="border-t border-slate-100 p-1">
+                        <form
+                            method="post"
+                            action="{% url 'accounts:logout' %}"
+                        >
+                            {% csrf_token %}
+                            <button
+                                type="submit"
+                                class="
+                                    flex w-full items-center gap-3
+                                    rounded-md px-3 py-2
+                                    text-left text-sm font-medium
+                                    text-red-700 hover:bg-red-50
+                                "
+                                role="menuitem"
+                            >
+                                <span aria-hidden="true">↪</span>
+                                <span>Sign Out</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <a
+                href="{% url 'accounts:login' %}"
+                class="
+                    rounded-md bg-white/10
+                    px-3 py-1.5 text-xs font-semibold
+                    hover:bg-white/20
+                "
+            >
+                Sign In
+            </a>
+        {% endif %}
     </div>
+</div>
 </header>

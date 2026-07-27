@@ -17,7 +17,6 @@ ALLOWED_HOSTS = env.list(
     "DJANGO_ALLOWED_HOSTS",
     default=["127.0.0.1", "localhost"],
 )
-
 DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -27,11 +26,13 @@ DJANGO_APPS = [
     "django.contrib.staticfiles",
 ]
 
+
 LOCAL_APPS = [
+    "apps.accounts.apps.AccountsConfig",
+    "apps.facilities.apps.FacilitiesConfig",
+    "apps.patients.apps.PatientsConfig",
+
     "apps.core",
-    "apps.accounts",
-    "apps.facilities",
-    "apps.patients",
     "apps.encounters",
     "apps.nursing",
     "apps.vitals",
@@ -50,7 +51,12 @@ LOCAL_APPS = [
     "apps.notifications",
 ]
 
+
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS
+
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "core:dashboard"
+LOGOUT_REDIRECT_URL = "accounts:login"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -146,6 +152,29 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "core:dashboard"
-LOGOUT_REDIRECT_URL = "accounts:login"
+
+
+
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = "Lax"
+
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# For production only:
+if not DEBUG:
+
+    SESSION_COOKIE_SECURE = True
+
+    CSRF_COOKIE_SECURE = True
+
+    SECURE_SSL_REDIRECT = True
+
+    SECURE_HSTS_SECONDS = 31536000
+
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
+    SECURE_HSTS_PRELOAD = True

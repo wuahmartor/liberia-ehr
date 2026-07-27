@@ -5,71 +5,215 @@
 {% endblock %}
 
 {% block workspace %}
-<section class="mx-auto max-w-[1450px]">
+<section
 
-    <header class="mb-3 flex flex-wrap items-center justify-between gap-2">
+    class="mx-auto max-w-[1450px]"
+
+    aria-labelledby="clinical-overview-title"
+
+>
+
+    <header
+
+        class="
+
+            mb-3 flex flex-wrap items-center
+
+            justify-between gap-3
+
+        "
+
+    >
+
         <div>
-            <h1 class="text-lg font-bold tracking-tight text-ehr-950">
-                Clinical Overview
+
+            <h1
+
+                id="clinical-overview-title"
+
+                class="
+
+                    text-lg font-bold tracking-tight
+
+                    text-ehr-950
+
+                "
+
+            >
+
+                {{ dashboard_title|default:"Clinical Overview" }}
+
             </h1>
 
-            <p class="mt-0.5 text-xs text-slate-500">
+                <p class="mt-0.5 text-xs text-slate-500">
+
                 Current patient status, clinical trends, and decision support.
+
             </p>
+
         </div>
 
-        <select
-            class="rounded-md border-slate-200 bg-white px-2.5 py-1.5
-                   text-xs font-medium shadow-sm
-                   focus:border-ehr-500 focus:ring-ehr-500"
-            name="time_range"
-            hx-get="{% url 'core:clinical-dashboard-partial' %}"
-            hx-trigger="change"
-            hx-target="#clinical-dashboard"
-            hx-swap="innerHTML"
-            hx-indicator="#clinical-dashboard-loading"
+        <div class="flex items-center gap-2">
+
+            <label
+
+                for="clinical-time-range"
+
+                class="sr-only"
+
+            >
+
+                Select clinical dashboard time range
+
+            </label>
+
+            <select
+
+                id="clinical-time-range"
+
+                name="time_range"
+
+                class="
+
+                    rounded-md border-slate-200 bg-white
+
+                    px-2.5 py-1.5 text-xs font-medium
+
+                    shadow-sm focus:border-ehr-500
+
+                    focus:ring-ehr-500
+
+                "
+
+                hx-get="{% url 'core:clinical_dashboard_partial' %}"
+
+                hx-trigger="change"
+
+                hx-target="#clinical-dashboard"
+
+                hx-swap="innerHTML"
+
+                hx-indicator="#clinical-dashboard-loading"
+
+                hx-disabled-elt="this"
+
+                aria-controls="clinical-dashboard"
+
+            >
+
+                <option
+
+                    value="24h"
+
+                    {% if time_range == "24h" %}selected{% endif %}
+
+                >
+
+                    Last 24 Hours
+
+                </option>
+
+                <option
+
+                    value="48h"
+
+                    {% if time_range == "48h" %}selected{% endif %}
+
+                >
+
+                    Last 48 Hours
+
+                </option>
+
+                <option
+
+                    value="7d"
+
+                    {% if time_range == "7d" %}selected{% endif %}
+
+                >
+
+                    Last 7 Days
+
+                </option>
+
+                <option
+
+                    value="encounter"
+
+                    {% if time_range == "encounter" %}selected{% endif %}
+
+                >
+
+                        Current Encounter
+
+                    </option>
+
+                </select>
+
+            </div>
+
+        </header>
+
+        <div
+
+            id="clinical-dashboard-loading"
+
+            class="
+
+                htmx-indicator mb-3 rounded-md
+
+                border border-ehr-100 bg-ehr-50
+
+                px-3 py-2 text-xs font-medium
+
+                text-ehr-800
+
+            "
+
+            role="status"
+
+            aria-live="polite"
+
         >
-            <option
-                value="24h"
-                {% if time_range == "24h" %}selected{% endif %}
-            >
-                Last 24 Hours
-            </option>
 
-            <option
-                value="48h"
-                {% if time_range == "48h" %}selected{% endif %}
-            >
-                Last 48 Hours
-            </option>
+            <span class="inline-flex items-center gap-2">
 
-            <option
-                value="7d"
-                {% if time_range == "7d" %}selected{% endif %}
-            >
-                Last 7 Days
-            </option>
+                <span
 
-            <option
-                value="encounter"
-                {% if time_range == "encounter" %}selected{% endif %}
-            >
-                Current Encounter
-            </option>
-        </select>
-    </header>
+                    class="
 
-    <div
-        id="clinical-dashboard-loading"
-        class="htmx-indicator mb-3 rounded-md bg-ehr-50
-               px-3 py-2 text-xs text-ehr-800"
-    >
-        Updating clinical dashboard...
-    </div>
+                        h-3.5 w-3.5 animate-spin rounded-full
 
-    <div id="clinical-dashboard">
-        {% include "core/partials/clinical_dashboard.html" %}
-    </div>
+                        border-2 border-ehr-300
 
-</section>
+                        border-t-ehr-700
+
+                    "
+
+                    aria-hidden="true"
+
+                ></span>
+
+                Updating clinical dashboard...
+
+            </span>
+
+        </div>
+
+        <div
+
+            id="clinical-dashboard"
+
+            aria-live="polite"
+
+            aria-busy="false"
+
+        >
+
+            {% include "core/partials/clinical_dashboard.html" %}
+
+        </div>
+    </section>
+
 {% endblock %}
