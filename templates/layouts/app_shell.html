@@ -5,23 +5,107 @@
     x-data="ehrShell"
     class="grid h-screen grid-rows-[auto_auto_minmax(0,1fr)]"
 >
+    <!-- =========================================================
+         PRIMARY NAVIGATION
+    ========================================================== -->
     {% include "components/primary_nav.html" %}
 
-    <div id="secondary-navigation">
+    <!-- =========================================================
+         SECONDARY NAVIGATION
+    ========================================================== -->
+    <div
+        id="secondary-navigation"
+        class="min-w-0"
+    >
         {% include "components/secondary_nav.html" %}
     </div>
 
-    <div class="grid min-h-0 grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)]">
-        <aside
-            id="patient-sidebar"
-            class="hidden min-h-0 overflow-y-auto bg-ehr-900 text-white lg:block"
-        >
-            {% include "components/patient_sidebar.html" %}
-        </aside>
+    <!-- =========================================================
+         APPLICATION CONTENT
+    ========================================================== -->
+    <div
+        class="
+            grid min-h-0 grid-cols-1
 
+            {% if active_primary_nav == 'clinical' and active_clinical_module %}
+                lg:grid-cols-[14rem_minmax(0,1fr)]
+
+            {% elif active_primary_nav == 'analytics' %}
+                lg:grid-cols-[14rem_minmax(0,1fr)]
+
+            {% elif active_primary_nav == 'ai-cds' %}
+                lg:grid-cols-[14rem_minmax(0,1fr)]
+
+            {% elif active_primary_nav == 'administration' %}
+                lg:grid-cols-[14rem_minmax(0,1fr)]
+            {% endif %}
+        "
+    >
+        <!-- =====================================================
+             CONTEXTUAL SIDEBAR
+        ====================================================== -->
+        {% if active_primary_nav == "clinical" and active_clinical_module %}
+            <aside
+                id="context-sidebar"
+                class="
+                    hidden min-h-0 overflow-y-auto
+                    bg-ehr-900 text-white
+                    lg:block
+                "
+                aria-label="Clinical workflow navigation"
+            >
+                {% include "components/sidebars/clinical_sidebar.html" %}
+            </aside>
+
+        {% elif active_primary_nav == "analytics" %}
+            <aside
+                id="context-sidebar"
+                class="
+                    hidden min-h-0 overflow-y-auto
+                    bg-ehr-900 text-white
+                    lg:block
+                "
+                aria-label="Analytics navigation"
+            >
+                {% include "components/sidebars/analytics_sidebar.html" %}
+            </aside>
+
+        {% elif active_primary_nav == "ai-cds" %}
+            <aside
+                id="context-sidebar"
+                class="
+                    hidden min-h-0 overflow-y-auto
+                    bg-ehr-900 text-white
+                    lg:block
+                "
+                aria-label="AI clinical decision support navigation"
+            >
+                {% include "components/sidebars/ai_cds_sidebar.html" %}
+            </aside>
+
+        {% elif active_primary_nav == "administration" %}
+            <aside
+                id="context-sidebar"
+                class="
+                    hidden min-h-0 overflow-y-auto
+                    bg-ehr-900 text-white
+                    lg:block
+                "
+                aria-label="Administration navigation"
+            >
+                {% include "components/sidebars/administration_sidebar.html" %}
+            </aside>
+        {% endif %}
+
+        <!-- =====================================================
+             MAIN WORKSPACE
+        ====================================================== -->
         <main
             id="workspace"
-            class="min-h-0 min-w-0 overflow-y-auto bg-slate-50 p-3 md:p-4"
+            class="
+                min-h-0 min-w-0 overflow-y-auto
+                bg-slate-50 p-3 md:p-4
+            "
         >
             {% block workspace %}{% endblock %}
         </main>

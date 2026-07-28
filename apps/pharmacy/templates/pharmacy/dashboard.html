@@ -1,0 +1,196 @@
+
+
+
+
+{% extends "app_shell.html" %}
+
+{% block title %}
+    Pharmacy Dashboard | Liberia EHR
+{% endblock %}
+
+{% block workspace %}
+<section class="space-y-4">
+    <!-- =========================================================
+         PAGE HEADER
+    ========================================================== -->
+    <header
+        class="
+            flex flex-col gap-3
+            sm:flex-row sm:items-center sm:justify-between
+        "
+    >
+        <div>
+            <h1 class="text-lg font-semibold text-slate-900">
+                Pharmacy Dashboard
+            </h1>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Review prescriptions, dispensing activity, and stock status.
+            </p>
+        </div>
+
+        <a
+            href="{% url 'pharmacy:queue' %}"
+            class="btn-primary"
+        >
+            Open Pharmacy Queue
+        </a>
+    </header>
+
+    <!-- =========================================================
+         SUMMARY CARDS
+    ========================================================== -->
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <article class="dashboard-card">
+            <div class="flex items-center gap-3">
+                <div class="dashboard-card-icon">
+                    ▤
+                </div>
+
+                <div>
+                    <p class="dashboard-card-label">
+                        Queue
+                    </p>
+
+                    <p class="dashboard-card-value">
+                        0
+                    </p>
+                </div>
+            </div>
+        </article>
+
+        <article class="dashboard-card">
+            <div class="flex items-center gap-3">
+                <div class="dashboard-card-icon">
+                    ◷
+                </div>
+
+                <div>
+                    <p class="dashboard-card-label">
+                        Pending Review
+                    </p>
+
+                    <p class="dashboard-card-value">
+                        0
+                    </p>
+                </div>
+            </div>
+        </article>
+
+        <article class="dashboard-card">
+            <div class="flex items-center gap-3">
+                <div class="dashboard-card-icon">
+                    ⇢
+                </div>
+
+                <div>
+                    <p class="dashboard-card-label">
+                        Ready to Dispense
+                    </p>
+
+                    <p class="dashboard-card-value">
+                        0
+                    </p>
+                </div>
+            </div>
+        </article>
+
+        <article class="dashboard-card">
+            <div class="flex items-center gap-3">
+                <div class="dashboard-card-icon">
+                    !
+                </div>
+
+                <div>
+                    <p class="dashboard-card-label">
+                        Stock Alerts
+                    </p>
+
+                    <p class="dashboard-card-value">
+                        0
+                    </p>
+                </div>
+            </div>
+        </article>
+    </div>
+
+    <!-- =========================================================
+         PHARMACY WORKSPACE
+    ========================================================== -->
+    <div class="grid gap-4 xl:grid-cols-2">
+        <section class="workspace-panel">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-900">
+                        Prescription Queue
+                    </h2>
+
+                    <p class="mt-1 text-xs text-slate-500">
+                        Prescriptions awaiting pharmacy review.
+                    </p>
+                </div>
+
+                <a
+                    href="{% url 'pharmacy:queue' %}"
+                    class="text-xs font-semibold text-ehr-700 hover:text-ehr-900"
+                >
+                    View queue
+                </a>
+            </div>
+
+            <div
+                class="
+                    mt-4 rounded-lg border border-dashed
+                    border-slate-300 bg-slate-50
+                    px-4 py-8 text-center
+                "
+            >
+                <p class="text-sm font-medium text-slate-700">
+                    No prescriptions in the queue
+                </p>
+
+                <p class="mt-1 text-xs text-slate-500">
+                    New medication orders will appear here.
+                </p>
+            </div>
+        </section>
+
+        <section class="workspace-panel">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-900">
+                        Inventory Alerts
+                    </h2>
+
+                    <p class="mt-1 text-xs text-slate-500">
+                        Low-stock and out-of-stock medications.
+                    </p>
+                </div>
+
+                <a
+                    href="{% url 'pharmacy:inventory' %}"
+                    class="text-xs font-semibold text-ehr-700 hover:text-ehr-900"
+                >
+                    View inventory
+                </a>
+            </div>
+
+            <div
+                class="
+                    mt-4 rounded-lg border border-dashed
+                    border-slate-300 bg-slate-50
+                    px-4 py-8 text-center
+                "
+            >
+                <p class="text-sm font-medium text-slate-700">
+                    No inventory alerts
+                </p>
+
+                <p class="mt-1 text-xs text-slate-500">
+                    Medication stock warnings will appear here.
+                </p>
+            </div>
+        </section>
+    </div>
+</section>
+{% endblock %}

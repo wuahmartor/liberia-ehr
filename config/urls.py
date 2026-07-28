@@ -30,4 +30,6 @@ urlpatterns = [
         "accounts/",
         include("django.contrib.auth.urls"),
     ),
+
+    path("pharmacy/", include("apps.pharmacy.urls")),
 ]

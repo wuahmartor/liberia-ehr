@@ -1,191 +1,665 @@
+{% load static %}
+
+<!-- =========================================================
+     PRIMARY NAVIGATION COMPONENT
+     File: templates/components/primary_nav.html
+
+     Purpose:
+     - Provides the main Liberia EHR top navigation.
+     - Desktop navigation has four primary groups:
+       1. Clinical
+       2. Analytics
+       3. AI / CDS
+       4. Administration
+
+     Important structure:
+     - Clinical contains patient-care workflow items.
+     - Administration contains Scheduling and system setup.
+     - Mobile navigation is separate and appears only on small screens.
+========================================================== -->
+
 <style>
     [x-cloak] {
         display: none !important;
     }
 </style>
+
 <header
     x-data="{
+        openMenu: null,
         profileOpen: false,
-        mobileMenuOpen: false
+        mobileMenuOpen: false,
+
+        toggleMenu(menu) {
+            this.profileOpen = false;
+            this.openMenu = this.openMenu === menu ? null : menu;
+        },
+
+        closeMenus() {
+            this.openMenu = null;
+            this.profileOpen = false;
+        }
     }"
     class="
-        relative bg-gradient-to-r
+        relative z-50
+        bg-gradient-to-r
         from-ehr-900 to-ehr-800
         text-white shadow
     "
+    @keydown.escape.window="closeMenus()"
 >
-    <div class="flex h-11 items-center gap-2 px-3 lg:px-4">
+    <!-- =====================================================
+         SECTION 1: TOP NAVIGATION BAR WRAPPER
+         Contains:
+         - Mobile menu button
+         - Application logo
+         - Desktop primary navigation
+         - Right-side user actions
+    ====================================================== -->
+    <div class="flex h-12 items-center gap-2 px-3 lg:px-4">
+
+        <!-- =================================================
+             SECTION 1A: MOBILE MENU TOGGLE BUTTON
+             Visible only on small screens.
+        ================================================== -->
         <button
             type="button"
             class="
                 rounded-md p-2
-                hover:bg-white/10
+                transition hover:bg-white/10
+                focus:outline-none
+                focus:ring-2 focus:ring-white/40
                 lg:hidden
             "
-            @click="mobileMenuOpen = !mobileMenuOpen"
-            aria-label="Toggle navigation"
+            @click="
+                mobileMenuOpen = !mobileMenuOpen;
+                closeMenus();
+            "
+            aria-label="Toggle primary navigation"
             :aria-expanded="mobileMenuOpen.toString()"
         >
-            ☰
+            <svg
+                class="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M4 6h16M4 12h16M4 18h16"
+                />
+            </svg>
         </button>
-    <a
-        href="{% url 'core:dashboard' %}"
-        class="
-            mr-2 flex shrink-0 items-center
-            gap-2 font-semibold
-        "
-    >
-        <span
+
+        <!-- =================================================
+             SECTION 1B: APPLICATION LOGO / HOME LINK
+        ================================================== -->
+        <a
+            href="{% url 'core:dashboard' %}"
             class="
-                grid h-7 w-7 place-items-center
-                rounded-md bg-white/15
+                mr-1 flex shrink-0 items-center
+                gap-2 font-semibold
+                focus:outline-none
+                focus:ring-2 focus:ring-white/40
+                lg:mr-2
             "
         >
-            ✚
-        </span>
-        <span class="hidden xl:inline">
-            Liberia EHR
-        </span>
-    </a>
-    <nav
-        class="
-            hidden min-w-0 flex-1
-            items-center justify-start
-            gap-0.5 lg:flex
-        "
-        aria-label="Primary navigation"
-    >
-        {% with active=active_primary_nav %}
-            <a
-                href="{% url 'core:clinical_dashboard' %}"
-                class="
-                    primary-nav-link shrink-0
-                    {% if active == 'clinical' %}
-                        primary-nav-link-active
-                    {% endif %}
-                "
-            >
-                Clinical
-            </a>
-            <a
-                href="#"
-                class="
-                    primary-nav-link shrink-0
-                    {% if active == 'nursing' %}
-                        primary-nav-link-active
-                    {% endif %}
-                "
-            >
-                Nursing
-            </a>
-            <a
-                href="{% url 'core:analytics_dashboard' %}"
-                class="
-                    primary-nav-link shrink-0
-                    {% if active == 'analytics' %}
-                        primary-nav-link-active
-                    {% endif %}
-                "
-            >
-                Analytics
-            </a>
-            <a
-                href="#"
-                class="
-                    primary-nav-link shrink-0
-                    {% if active == 'ai-cds' %}
-                        primary-nav-link-active
-                    {% endif %}
-                "
-            >
-                AI / CDS
-            </a>
-            <a
-                href="#"
-                class="
-                    primary-nav-link shrink-0
-                    {% if active == 'orders' %}
-                        primary-nav-link-active
-                    {% endif %}
-                "
-            >
-                Orders
-            </a>
-            <a
-                href="#"
-                class="
-                    primary-nav-link shrink-0
-                    {% if active == 'medications' %}
-                        primary-nav-link-active
-                    {% endif %}
-                "
-            >
-                Medication
-            </a>
-            <a
-                href="#"
-                class="
-                    primary-nav-link shrink-0
-                    {% if active == 'care-management' %}
-                        primary-nav-link-active
-                    {% endif %}
-                "
-            >
-                Care Management
-            </a>
-            <a
-                href="{% url 'core:administration_dashboard' %}"
-                class="
-                    primary-nav-link shrink-0
-                    {% if active == 'administration' %}
-                        primary-nav-link-active
-                    {% endif %}
-                "
-            >
-                Administration
-            </a>
-        {% endwith %}
-    </nav>
-    <div class="ml-auto flex shrink-0 items-center gap-1">
-        <button
-            type="button"
-            class="
-                relative rounded-full p-2
-                hover:bg-white/10
-            "
-            aria-label="Notifications"
-        >
-            🔔
             <span
                 class="
-                    absolute right-1 top-1
-                    h-2 w-2 rounded-full
-                    bg-red-500
+                    grid h-8 w-8 place-items-center
+                    rounded-md bg-white/15
+                    text-lg font-bold
                 "
-            ></span>
-        </button>
-        {% if request.user.is_authenticated %}
-            <div
-                class="relative"
-                @click.outside="profileOpen = false"
-                @keydown.escape.window="profileOpen = false"
+                aria-hidden="true"
             >
-                <button
-                    type="button"
-                    class="
-                        flex items-center gap-2
-                        rounded-md px-1.5 py-1
-                        hover:bg-white/10
-                        focus:outline-none
-                        focus:ring-2 focus:ring-white/40
+                ✚
+            </span>
+
+            <span class="hidden whitespace-nowrap xl:inline">
+                Liberia EHR
+            </span>
+        </a>
+
+        <!-- =================================================
+             SECTION 1C: DESKTOP PRIMARY NAVIGATION
+             Visible on large screens and above.
+
+             Top-level desktop items:
+             - Clinical
+             - Analytics
+             - AI / CDS
+             - Administration
+        ================================================== -->
+        <nav
+            class="
+                hidden min-w-0 flex-1
+                items-center justify-start gap-0
+                lg:flex
+            "
+            aria-label="Primary navigation"
+        >
+            {% with active=active_primary_nav %}
+
+                <!-- =========================================
+                     DESKTOP MENU 1: CLINICAL
+                     Contains clinical workflow areas:
+                     - Dashboard
+                     - Patients
+                     - Nursing
+                     - Orders
+                     - Medications
+                     - Pharmacy
+                     - Care Management
+                ========================================== -->
+                <div
+                    class="relative"
+                    @click.outside="
+                        if (openMenu === 'clinical') {
+                            openMenu = null;
+                        }
                     "
-                    @click="profileOpen = !profileOpen"
-                    :aria-expanded="profileOpen.toString()"
-                    aria-haspopup="menu"
                 >
-                    <span
+                    <button
+                        type="button"
                         class="
-                            grid h-7 w-7 shrink-0
+                            primary-nav-link
+                            {% if active == 'clinical' %}
+                                primary-nav-link-active
+                            {% endif %}
+                        "
+                        @click="toggleMenu('clinical')"
+                        :aria-expanded="(openMenu === 'clinical').toString()"
+                        aria-haspopup="menu"
+                    >
+                        <span>Clinical</span>
+
+                        <svg
+                            class="h-3.5 w-3.5 transition-transform"
+                            :class="{ 'rotate-180': openMenu === 'clinical' }"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="
+                                    M5.23 7.21a.75.75 0 011.06.02
+                                    L10 11.17l3.71-3.94
+                                    a.75.75 0 111.08 1.04
+                                    l-4.25 4.5a.75.75 0 01-1.08 0
+                                    l-4.25-4.5a.75.75 0 01.02-1.06z
+                                "
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                    </button>
+
+                    <div
+                        x-cloak
+                        x-show="openMenu === 'clinical'"
+                        x-transition.origin.top.left
+                        class="primary-dropdown-menu left-0"
+                        role="menu"
+                    >
+                        <div class="primary-dropdown-list">
+                            <a
+                                href="{% url 'core:clinical_dashboard' %}"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
+                                <span class="primary-dropdown-icon">▦</span>
+                                <span class="primary-dropdown-label">Clinical Dashboard</span>
+                            </a>
+
+                            <a
+                                href="{% url 'patients:list' %}"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
+                                <span class="primary-dropdown-icon">♙</span>
+                                <span class="primary-dropdown-label">Patients</span>
+                            </a>
+
+                            <div class="primary-dropdown-divider"></div>
+
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
+                                <span class="primary-dropdown-icon">♡</span>
+                                <span class="primary-dropdown-label">Nursing</span>
+                            </a>
+
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
+                                <span class="primary-dropdown-icon">▤</span>
+                                <span class="primary-dropdown-label">Orders</span>
+                            </a>
+
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
+                                <span class="primary-dropdown-icon">◇</span>
+                                <span class="primary-dropdown-label">Medications</span>
+                            </a>
+
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
+                                <span class="primary-dropdown-icon">⌂</span>
+                                <span class="primary-dropdown-label">Pharmacy</span>
+                            </a>
+
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
+                                <span class="primary-dropdown-icon">⇄</span>
+                                <span class="primary-dropdown-label">Care Management</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- =========================================
+                     DESKTOP MENU 2: ANALYTICS
+                     Contains dashboards and reporting areas.
+                ========================================== -->
+                <div
+                    class="relative"
+                    @click.outside="
+                        if (openMenu === 'analytics') {
+                            openMenu = null;
+                        }
+                    "
+                >
+                    <button
+                        type="button"
+                        class="
+                            primary-nav-link
+                            {% if active == 'analytics' %}
+                                primary-nav-link-active
+                            {% endif %}
+                        "
+                        @click="toggleMenu('analytics')"
+                        :aria-expanded="(openMenu === 'analytics').toString()"
+                        aria-haspopup="menu"
+                    >
+                        <span>Analytics</span>
+
+                        <svg
+                            class="h-3.5 w-3.5 transition-transform"
+                            :class="{ 'rotate-180': openMenu === 'analytics' }"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="
+                                    M5.23 7.21a.75.75 0 011.06.02
+                                    L10 11.17l3.71-3.94
+                                    a.75.75 0 111.08 1.04
+                                    l-4.25 4.5a.75.75 0 01-1.08 0
+                                    l-4.25-4.5a.75.75 0 01.02-1.06z
+                                "
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                    </button>
+
+                    <div
+                        x-cloak
+                        x-show="openMenu === 'analytics'"
+                        x-transition.origin.top.left
+                        class="primary-dropdown-menu left-0"
+                        role="menu"
+                    >
+                        <div class="primary-dropdown-list">
+                            <a
+                                href="{% url 'core:analytics_dashboard' %}"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
+                                <span class="primary-dropdown-icon">▦</span>
+                                <span class="primary-dropdown-label">Analytics Dashboard</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">✚</span>
+                                <span class="primary-dropdown-label">Clinical Analytics</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">♡</span>
+                                <span class="primary-dropdown-label">Nursing Analytics</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">⌂</span>
+                                <span class="primary-dropdown-label">Operations</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">✓</span>
+                                <span class="primary-dropdown-label">Quality</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">◎</span>
+                                <span class="primary-dropdown-label">Public Health</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">⇩</span>
+                                <span class="primary-dropdown-label">Reports</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- =========================================
+                     DESKTOP MENU 3: AI / CDS
+                     Contains clinical decision support items.
+                ========================================== -->
+                <div
+                    class="relative"
+                    @click.outside="
+                        if (openMenu === 'ai-cds') {
+                            openMenu = null;
+                        }
+                    "
+                >
+                    <button
+                        type="button"
+                        class="
+                            primary-nav-link
+                            {% if active == 'ai-cds' %}
+                                primary-nav-link-active
+                            {% endif %}
+                        "
+                        @click="toggleMenu('ai-cds')"
+                        :aria-expanded="(openMenu === 'ai-cds').toString()"
+                        aria-haspopup="menu"
+                    >
+                        <span>AI / CDS</span>
+
+                        <svg
+                            class="h-3.5 w-3.5 transition-transform"
+                            :class="{ 'rotate-180': openMenu === 'ai-cds' }"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="
+                                    M5.23 7.21a.75.75 0 011.06.02
+                                    L10 11.17l3.71-3.94
+                                    a.75.75 0 111.08 1.04
+                                    l-4.25 4.5a.75.75 0 01-1.08 0
+                                    l-4.25-4.5a.75.75 0 01.02-1.06z
+                                "
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                    </button>
+
+                    <div
+                        x-cloak
+                        x-show="openMenu === 'ai-cds'"
+                        x-transition.origin.top.left
+                        class="primary-dropdown-menu left-0"
+                        role="menu"
+                    >
+                        <div class="primary-dropdown-list">
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">!</span>
+                                <span class="primary-dropdown-label">Alerts</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">◇</span>
+                                <span class="primary-dropdown-label">Recommendations</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">↗</span>
+                                <span class="primary-dropdown-label">Risk Scores</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">✦</span>
+                                <span class="primary-dropdown-label">Clinical Summaries</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">⌕</span>
+                                <span class="primary-dropdown-label">Natural-Language Search</span>
+                            </a>
+
+                            {% if request.user.is_staff %}
+                                <div class="primary-dropdown-divider"></div>
+
+                                <a href="#" class="primary-dropdown-link" role="menuitem">
+                                    <span class="primary-dropdown-icon">⚙</span>
+                                    <span class="primary-dropdown-label">Rules</span>
+                                </a>
+
+                                <a href="#" class="primary-dropdown-link" role="menuitem">
+                                    <span class="primary-dropdown-icon">▥</span>
+                                    <span class="primary-dropdown-label">Performance</span>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- =========================================
+                     DESKTOP MENU 4: ADMINISTRATION
+                     Contains system and operational setup:
+                     - Administration Dashboard
+                     - Scheduling
+                     - Users and Staff
+                     - Roles and Permissions
+                     - Facilities
+                     - Audit Logs
+                     - Settings
+                     - Django Admin for staff users
+                ========================================== -->
+                <div
+                    class="relative"
+                    @click.outside="
+                        if (openMenu === 'administration') {
+                            openMenu = null;
+                        }
+                    "
+                >
+                    <button
+                        type="button"
+                        class="
+                            primary-nav-link
+                            {% if active == 'administration' %}
+                                primary-nav-link-active
+                            {% endif %}
+                        "
+                        @click="toggleMenu('administration')"
+                        :aria-expanded="(openMenu === 'administration').toString()"
+                        aria-haspopup="menu"
+                    >
+                        <span>Administration</span>
+
+                        <svg
+                            class="h-3.5 w-3.5 transition-transform"
+                            :class="{ 'rotate-180': openMenu === 'administration' }"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="
+                                    M5.23 7.21a.75.75 0 011.06.02
+                                    L10 11.17l3.71-3.94
+                                    a.75.75 0 111.08 1.04
+                                    l-4.25 4.5a.75.75 0 01-1.08 0
+                                    l-4.25-4.5a.75.75 0 01.02-1.06z
+                                "
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                    </button>
+
+                    <div
+                        x-cloak
+                        x-show="openMenu === 'administration'"
+                        x-transition.origin.top.right
+                        class="primary-dropdown-menu right-0"
+                        role="menu"
+                    >
+                        <div class="primary-dropdown-list">
+                            <a
+                                href="{% url 'core:administration_dashboard' %}"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
+                                <span class="primary-dropdown-icon">▦</span>
+                                <span class="primary-dropdown-label">Administration Dashboard</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">□</span>
+                                <span class="primary-dropdown-label">Scheduling</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">♙</span>
+                                <span class="primary-dropdown-label">Users and Staff</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">◇</span>
+                                <span class="primary-dropdown-label">Roles and Permissions</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">⌂</span>
+                                <span class="primary-dropdown-label">Facilities</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">▤</span>
+                                <span class="primary-dropdown-label">Audit Logs</span>
+                            </a>
+
+                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <span class="primary-dropdown-icon">⚙</span>
+                                <span class="primary-dropdown-label">Settings</span>
+                            </a>
+
+                            {% if request.user.is_staff %}
+                                <div class="primary-dropdown-divider"></div>
+
+                                <a
+                                    href="{% url 'admin:index' %}"
+                                    class="primary-dropdown-link"
+                                    role="menuitem"
+                                >
+                                    <span class="primary-dropdown-icon">⚙</span>
+                                    <span class="primary-dropdown-label">Django Admin</span>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+            {% endwith %}
+        </nav>
+
+        <!-- =================================================
+             SECTION 1D: RIGHT-SIDE USER ACTIONS
+             Contains:
+             - Notification button
+             - User identity
+             - Profile dropdown
+             - Sign out button
+             - Sign in link for anonymous users
+        ================================================== -->
+        <div class="ml-auto flex shrink-0 items-center gap-1.5">
+
+            <!-- ---------------------------------------------
+                 NOTIFICATIONS BUTTON
+            ---------------------------------------------- -->
+            <button
+                type="button"
+                class="
+                    relative rounded-md p-2
+                    transition hover:bg-white/10
+                    focus:outline-none
+                    focus:ring-2 focus:ring-white/40
+                "
+                aria-label="Notifications"
+            >
+                <svg
+                    class="h-4.5 w-4.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="
+                            M15 17h5l-1.405-1.405
+                            A2.032 2.032 0 0118 14.158V11
+                            a6.002 6.002 0 00-4-5.659V5
+                            a2 2 0 10-4 0v.341
+                            C7.67 6.165 6 8.388 6 11v3.159
+                            c0 .538-.214 1.055-.595 1.436L4 17h5
+                            m6 0v1a3 3 0 11-6 0v-1
+                            m6 0H9
+                        "
+                    />
+                </svg>
+
+                <span
+                    class="
+                        absolute right-1 top-1
+                        h-2 w-2 rounded-full
+                        bg-red-500 ring-2 ring-ehr-800
+                    "
+                ></span>
+            </button>
+
+            {% if request.user.is_authenticated %}
+
+                <!-- -----------------------------------------
+                     DESKTOP USER IDENTITY DISPLAY
+                ------------------------------------------ -->
+                <div
+                    class="
+                        hidden items-center gap-2
+                        border-l border-white/15
+                        pl-2 sm:flex
+                    "
+                >
+                    <div
+                        class="
+                            grid h-8 w-8 shrink-0
                             place-items-center rounded-full
                             bg-amber-100 text-xs
                             font-bold uppercase
@@ -198,11 +672,12 @@
                         {% else %}
                             {{ request.user.username|first }}
                         {% endif %}
-                    </span>
-                    <span class="hidden min-w-0 text-left md:block">
-                        <span
+                    </div>
+
+                    <div class="hidden min-w-0 text-left md:block">
+                        <p
                             class="
-                                block max-w-32 truncate
+                                max-w-28 truncate
                                 text-xs font-semibold
                                 xl:max-w-40
                             "
@@ -212,10 +687,11 @@
                             {% else %}
                                 {{ request.user.username }}
                             {% endif %}
-                        </span>
-                        <span
+                        </p>
+
+                        <p
                             class="
-                                block max-w-32 truncate
+                                max-w-28 truncate
                                 text-[10px] text-white/70
                                 xl:max-w-40
                             "
@@ -229,165 +705,629 @@
                             {% else %}
                                 EHR User
                             {% endif %}
-                        </span>
-                    </span>
-                    <svg
-                        class="
-                            hidden h-3.5 w-3.5
-                            text-white/70
-                            transition-transform
-                            md:block
-                        "
-                        :class="{ 'rotate-180': profileOpen }"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        aria-hidden="true"
-                    >
-                        <path
-                            fill-rule="evenodd"
-                            d="
-                                M5.23 7.21a.75.75 0 011.06.02
-                                L10 11.17l3.71-3.94
-                                a.75.75 0 111.08 1.04
-                                l-4.25 4.5a.75.75 0 01-1.08 0
-                                l-4.25-4.5a.75.75 0 01.02-1.06z
-                            "
-                            clip-rule="evenodd"
-                        />
-                    </svg>
-                </button>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- -----------------------------------------
+                     USER PROFILE DROPDOWN
+                ------------------------------------------ -->
                 <div
-                    x-cloak
-                    x-show="profileOpen"
-                    x-transition.origin.top.right
-                    class="
-                        absolute right-0 z-50 mt-2
-                        w-64 overflow-hidden rounded-lg
-                        border border-slate-200
-                        bg-white text-slate-800
-                        shadow-xl
-                    "
-                    role="menu"
+                    class="relative"
+                    @click.outside="profileOpen = false"
                 >
-                    <div
+                    <button
+                        type="button"
                         class="
-                            border-b border-slate-100
-                            bg-slate-50 px-4 py-3
+                            flex items-center gap-1
+                            rounded-md px-2 py-2
+                            transition hover:bg-white/10
+                            focus:outline-none
+                            focus:ring-2 focus:ring-white/40
                         "
+                        @click="
+                            openMenu = null;
+                            profileOpen = !profileOpen;
+                        "
+                        :aria-expanded="profileOpen.toString()"
+                        aria-haspopup="menu"
+                        aria-label="Open account menu"
                     >
-                        <p
+                        <span class="text-xs font-medium sm:hidden">
+                            Account
+                        </span>
+
+                        <svg
                             class="
-                                truncate text-sm font-semibold
-                                text-slate-900
+                                h-3.5 w-3.5
+                                text-white/70
+                                transition-transform
+                            "
+                            :class="{ 'rotate-180': profileOpen }"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="
+                                    M5.23 7.21a.75.75 0 011.06.02
+                                    L10 11.17l3.71-3.94
+                                    a.75.75 0 111.08 1.04
+                                    l-4.25 4.5a.75.75 0 01-1.08 0
+                                    l-4.25-4.5a.75.75 0 01.02-1.06z
+                                "
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                    </button>
+
+                    <div
+                        x-cloak
+                        x-show="profileOpen"
+                        x-transition.origin.top.right
+                        class="
+                            absolute right-0 top-full z-50 mt-1
+                            w-72 overflow-hidden rounded-lg
+                            border border-slate-200
+                            bg-white text-slate-800
+                            shadow-xl
+                        "
+                        role="menu"
+                    >
+                        <!-- User profile summary -->
+                        <div
+                            class="
+                                border-b border-slate-100
+                                bg-slate-50 px-4 py-3
                             "
                         >
+                            <p
+                                class="
+                                    truncate text-sm font-semibold
+                                    text-slate-900
+                                "
+                            >
+                                {% if request.user.get_full_name %}
+                                    {{ request.user.get_full_name }}
+                                {% else %}
+                                    {{ request.user.username }}
+                                {% endif %}
+                            </p>
+
+                            <p
+                                class="
+                                    mt-0.5 truncate
+                                    text-xs text-slate-500
+                                "
+                            >
+                                {{ request.user.email|default:"No email address" }}
+                            </p>
+
+                            <div class="mt-2 flex flex-wrap gap-1.5">
+                                <span
+                                    class="
+                                        rounded-full bg-ehr-100
+                                        px-2 py-0.5 text-[10px]
+                                        font-semibold text-ehr-800
+                                    "
+                                >
+                                    {% if request.user.is_superuser %}
+                                        System Administrator
+                                    {% elif request.user.profile %}
+                                        {{ request.user.profile.get_role_display }}
+                                    {% else %}
+                                        EHR User
+                                    {% endif %}
+                                </span>
+
+                                {% if request.user.profile.facility %}
+                                    <span
+                                        class="
+                                            max-w-44 truncate
+                                            rounded-full bg-slate-200
+                                            px-2 py-0.5 text-[10px]
+                                            font-medium text-slate-700
+                                        "
+                                    >
+                                        {{ request.user.profile.facility }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Profile dropdown links -->
+                        <div class="py-1">
+                            <a
+                                href="{% url 'accounts:profile' %}"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
+                                <span aria-hidden="true">👤</span>
+                                <span>My Profile</span>
+                            </a>
+
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
+                                <span aria-hidden="true">🔐</span>
+                                <span>Change Password</span>
+                            </a>
+
+                            {% if request.user.is_staff %}
+                                <a
+                                    href="{% url 'admin:index' %}"
+                                    class="primary-dropdown-link"
+                                    role="menuitem"
+                                >
+                                    <span aria-hidden="true">⚙️</span>
+                                    <span>Django Administration</span>
+                                </a>
+                            {% endif %}
+                        </div>
+
+                        <!-- Sign out inside profile menu -->
+                        <div class="border-t border-slate-100 p-1">
+                            <form
+                                method="post"
+                                action="{% url 'accounts:logout' %}"
+                            >
+                                {% csrf_token %}
+
+                                <button
+                                    type="submit"
+                                    class="
+                                        flex w-full items-center gap-3
+                                        rounded-md px-3 py-2
+                                        text-left text-sm font-medium
+                                        text-red-700
+                                        transition hover:bg-red-50
+                                    "
+                                    role="menuitem"
+                                >
+                                    <span aria-hidden="true">↪</span>
+                                    <span>Sign Out</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- -----------------------------------------
+                     DESKTOP SIGN OUT BUTTON
+                ------------------------------------------ -->
+                <form
+                    method="post"
+                    action="{% url 'accounts:logout' %}"
+                    class="hidden lg:block"
+                >
+                    {% csrf_token %}
+
+                    <button
+                        type="submit"
+                        class="
+                            inline-flex items-center gap-1.5
+                            rounded-md border border-white/20
+                            bg-white/10 px-2.5 py-1.5
+                            text-xs font-semibold
+                            transition
+                            hover:border-red-200/50
+                            hover:bg-red-500/20
+                            focus:outline-none
+                            focus:ring-2 focus:ring-white/40
+                        "
+                    >
+                        <svg
+                            class="h-3.5 w-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="
+                                    M17 16l4-4m0 0l-4-4m4 4H7
+                                    m6 4v1a3 3 0 01-3 3H6
+                                    a3 3 0 01-3-3V7
+                                    a3 3 0 013-3h4
+                                    a3 3 0 013 3v1
+                                "
+                            />
+                        </svg>
+
+                        <span>Sign Out</span>
+                    </button>
+                </form>
+
+            {% else %}
+
+                <!-- -----------------------------------------
+                     SIGN IN LINK FOR ANONYMOUS USERS
+                ------------------------------------------ -->
+                <a
+                    href="{% url 'accounts:login' %}"
+                    class="
+                        rounded-md border border-white/20
+                        bg-white/10 px-3 py-1.5
+                        text-xs font-semibold
+                        transition hover:bg-white/20
+                        focus:outline-none
+                        focus:ring-2 focus:ring-white/40
+                    "
+                >
+                    Sign In
+                </a>
+
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- =====================================================
+         SECTION 2: MOBILE PRIMARY NAVIGATION PANEL
+         Visible only when:
+         - Screen is below lg
+         - mobileMenuOpen is true
+
+         Mobile groups:
+         - Clinical
+         - Analytics
+         - AI / CDS
+         - Administration
+    ====================================================== -->
+    <div
+        x-cloak
+        x-show="mobileMenuOpen"
+        x-transition
+        class="
+            border-t border-white/10
+            bg-ehr-950 px-3 py-3
+            lg:hidden
+        "
+    >
+        <nav
+            class="space-y-1"
+            aria-label="Mobile primary navigation"
+        >
+
+            <!-- =============================================
+                 MOBILE MENU 1: CLINICAL
+            ============================================== -->
+            <div x-data="{ expanded: false }">
+                <button
+                    type="button"
+                    class="mobile-primary-nav-button"
+                    @click="expanded = !expanded"
+                    :aria-expanded="expanded.toString()"
+                >
+                    <span>Clinical</span>
+
+                    <span
+                        class="transition-transform"
+                        :class="{ 'rotate-180': expanded }"
+                    >
+                        ▾
+                    </span>
+                </button>
+
+                <div
+                    x-cloak
+                    x-show="expanded"
+                    class="mobile-primary-nav-panel"
+                >
+                    <a
+                        href="{% url 'core:clinical_dashboard' %}"
+                        class="mobile-primary-nav-link"
+                    >
+                        Clinical Dashboard
+                    </a>
+
+                    <a
+                        href="{% url 'patients:list' %}"
+                        class="mobile-primary-nav-link"
+                    >
+                        Patients
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Nursing
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Orders
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Medications
+                    </a>
+
+                    <a
+                        href="{% url 'pharmacy:dashboard' %}"
+                        class="primary-dropdown-link"
+                        role="menuitem"
+                    >
+                        <span class="primary-dropdown-icon">⌂</span>
+                        <span class="primary-dropdown-label">Pharmacy</span>
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Care Management
+                    </a>
+                </div>
+            </div>
+
+            <!-- =============================================
+                 MOBILE MENU 2: ANALYTICS
+            ============================================== -->
+            <div x-data="{ expanded: false }">
+                <button
+                    type="button"
+                    class="mobile-primary-nav-button"
+                    @click="expanded = !expanded"
+                    :aria-expanded="expanded.toString()"
+                >
+                    <span>Analytics</span>
+
+                    <span
+                        class="transition-transform"
+                        :class="{ 'rotate-180': expanded }"
+                    >
+                        ▾
+                    </span>
+                </button>
+
+                <div
+                    x-cloak
+                    x-show="expanded"
+                    class="mobile-primary-nav-panel"
+                >
+                    <a
+                        href="{% url 'core:analytics_dashboard' %}"
+                        class="mobile-primary-nav-link"
+                    >
+                        Analytics Dashboard
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Clinical Analytics
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Nursing Analytics
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Operations
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Quality
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Public Health
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Reports
+                    </a>
+                </div>
+            </div>
+
+            <!-- =============================================
+                 MOBILE MENU 3: AI / CDS
+            ============================================== -->
+            <div x-data="{ expanded: false }">
+                <button
+                    type="button"
+                    class="mobile-primary-nav-button"
+                    @click="expanded = !expanded"
+                    :aria-expanded="expanded.toString()"
+                >
+                    <span>AI / CDS</span>
+
+                    <span
+                        class="transition-transform"
+                        :class="{ 'rotate-180': expanded }"
+                    >
+                        ▾
+                    </span>
+                </button>
+
+                <div
+                    x-cloak
+                    x-show="expanded"
+                    class="mobile-primary-nav-panel"
+                >
+                    <a href="#" class="mobile-primary-nav-link">
+                        Alerts
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Recommendations
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Risk Scores
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Clinical Summaries
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Natural-Language Search
+                    </a>
+
+                    {% if request.user.is_staff %}
+                        <a href="#" class="mobile-primary-nav-link">
+                            Rules
+                        </a>
+
+                        <a href="#" class="mobile-primary-nav-link">
+                            Performance
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- =============================================
+                 MOBILE MENU 4: ADMINISTRATION
+            ============================================== -->
+            <div x-data="{ expanded: false }">
+                <button
+                    type="button"
+                    class="mobile-primary-nav-button"
+                    @click="expanded = !expanded"
+                    :aria-expanded="expanded.toString()"
+                >
+                    <span>Administration</span>
+
+                    <span
+                        class="transition-transform"
+                        :class="{ 'rotate-180': expanded }"
+                    >
+                        ▾
+                    </span>
+                </button>
+
+                <div
+                    x-cloak
+                    x-show="expanded"
+                    class="mobile-primary-nav-panel"
+                >
+                    <a
+                        href="{% url 'core:administration_dashboard' %}"
+                        class="mobile-primary-nav-link"
+                    >
+                        Administration Dashboard
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Scheduling
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Users and Staff
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Roles and Permissions
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Facilities
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Audit Logs
+                    </a>
+
+                    <a href="#" class="mobile-primary-nav-link">
+                        Settings
+                    </a>
+
+                    {% if request.user.is_staff %}
+                        <a
+                            href="{% url 'admin:index' %}"
+                            class="mobile-primary-nav-link"
+                        >
+                            Django Admin
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+
+        <!-- =================================================
+             SECTION 2B: MOBILE ACCOUNT INFORMATION
+             Visible only when user is authenticated.
+        ================================================== -->
+        {% if request.user.is_authenticated %}
+            <div
+                class="
+                    mt-3 border-t border-white/10
+                    pt-3
+                "
+            >
+                <div class="flex items-center gap-3 px-2">
+                    <div
+                        class="
+                            grid h-9 w-9 shrink-0
+                            place-items-center rounded-full
+                            bg-amber-100 text-xs
+                            font-bold uppercase text-ehr-950
+                        "
+                    >
+                        {% if request.user.first_name %}
+                            {{ request.user.first_name|first }}
+                            {{ request.user.last_name|first }}
+                        {% else %}
+                            {{ request.user.username|first }}
+                        {% endif %}
+                    </div>
+
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold">
                             {% if request.user.get_full_name %}
                                 {{ request.user.get_full_name }}
                             {% else %}
                                 {{ request.user.username }}
                             {% endif %}
                         </p>
-                        <p
-                            class="
-                                mt-0.5 truncate
-                                text-xs text-slate-500
-                            "
-                        >
-                            {{ request.user.email|default:"No email address" }}
-                        </p>
-                        <div class="mt-2 flex flex-wrap gap-1.5">
-                            <span
-                                class="
-                                    rounded-full bg-ehr-100
-                                    px-2 py-0.5 text-[10px]
-                                    font-semibold text-ehr-800
-                                "
-                            >
-                                {% if request.user.is_superuser %}
-                                    System Administrator
-                                {% elif request.user.profile %}
-                                    {{ request.user.profile.get_role_display }}
-                                {% else %}
-                                    EHR User
-                                {% endif %}
-                            </span>
-                            {% if request.user.profile.facility %}
-                                <span
-                                    class="
-                                        max-w-40 truncate
-                                        rounded-full bg-slate-200
-                                        px-2 py-0.5 text-[10px]
-                                        font-medium text-slate-700
-                                    "
-                                >
-                                    {{ request.user.profile.facility }}
-                                </span>
+
+                        <p class="truncate text-xs text-white/65">
+                            {% if request.user.is_superuser %}
+                                System Administrator
+                            {% elif request.user.profile.job_title %}
+                                {{ request.user.profile.job_title }}
+                            {% elif request.user.profile %}
+                                {{ request.user.profile.get_role_display }}
+                            {% else %}
+                                EHR User
                             {% endif %}
-                        </div>
-                    </div>
-                    <div class="py-1">
-                        <a
-                            href="{% url 'accounts:profile' %}"
-                            class="
-                                flex items-center gap-3
-                                px-4 py-2 text-sm
-                                hover:bg-slate-50
-                            "
-                            role="menuitem"
-                        >
-                            <span aria-hidden="true">👤</span>
-                            <span>My Profile</span>
-                        </a>
-                        {% if request.user.is_staff %}
-                            <a
-                                href="{% url 'admin:index' %}"
-                                class="
-                                    flex items-center gap-3
-                                    px-4 py-2 text-sm
-                                    hover:bg-slate-50
-                                "
-                                role="menuitem"
-                            >
-                                <span aria-hidden="true">⚙️</span>
-                                <span>Administration</span>
-                            </a>
-                        {% endif %}
-                    </div>
-                    <div class="border-t border-slate-100 p-1">
-                        <form
-                            method="post"
-                            action="{% url 'accounts:logout' %}"
-                        >
-                            {% csrf_token %}
-                            <button
-                                type="submit"
-                                class="
-                                    flex w-full items-center gap-3
-                                    rounded-md px-3 py-2
-                                    text-left text-sm font-medium
-                                    text-red-700 hover:bg-red-50
-                                "
-                                role="menuitem"
-                            >
-                                <span aria-hidden="true">↪</span>
-                                <span>Sign Out</span>
-                            </button>
-                        </form>
+                        </p>
                     </div>
                 </div>
+
+                <div class="mt-3 grid grid-cols-2 gap-2">
+                    <a
+                        href="{% url 'accounts:profile' %}"
+                        class="
+                            rounded-md bg-white/10
+                            px-3 py-2 text-center
+                            text-xs font-semibold
+                            transition hover:bg-white/20
+                        "
+                    >
+                        My Profile
+                    </a>
+
+                    <form
+                        method="post"
+                        action="{% url 'accounts:logout' %}"
+                    >
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="
+                                w-full rounded-md
+                                bg-red-500/20 px-3 py-2
+                                text-xs font-semibold
+                                text-red-100
+                                transition hover:bg-red-500/30
+                            "
+                        >
+                            Sign Out
+                        </button>
+                    </form>
+                </div>
             </div>
-        {% else %}
-            <a
-                href="{% url 'accounts:login' %}"
-                class="
-                    rounded-md bg-white/10
-                    px-3 py-1.5 text-xs font-semibold
-                    hover:bg-white/20
-                "
-            >
-                Sign In
-            </a>
         {% endif %}
     </div>
-</div>
 </header>

@@ -1,0 +1,40 @@
+
+
+
+<section class="{% if selected_patient %}mt-3{% endif %}">
+    <p class="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wide text-white/55">
+        Clinical
+    </p>
+
+    <nav class="space-y-0.5" aria-label="Clinical modules">
+        <a class="patient-nav-link" href="{% url 'patients:list' %}">
+            <span>♙</span>
+            <span>Patients</span>
+        </a>
+
+        <a class="patient-nav-link" href="#">
+            <span>♡</span>
+            <span>Nursing</span>
+        </a>
+
+        <a class="patient-nav-link" href="#">
+            <span>▤</span>
+            <span>Orders</span>
+        </a>
+
+        <a class="patient-nav-link" href="#">
+            <span>◇</span>
+            <span>Medications</span>
+        </a>
+
+        <a class="patient-nav-link" href="#">
+            <span>⌂</span>
+            <span>Pharmacy</span>
+        </a>
+
+        <a class="patient-nav-link" href="#">
+            <span>⇄</span>
+            <span>Care Management</span>
+        </a>
+    </nav>
+</section>

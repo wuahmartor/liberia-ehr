@@ -1,0 +1,140 @@
+<section class="{% if selected_patient %}mt-3{% endif %}">
+    <!-- =========================================================
+         PHARMACY SIDEBAR HEADING
+    ========================================================== -->
+    <div class="mb-2 px-2">
+        <p
+            class="
+                text-[10px] font-semibold uppercase
+                tracking-wide text-white/55
+            "
+        >
+            Pharmacy
+        </p>
+    </div>
+
+    <!-- =========================================================
+         PHARMACY WORKFLOW LINKS
+    ========================================================== -->
+    <nav
+        class="space-y-0.5"
+        aria-label="Pharmacy workflow"
+    >
+        <a
+            href="{% url 'pharmacy:dashboard' %}"
+            class="
+                patient-nav-link
+                {% if active_clinical_section == 'dashboard' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span aria-hidden="true">▦</span>
+            <span>Dashboard</span>
+        </a>
+
+        <a
+            href="{% url 'pharmacy:queue' %}"
+            class="
+                patient-nav-link
+                {% if active_clinical_section == 'queue' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span aria-hidden="true">▤</span>
+            <span>Queue</span>
+        </a>
+
+        <a
+            href="{% url 'pharmacy:pending-review' %}"
+            class="
+                patient-nav-link
+                {% if active_clinical_section == 'pending-review' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span aria-hidden="true">◷</span>
+            <span>Pending Review</span>
+        </a>
+
+        <a
+            href="{% url 'pharmacy:verified' %}"
+            class="
+                patient-nav-link
+                {% if active_clinical_section == 'verified' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span aria-hidden="true">✓</span>
+            <span>Verified</span>
+        </a>
+
+        <a
+            href="{% url 'pharmacy:dispensing' %}"
+            class="
+                patient-nav-link
+                {% if active_clinical_section == 'dispensing' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span aria-hidden="true">⇢</span>
+            <span>Dispensing</span>
+        </a>
+
+        <a
+            href="{% url 'pharmacy:inventory' %}"
+            class="
+                patient-nav-link
+                {% if active_clinical_section == 'inventory' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span aria-hidden="true">▥</span>
+            <span>Inventory</span>
+        </a>
+
+        <a
+            href="{% url 'pharmacy:medication-catalog' %}"
+            class="
+                patient-nav-link
+                {% if active_clinical_section == 'medication-catalog' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span aria-hidden="true">◇</span>
+            <span>Medication Catalog</span>
+        </a>
+
+        <a
+            href="{% url 'pharmacy:interactions' %}"
+            class="
+                patient-nav-link
+                {% if active_clinical_section == 'interactions' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span aria-hidden="true">!</span>
+            <span>Interactions</span>
+        </a>
+
+        <a
+            href="{% url 'pharmacy:rejected' %}"
+            class="
+                patient-nav-link
+                {% if active_clinical_section == 'rejected' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span aria-hidden="true">×</span>
+            <span>Rejected</span>
+        </a>
+    </nav>
+</section>

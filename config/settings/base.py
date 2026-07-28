@@ -49,6 +49,7 @@ LOCAL_APPS = [
     "apps.ai_assistant",
     "apps.audit",
     "apps.notifications",
+    "apps.pharmacy",
 ]
 
 

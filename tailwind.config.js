@@ -1,9 +1,10 @@
 module.exports = {
   content: [
     "./templates/**/*.html",
-    "./apps/**/*.html",
-    "./apps/**/*.py"
+    "./apps/**/templates/**/*.html",
+    "./static/src/js/**/*.js",
   ],
+
   theme: {
     extend: {
       colors: {
@@ -14,15 +15,18 @@ module.exports = {
           700: "#087368",
           800: "#075d57",
           900: "#064b47",
-          950: "#033c3a"
-        }
+          950: "#033c3a",
+        },
       },
+
       boxShadow: {
-        panel: "0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.06)"
-      }
-    }
+        panel:
+          "0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.06)",
+      },
+    },
   },
+
   plugins: [
-    require("@tailwindcss/forms")
-  ]
-}
+    require("@tailwindcss/forms"),
+  ],
+};

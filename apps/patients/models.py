@@ -54,13 +54,29 @@ class PatientQuerySet(models.QuerySet):
         return self.filter(
             is_active=True,
             record_status=Patient.RecordStatus.ACTIVE,
+            is_deceased=False,
+        )
+
+    def inactive(self):
+        return self.filter(
+            Q(is_active=False)
+            | Q(record_status=Patient.RecordStatus.INACTIVE)
         )
 
     def deceased(self):
         return self.filter(is_deceased=True)
 
+    def merged(self):
+        return self.filter(record_status=Patient.RecordStatus.MERGED)
+
+    def entered_in_error(self):
+        return self.filter(
+            record_status=Patient.RecordStatus.ENTERED_IN_ERROR
+        )
+
     def search(self, query: str):
         query = (query or "").strip()
+
         if not query:
             return self.none()
 
@@ -70,7 +86,9 @@ class PatientQuerySet(models.QuerySet):
             | Q(middle_name__icontains=query)
             | Q(last_name__icontains=query)
             | Q(previous_last_name__icontains=query)
+            | Q(preferred_name__icontains=query)
             | Q(aliases__first_name__icontains=query)
+            | Q(aliases__middle_name__icontains=query)
             | Q(aliases__last_name__icontains=query)
             | Q(identifiers__value__icontains=query)
             | Q(contact_points__value__icontains=query)
@@ -281,6 +299,43 @@ class Patient(UserTrackedModel):
         )
         return contact.value if contact else ""
 
+    def get_full_name(self):
+        return self.full_name
+
+
+    def get_short_name(self):
+        return self.preferred_name or self.first_name
+
+
+    @property
+    def age_display(self):
+        if self.date_of_birth_estimated:
+            return f"Approximately {self.age}"
+        return str(self.age)
+
+
+    @property
+    def primary_emergency_contact(self):
+        return (
+            self.emergency_contacts.filter(is_active=True)
+            .order_by("-is_primary", "-is_next_of_kin", "full_name")
+            .first()
+        )
+
+
+    @property
+    def active_flags(self):
+        now = timezone.now()
+
+        return self.flags.filter(
+            is_active=True,
+            starts_at__lte=now,
+        ).filter(
+            Q(ends_at__isnull=True) | Q(ends_at__gte=now)
+        )
+
+
+
     @property
     def primary_address(self):
         return (
@@ -291,9 +346,12 @@ class Patient(UserTrackedModel):
 
     def clean(self):
         errors = {}
+        today = timezone.localdate()
 
-        if self.date_of_birth and self.date_of_birth > timezone.localdate():
-            errors["date_of_birth"] = "Date of birth cannot be in the future."
+        if self.date_of_birth and self.date_of_birth > today:
+            errors["date_of_birth"] = (
+                "Date of birth cannot be in the future."
+            )
 
         if self.deceased_at and self.date_of_birth:
             if self.deceased_at.date() < self.date_of_birth:
@@ -311,13 +369,53 @@ class Patient(UserTrackedModel):
                 "Mark the patient as deceased or remove the deceased date."
             )
 
+        if self.is_deceased and self.is_active:
+            errors["is_active"] = (
+                "A deceased patient cannot remain active."
+            )
+
+        if self.is_deceased and self.record_status == self.RecordStatus.ACTIVE:
+            errors["record_status"] = (
+                "A deceased patient cannot have an active record status."
+            )
+
+        if (
+            self.record_status == self.RecordStatus.ACTIVE
+            and not self.is_active
+        ):
+            errors["is_active"] = (
+                "An active patient record must have is_active enabled."
+            )
+
+        if self.record_status in {
+            self.RecordStatus.INACTIVE,
+            self.RecordStatus.MERGED,
+            self.RecordStatus.ENTERED_IN_ERROR,
+        } and self.is_active:
+            errors["is_active"] = (
+                "Inactive, merged, and entered-in-error records "
+                "cannot remain active."
+            )
+
         if self.gender_identity == self.GenderIdentity.OTHER:
             if not self.gender_identity_description.strip():
                 errors["gender_identity_description"] = (
                     "Describe the gender identity when Other is selected."
                 )
 
-        if self.confidential_record and not self.restricted_access_reason.strip():
+        if (
+            self.gender_identity != self.GenderIdentity.OTHER
+            and self.gender_identity_description.strip()
+        ):
+            errors["gender_identity_description"] = (
+                "A gender identity description is only needed "
+                "when Other is selected."
+            )
+
+        if (
+            self.confidential_record
+            and not self.restricted_access_reason.strip()
+        ):
             errors["restricted_access_reason"] = (
                 "Provide a reason for restricting access to this record."
             )
@@ -326,13 +424,30 @@ class Patient(UserTrackedModel):
             raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
-        self.mrn = self.mrn.strip().upper()
-        self.first_name = self.first_name.strip()
-        self.middle_name = self.middle_name.strip()
-        self.last_name = self.last_name.strip()
-        self.previous_last_name = self.previous_last_name.strip()
-        self.preferred_name = self.preferred_name.strip()
+        self.mrn = (self.mrn or "").strip().upper()
+        self.prefix = (self.prefix or "").strip()
+        self.first_name = (self.first_name or "").strip()
+        self.middle_name = (self.middle_name or "").strip()
+        self.last_name = (self.last_name or "").strip()
+        self.previous_last_name = (
+            self.previous_last_name or ""
+        ).strip()
+        self.preferred_name = (self.preferred_name or "").strip()
+        self.suffix = (self.suffix or "").strip()
+
+        if self.is_deceased:
+            self.is_active = False
+
+            if self.record_status == self.RecordStatus.ACTIVE:
+                self.record_status = self.RecordStatus.INACTIVE
+
+        if self.record_status == self.RecordStatus.ACTIVE:
+            self.is_active = True
+        else:
+            self.is_active = False
+
         self.full_clean()
+
         return super().save(*args, **kwargs)
 
 
