@@ -20,6 +20,7 @@
 }
 
 @layer components {
+
     .panel {
         @apply rounded-lg border border-slate-200 bg-white shadow-sm;
     }
@@ -180,16 +181,21 @@
     }
 
     .patient-nav-link {
-        @apply flex items-center gap-2
-               rounded-md px-2.5 py-1.5
-               text-xs font-medium text-white/80
-               transition
-               hover:bg-white/10 hover:text-white;
+        @apply flex w-full items-center gap-2
+            rounded-md px-2.5 py-2
+            text-xs font-medium text-slate-700
+            transition-colors duration-150
+            hover:bg-white/80
+            hover:text-ehr-800;
     }
 
     .patient-nav-link-active {
-        @apply bg-white text-ehr-900 shadow-sm
-               hover:bg-white hover:text-ehr-900;
+        @apply bg-white/90
+            font-semibold text-ehr-900
+            shadow-sm
+            ring-1 ring-slate-200/70
+            hover:bg-white
+            hover:text-ehr-900;
     }
 
     .dashboard-card {

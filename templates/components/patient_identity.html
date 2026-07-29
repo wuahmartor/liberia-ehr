@@ -1,13 +1,11 @@
-
-
-
-<section class="border-b border-white/15 pb-3">
+<section class="border-b border-emerald-200/70 pb-3">
     <div class="flex items-start gap-2.5">
         <div
             class="
                 grid h-11 w-11 shrink-0 place-items-center
-                rounded-full border-2 border-white/80
-                bg-ehr-100 text-xl font-bold text-ehr-900
+                rounded-full border-2 border-emerald-200
+                bg-emerald-100
+                text-xl font-bold text-emerald-900
             "
         >
             {% if selected_patient.first_name %}
@@ -19,25 +17,36 @@
         </div>
 
         <div class="min-w-0 pt-1">
-            <h2 class="truncate text-sm font-bold">
+            <h2 class="truncate text-sm font-bold text-slate-900">
                 {{ selected_patient.get_full_name }}
             </h2>
 
-            <p class="text-[11px] font-semibold text-white/90">
-                MRN: {{ selected_patient.mrn }}
+            <p class="text-[11px] font-semibold text-slate-700">
+                MRN:
+                {{ selected_patient.mrn|default:"Not assigned" }}
             </p>
 
-            <p class="mt-0.5 text-[10px] leading-4 text-white/75">
-                DOB: {{ selected_patient.date_of_birth|date:"m/d/Y" }}
+            <p class="mt-0.5 text-[10px] leading-4 text-slate-600">
+            DOB:
+            {% if selected_patient.date_of_birth %}
+                {{ selected_patient.date_of_birth|date:"m/d/Y" }}
+            {% else %}
+                Not recorded
+            {% endif %}
 
-                {% if selected_patient.age %}
-                    ({{ selected_patient.age }} yo)
-                {% endif %}
+            {% if selected_patient.age %}
+                ({{ selected_patient.age }} yo)
+            {% endif %}
 
-                <br>
+            <br>
 
-                {{ selected_patient.get_sex_display }}
-            </p>
+            Sex at birth:
+            {% if selected_patient.sex_at_birth %}
+                {{ selected_patient.get_sex_at_birth_display }}
+            {% else %}
+                Not recorded
+            {% endif %}
+        </p>
         </div>
     </div>
 </section>

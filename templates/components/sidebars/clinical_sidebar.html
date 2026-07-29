@@ -1,6 +1,14 @@
-<div class="p-3">
+<div class="h-full bg-transparent p-3 text-slate-800">
+
     {% if selected_patient %}
-        {% include "components/patient_identity.html" %}
+        <div class="mb-3">
+            {% include "components/patient_identity.html" with patient=selected_patient %}
+        </div>
+
+    {% elif patient %}
+        <div class="mb-3">
+            {% include "components/patient_identity.html" with patient=patient %}
+        </div>
     {% endif %}
 
     {% if active_clinical_module == "patients" %}
@@ -21,4 +29,5 @@
     {% elif active_clinical_module == "care-management" %}
         {% include "components/sidebars/care_management_sidebar.html" %}
     {% endif %}
+
 </div>

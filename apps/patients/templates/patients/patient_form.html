@@ -1,0 +1,213 @@
+{% extends "layouts/app_shell.html" %}
+
+{% comment %}
+============================================================
+COMPACT PATIENT CREATE / UPDATE PAGE
+
+File:
+apps/patients/templates/patients/patient_form.html
+
+The form begins near the top of the application workspace.
+============================================================
+{% endcomment %}
+
+
+{% block title %}
+    {% if form_mode == "update" %}
+        Update Patient
+    {% else %}
+        Register Patient
+    {% endif %}
+{% endblock title %}
+
+
+{% block workspace %}
+<div class="w-full">
+
+    {% comment %}
+    ========================================================
+    CENTERED COMPACT CONTAINER
+    ========================================================
+    {% endcomment %}
+
+    <div class="mx-auto w-full max-w-3xl">
+
+        {% comment %}
+        ====================================================
+        COMPACT PAGE HEADER
+        ====================================================
+        {% endcomment %}
+
+        <div
+            class="
+                mb-3 flex flex-col gap-2
+                sm:flex-row
+                sm:items-center
+                sm:justify-between
+            "
+        >
+            <div class="min-w-0">
+                <h1
+                    class="
+                        text-lg font-bold
+                        tracking-tight text-slate-900
+                    "
+                >
+                    {% if form_mode == "update" %}
+                        Update Patient
+                    {% else %}
+                        Register New Patient
+                    {% endif %}
+                </h1>
+
+                <p class="mt-0.5 text-xs text-slate-500">
+                    {% if form_mode == "update" %}
+                        Update demographic and registration details for
+                        {{ form.instance.display_name|default:"this patient" }}.
+                    {% else %}
+                        Enter the patient’s demographic and registration details.
+                    {% endif %}
+                </p>
+            </div>
+
+            {% comment %}
+            =================================================
+            BACK ACTION
+            =================================================
+            {% endcomment %}
+
+            {% if form_mode == "update" %}
+                <a
+                    href="{% url 'patients:detail' patient_id=form.instance.pk %}"
+                    hx-boost="false"
+                    class="
+                        inline-flex shrink-0 items-center gap-1.5
+                        self-start rounded-md
+                        border border-slate-300
+                        bg-white px-2.5 py-1.5
+                        text-[11px] font-semibold text-slate-700
+                        shadow-sm transition
+                        hover:bg-slate-50
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-ehr-500/30
+                        sm:self-auto
+                    "
+                >
+                    <svg
+                        class="h-3.5 w-3.5 shrink-0"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="M17 10a.75.75 0 01-.75.75H5.56l3.22 3.22a.75.75 0 11-1.06 1.06l-4.5-4.5a.75.75 0 010-1.06l4.5-4.5a.75.75 0 011.06 1.06L5.56 9.25h10.69A.75.75 0 0117 10z"
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+
+                    <span>Back to Patient</span>
+                </a>
+            {% else %}
+                <a
+                    href="{% url 'patients:list' %}"
+                    hx-boost="false"
+                    class="
+                        inline-flex shrink-0 items-center gap-1.5
+                        self-start rounded-md
+                        border border-slate-300
+                        bg-white px-2.5 py-1.5
+                        text-[11px] font-semibold text-slate-700
+                        shadow-sm transition
+                        hover:bg-slate-50
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-ehr-500/30
+                        sm:self-auto
+                    "
+                >
+                    <svg
+                        class="h-3.5 w-3.5 shrink-0"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="M17 10a.75.75 0 01-.75.75H5.56l3.22 3.22a.75.75 0 11-1.06 1.06l-4.5-4.5a.75.75 0 010-1.06l4.5-4.5a.75.75 0 011.06 1.06L5.56 9.25h10.69A.75.75 0 0117 10z"
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+
+                    <span>Back to List</span>
+                </a>
+            {% endif %}
+        </div>
+
+        {% comment %}
+        ====================================================
+        PATIENT FORM CARD
+        ====================================================
+        {% endcomment %}
+
+        <section
+            class="
+                overflow-hidden rounded-lg
+                border border-slate-200
+                bg-white shadow-sm
+            "
+        >
+            <header
+                class="
+                    flex items-center gap-2.5
+                    border-b border-slate-200
+                    bg-slate-50/80
+                    px-4 py-2.5
+                "
+            >
+                <div
+                    class="
+                        flex h-7 w-7 shrink-0
+                        items-center justify-center
+                        rounded-md bg-ehr-100 text-ehr-800
+                    "
+                >
+                    <svg
+                        class="h-4 w-4 shrink-0"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path d="M10 9a3 3 0 100-6 3 3 0 000 6z" />
+
+                        <path
+                            fill-rule="evenodd"
+                            d="M2 16.5A5.5 5.5 0 017.5 11h5a5.5 5.5 0 015.5 5.5.5.5 0 01-.5.5h-15a.5.5 0 01-.5-.5z"
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                </div>
+
+                <div class="min-w-0">
+                    <h2 class="text-xs font-bold text-slate-900">
+                        {% if form_mode == "update" %}
+                            Edit Patient Information
+                        {% else %}
+                            Patient Registration
+                        {% endif %}
+                    </h2>
+
+                    <p class="mt-0.5 text-[10px] text-slate-500">
+                        Complete all required fields before saving.
+                    </p>
+                </div>
+            </header>
+
+            <div class="px-4 py-3 sm:px-5">
+                {% include "patients/partials/patient_form.html" with form=form form_mode=form_mode %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock workspace %}

@@ -1,32 +1,203 @@
+{% comment %}
+============================================================
+PATIENT CREATE / UPDATE FORM PARTIAL
+
+File:
+apps/patients/templates/patients/partials/patient_form.html
+
+The form_mode context variable determines whether this is a
+create or update form. Do not use form.instance.pk because a
+new UUID-based patient can already have a primary key.
+============================================================
+{% endcomment %}
+
 <form
     method="post"
-    class="space-y-4"
-    {% if object %}
-        hx-post="{% url 'patients:update' object.id %}"
+
+    {% if form_mode == "update" %}
+        action="{% url 'patients:update' patient_id=form.instance.pk %}"
+        hx-post="{% url 'patients:update' patient_id=form.instance.pk %}"
     {% else %}
+        action="{% url 'patients:create' %}"
         hx-post="{% url 'patients:create' %}"
     {% endif %}
-    hx-target="#modal-content"
-    hx-swap="innerHTML"
+
+    hx-target="this"
+    hx-swap="outerHTML"
+    hx-indicator="#patient-form-loading"
+    hx-disabled-elt="#patient-submit-button"
+    class="space-y-3"
+    novalidate
 >
     {% csrf_token %}
 
-    {% include "patients/partials/form_fields.html" %}
+    {% comment %}
+    ========================================================
+    NON-FIELD VALIDATION ERRORS
+    ========================================================
+    {% endcomment %}
 
-    <div class="flex justify-end gap-2 border-t border-slate-200 pt-4">
-        <button
-            type="button"
-            class="rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
-            @click="open = false"
+    {% if form.non_field_errors %}
+        <div
+            class="
+                rounded-lg border border-red-200
+                bg-red-50 px-4 py-3
+                text-sm text-red-700
+            "
+            role="alert"
         >
-            Cancel
-        </button>
+            <p class="font-semibold">
+                Please correct the following errors:
+            </p>
 
-        <button
-            type="submit"
-            class="rounded-md bg-ehr-800 px-3 py-2 text-xs font-semibold text-white hover:bg-ehr-900"
+            <ul class="mt-2 list-disc space-y-1 pl-5">
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% comment %}
+    ========================================================
+    PATIENT FORM FIELDS
+    ========================================================
+    {% endcomment %}
+
+    {% include "patients/partials/form_fields.html" with form=form %}
+
+    {% comment %}
+    ========================================================
+    FORM ACTIONS
+    ========================================================
+    {% endcomment %}
+
+    <div
+        class="
+            flex items-center justify-between gap-3
+            border-t border-slate-200 pt-3
+        "
+    >
+        {% comment %}
+        ====================================================
+        LOADING INDICATOR
+        ====================================================
+        {% endcomment %}
+
+        <div
+            id="patient-form-loading"
+            class="
+                htmx-indicator
+                inline-flex items-center gap-2
+                text-xs font-medium text-slate-500
+            "
+            aria-live="polite"
         >
-            Save Patient
-        </button>
+            <svg
+                class="h-4 w-4 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+            >
+                <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                ></circle>
+
+                <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+            </svg>
+
+            <span>
+                {% if form_mode == "update" %}
+                    Updating patient...
+                {% else %}
+                    Saving patient...
+                {% endif %}
+            </span>
+        </div>
+
+        <div class="ml-auto flex items-center gap-2">
+            {% comment %}
+            =================================================
+            CANCEL BUTTON
+            =================================================
+            {% endcomment %}
+
+            {% if form_mode == "update" %}
+                <a
+                    href="{% url 'patients:detail' patient_id=form.instance.pk %}"
+                    class="
+                        rounded-md border border-slate-300
+                        bg-white px-3 py-2
+                        text-xs font-semibold text-slate-700
+                        transition
+                        hover:bg-slate-50
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-ehr-600
+                        focus:ring-offset-2
+                    "
+                >
+                    Cancel
+                </a>
+            {% else %}
+                <a
+                    href="{% url 'patients:list' %}"
+                    class="
+                        rounded-md border border-slate-300
+                        bg-white px-3 py-2
+                        text-xs font-semibold text-slate-700
+                        transition
+                        hover:bg-slate-50
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-ehr-600
+                        focus:ring-offset-2
+                    "
+                >
+                    Cancel
+                </a>
+            {% endif %}
+
+            {% comment %}
+            =================================================
+            SUBMIT BUTTON
+            =================================================
+            {% endcomment %}
+
+            <button
+                id="patient-submit-button"
+                type="submit"
+                class="
+                    inline-flex items-center justify-center
+                    rounded-md bg-ehr-800
+                    px-4 py-2
+                    text-xs font-semibold text-white
+                    transition
+                    hover:bg-ehr-900
+                    focus:outline-none
+                    focus:ring-2
+                    focus:ring-ehr-600
+                    focus:ring-offset-2
+                    disabled:cursor-not-allowed
+                    disabled:opacity-60
+                "
+            >
+                {% if form_mode == "update" %}
+                    Update Patient
+                {% else %}
+                    Register Patient
+                {% endif %}
+            </button>
+        </div>
     </div>
 </form>

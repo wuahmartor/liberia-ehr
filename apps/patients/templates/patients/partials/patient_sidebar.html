@@ -1,1 +1,133 @@
-{# Patients HTMX partial: patient_sidebar.html #}
+<section class="{% if selected_patient %}mt-3{% endif %}">
+    <p
+        class="
+            mb-2 px-2
+            text-[10px] font-semibold uppercase
+            tracking-wide text-slate-500
+        "
+    >
+        Patient Record
+    </p>
+
+    <nav
+        class="space-y-1"
+        aria-label="Patient record navigation"
+    >
+        <a
+            href="#"
+            class="
+                patient-nav-link
+                {% if active_patient_section == 'overview' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span class="text-slate-400" aria-hidden="true">▣</span>
+            <span>Overview</span>
+        </a>
+
+        <a
+            href="#"
+            class="
+                patient-nav-link
+                {% if active_patient_section == 'summary' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span class="text-slate-400" aria-hidden="true">▤</span>
+            <span>Clinical Summary</span>
+        </a>
+
+        <a
+            href="#"
+            class="
+                patient-nav-link
+                {% if active_patient_section == 'vitals' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span class="text-slate-400" aria-hidden="true">▧</span>
+            <span>Vitals &amp; Labs</span>
+        </a>
+
+        <a
+            href="#"
+            class="
+                patient-nav-link
+                {% if active_patient_section == 'medications' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span class="text-slate-400" aria-hidden="true">◇</span>
+            <span>Medications</span>
+        </a>
+
+        <a
+            href="#"
+            class="
+                patient-nav-link
+                {% if active_patient_section == 'problems' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span class="text-slate-400" aria-hidden="true">⊙</span>
+            <span>Problems</span>
+        </a>
+
+        <a
+            href="#"
+            class="
+                patient-nav-link
+                {% if active_patient_section == 'care-plan' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span class="text-slate-400" aria-hidden="true">▱</span>
+            <span>Care Plan</span>
+        </a>
+
+        <a
+            href="#"
+            class="
+                patient-nav-link
+                {% if active_patient_section == 'notes' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span class="text-slate-400" aria-hidden="true">▰</span>
+            <span>Notes</span>
+        </a>
+
+        <a
+            href="#"
+            class="
+                patient-nav-link
+                {% if active_patient_section == 'documents' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span class="text-slate-400" aria-hidden="true">▤</span>
+            <span>Documents</span>
+        </a>
+
+        <a
+            href="#"
+            class="
+                patient-nav-link
+                {% if active_patient_section == 'flowsheets' %}
+                    patient-nav-link-active
+                {% endif %}
+            "
+        >
+            <span class="text-slate-400" aria-hidden="true">▥</span>
+            <span>Flowsheets</span>
+        </a>
+    </nav>
+</section>

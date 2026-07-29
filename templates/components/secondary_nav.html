@@ -2,233 +2,225 @@
 <div class="border-b border-slate-200 bg-white shadow-sm">
     <div
         class="
-            flex min-h-11 items-center gap-2
-            overflow-visible px-3 py-1.5 lg:px-4
+            flex min-h-11 items-center gap-3
+            overflow-visible px-3 py-1.5
+            lg:px-4
         "
     >
-        <!-- =====================================================
-             CURRENT MODULE
-        ====================================================== -->
-        <a
-            href="{% url 'patients:list' %}"
-            class="
-                inline-flex shrink-0 items-center gap-1.5
-                rounded-md px-2 py-1.5
-                text-xs font-semibold text-ehr-800
-                transition hover:bg-ehr-50
-                focus:outline-none focus:ring-2 focus:ring-ehr-500/30
-            "
-        >
-            <svg
-                class="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                aria-hidden="true"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="
-                        M16 21v-2a4 4 0 00-4-4H6
-                        a4 4 0 00-4 4v2
-                        M9 11a4 4 0 100-8
-                        M22 21v-2a4 4 0 00-3-3.87
-                        M16 3.13a4 4 0 010 7.75
-                    "
-                />
-            </svg>
+        {% comment %}
+        ========================================================
+        PATIENT SEARCH AND NEW PATIENT ACTION
+        ========================================================
+        {% endcomment %}
 
-            <span>Patients</span>
-        </a>
+        <div class="flex min-w-0 flex-1 items-center gap-3">
 
-        <!-- =====================================================
-             PATIENT SEARCH
-        ====================================================== -->
-        <div
-            class="
-                relative min-w-[14rem]
-                max-w-lg flex-1
-            "
-            x-data="{ open: false }"
-            @click.outside="open = false"
-        >
-            <div class="relative">
-                <svg
-                    class="
-                        pointer-events-none absolute
-                        left-2.5 top-1/2 h-4 w-4
-                        -translate-y-1/2 text-slate-400
-                    "
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    aria-hidden="true"
-                >
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path
-                        stroke-linecap="round"
-                        d="m21 21-4.35-4.35"
-                    ></path>
-                </svg>
-
-                <input
-                    type="search"
-                    name="q"
-                    class="
-                        w-full rounded-md
-                        border border-slate-300
-                        bg-white py-1.5
-                        pl-8 pr-9
-                        text-xs text-slate-900
-                        placeholder:text-slate-400
-                        focus:border-ehr-500
-                        focus:ring-1 focus:ring-ehr-500
-                    "
-                    placeholder="Search by name, MRN, phone, or identifier"
-                    hx-get="{% url 'patients:search-results' %}"
-                    hx-trigger="
-                        input changed delay:350ms,
-                        search
-                    "
-                    hx-target="#patient-search-results"
-                    hx-indicator="#patient-search-spinner"
-                    hx-include="this"
-                    @focus="open = true"
-                    @input="open = true"
-                    autocomplete="off"
-                    aria-label="Search patients"
-                >
-
-                <span
-                    id="patient-search-spinner"
-                    class="
-                        htmx-indicator absolute
-                        right-2.5 top-1/2
-                        -translate-y-1/2
-                    "
-                    aria-label="Searching"
-                >
-                    <svg
-                        class="h-4 w-4 animate-spin text-ehr-700"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        aria-hidden="true"
-                    >
-                        <circle
-                            class="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            stroke-width="4"
-                        ></circle>
-
-                        <path
-                            class="opacity-75"
-                            fill="currentColor"
-                            d="
-                                M4 12a8 8 0 018-8V0
-                                C5.373 0 0 5.373 0 12h4z
-                            "
-                        ></path>
-                    </svg>
-                </span>
-            </div>
+            {% comment %}
+            ====================================================
+            PATIENT SEARCH
+            ====================================================
+            {% endcomment %}
 
             <div
-                x-cloak
-                x-show="open"
-                x-transition.origin.top
-                id="patient-search-results"
                 class="
-                    absolute left-0 right-0 top-full
-                    z-[70] mt-1
-                    max-h-80 overflow-y-auto
-                    rounded-lg border border-slate-200
-                    bg-white shadow-xl
+                    relative min-w-[14rem]
+                    max-w-lg flex-1
                 "
-            ></div>
+                x-data="{ open: false }"
+                @click.outside="open = false"
+                @keydown.escape.window="open = false"
+            >
+                <div class="relative">
+                    <svg
+                        class="
+                            pointer-events-none absolute
+                            left-2.5 top-1/2
+                            h-4 w-4 -translate-y-1/2
+                            text-slate-400
+                        "
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                    >
+                        <circle cx="11" cy="11" r="8"></circle>
+
+                        <path
+                            stroke-linecap="round"
+                            d="m21 21-4.35-4.35"
+                        ></path>
+                    </svg>
+
+                    <input
+                        type="search"
+                        name="q"
+                        value="{{ query|default:'' }}"
+                        class="
+                            w-full rounded-md
+                            border border-slate-300
+                            bg-white py-1.5
+                            pl-8 pr-9
+                            text-xs text-slate-900
+                            placeholder:text-slate-400
+                            focus:border-ehr-500
+                            focus:outline-none
+                            focus:ring-1
+                            focus:ring-ehr-500
+                        "
+                        placeholder="Search by name, MRN, phone, or identifier"
+                        hx-get="{% url 'patients:search-results' %}"
+                        hx-trigger="input changed delay:350ms, search"
+                        hx-target="#patient-search-results"
+                        hx-swap="innerHTML"
+                        hx-indicator="#patient-search-spinner"
+                        hx-include="this"
+                        @focus="open = true"
+                        @input="open = true"
+                        autocomplete="off"
+                        aria-label="Search patients"
+                    >
+
+                    <span
+                        id="patient-search-spinner"
+                        class="
+                            htmx-indicator absolute
+                            right-2.5 top-1/2
+                            -translate-y-1/2
+                        "
+                        aria-label="Searching"
+                    >
+                        <svg
+                            class="h-4 w-4 animate-spin text-ehr-700"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-hidden="true"
+                        >
+                            <circle
+                                class="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                stroke-width="4"
+                            ></circle>
+
+                            <path
+                                class="opacity-75"
+                                fill="currentColor"
+                                d="
+                                    M4 12a8 8 0 018-8V0
+                                    C5.373 0 0 5.373 0 12h4z
+                                "
+                            ></path>
+                        </svg>
+                    </span>
+                </div>
+
+                {% comment %}
+                =================================================
+                SEARCH RESULTS DROPDOWN
+                =================================================
+                {% endcomment %}
+
+                <div
+                    id="patient-search-results"
+                    x-cloak
+                    x-show="open"
+                    x-transition.origin.top
+                    class="
+                        absolute left-0 right-0 top-full
+                        z-[70] mt-1
+                        max-h-80 overflow-y-auto
+                        rounded-lg border border-slate-200
+                        bg-white shadow-xl
+                    "
+                ></div>
+            </div>
+
+            {% comment %}
+            ====================================================
+            NEW PATIENT LABEL AND ACTION
+            ====================================================
+            {% endcomment %}
+
+            <div
+                class="
+                    hidden shrink-0 items-center gap-2
+                    whitespace-nowrap sm:flex
+                "
+            >
+
+                <a
+                    href="{% url 'patients:create' %}"
+                    hx-boost="false"
+                    class="
+                        inline-flex items-center gap-1.5
+                        rounded-md px-2.5 py-1.5
+                        text-xs font-semibold
+                        transition
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-ehr-500/30
+
+                        {% if form_mode == 'create' %}
+                            bg-ehr-900 text-white
+                        {% else %}
+                            bg-ehr-800 text-white
+                            hover:bg-ehr-900
+                        {% endif %}
+                    "
+                    {% if form_mode == "create" %}
+                        aria-current="page"
+                    {% endif %}
+                >
+                    <svg
+                        class="h-3.5 w-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 5v14M5 12h14"
+                        />
+                    </svg>
+
+                    <span>New Patient?</span>
+                </a>
+            </div>
         </div>
 
-        <!-- =====================================================
-             PATIENT WORKFLOW ACTIONS
-        ====================================================== -->
-        <nav
-            class="
-                ml-auto flex shrink-0
-                items-center gap-1 whitespace-nowrap
-            "
-            aria-label="Patient actions"
-        >
-            <a
-                href="{% url 'patients:list' %}?status=all"
-                class="secondary-nav-link"
-            >
-                <svg
-                    class="h-3.5 w-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    aria-hidden="true"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="
-                            M8 6h13M8 12h13M8 18h13
-                            M3 6h.01M3 12h.01M3 18h.01
-                        "
-                    />
-                </svg>
+        {% comment %}
+        ========================================================
+        SELECTED PATIENT ACTIONS
+        ========================================================
+        {% endcomment %}
 
-                <span>Patient List</span>
-            </a>
-
-            <a
-                href="{% url 'patients:create' %}"
+        {% if selected_patient %}
+            <nav
                 class="
-                    inline-flex items-center gap-1.5
-                    rounded-md bg-ehr-800
-                    px-2.5 py-1.5
-                    text-xs font-semibold text-white
-                    transition hover:bg-ehr-900
-                    focus:outline-none
-                    focus:ring-2 focus:ring-ehr-500/30
+                    ml-auto flex shrink-0
+                    items-center gap-1 whitespace-nowrap
                 "
+                aria-label="Selected patient actions"
             >
-                <svg
-                    class="h-3.5 w-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    aria-hidden="true"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="
-                            M12 5v14M5 12h14
-                        "
-                    />
-                </svg>
-
-                <span>Register Patient</span>
-            </a>
-
-            {% if selected_patient %}
                 <a
-                    href="{% url 'patients:detail' selected_patient.pk %}"
+                    href="{% url 'patients:detail' patient_id=selected_patient.pk %}"
+                    hx-boost="false"
                     class="
                         secondary-nav-link
-                        {% if active_patient_section == 'overview' %}
+
+                        {% if active_patient_section == 'overview' and form_mode != 'update' %}
                             bg-ehr-50 text-ehr-800
                         {% endif %}
                     "
+                    {% if active_patient_section == "overview" and form_mode != "update" %}
+                        aria-current="page"
+                    {% endif %}
                 >
                     <svg
                         class="h-3.5 w-3.5"
@@ -246,6 +238,7 @@
                                 3 3 0 016 0z
                             "
                         />
+
                         <path
                             stroke-linecap="round"
                             stroke-linejoin="round"
@@ -263,8 +256,18 @@
                 </a>
 
                 <a
-                    href="{% url 'patients:update' selected_patient.pk %}"
-                    class="secondary-nav-link"
+                    href="{% url 'patients:update' patient_id=selected_patient.pk %}"
+                    hx-boost="false"
+                    class="
+                        secondary-nav-link
+
+                        {% if form_mode == 'update' %}
+                            bg-ehr-50 text-ehr-800
+                        {% endif %}
+                    "
+                    {% if form_mode == "update" %}
+                        aria-current="page"
+                    {% endif %}
                 >
                     <svg
                         class="h-3.5 w-3.5"
@@ -283,20 +286,65 @@
                                 a2 2 0 002-2v-7
                             "
                         />
+
                         <path
                             stroke-linecap="round"
                             stroke-linejoin="round"
                             d="
                                 M18.5 2.5a2.121 2.121 0 013 3
-                                L12 15l-4 1 1-4 9.5-9.5z
+                                L12 15l-4 1
+                                1-4 9.5-9.5z
                             "
                         />
                     </svg>
 
                     <span>Edit Demographics</span>
                 </a>
-            {% endif %}
-        </nav>
+            </nav>
+        {% endif %}
+    </div>
+
+    {% comment %}
+    ============================================================
+    MOBILE REGISTER PATIENT ACTION
+    ============================================================
+    {% endcomment %}
+
+    <div class="border-t border-slate-100 px-3 py-2 sm:hidden">
+        <div class="flex items-center justify-between gap-3">
+            <span class="text-xs font-medium text-slate-500">
+                New Patient?
+            </span>
+
+            <a
+                href="{% url 'patients:create' %}"
+                hx-boost="false"
+                class="
+                    inline-flex items-center gap-1.5
+                    rounded-md bg-ehr-800
+                    px-2.5 py-1.5
+                    text-xs font-semibold text-white
+                    transition hover:bg-ehr-900
+                "
+            >
+                <svg
+                    class="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M12 5v14M5 12h14"
+                    />
+                </svg>
+
+                <span>Register Patient</span>
+            </a>
+        </div>
     </div>
 </div>
 {% endif %}

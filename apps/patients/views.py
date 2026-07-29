@@ -327,33 +327,67 @@ def patient_overview(
 # PATIENT CREATE AND UPDATE
 # ============================================================
 
+# ============================================================
+# PATIENT CREATE AND UPDATE
+# ============================================================
+
+# ============================================================
+# PATIENT CREATE AND UPDATE
+# ============================================================
+
+
 class PatientCreateView(LoginRequiredMixin, CreateView):
+    """
+    Create a new patient record.
+
+    Standard requests render the complete patient form page.
+    HTMX requests render only the form partial for the modal.
+    """
+
     model = Patient
     form_class = PatientForm
     template_name = "patients/patient_form.html"
+    partial_template_name = "patients/partials/patient_form.html"
 
     def get_template_names(self):
+        """
+        Select the full-page or partial form template depending
+        on whether the request was made through HTMX.
+        """
         if is_htmx(self.request):
-            return ["patients/partials/patient_form.html"]
+            return [self.partial_template_name]
 
         return [self.template_name]
 
     def get_context_data(self, **kwargs):
+        """
+        Add shared navigation and create-mode context.
+        """
         context = super().get_context_data(**kwargs)
 
         context.update(
-            patient_navigation_context()
+            patient_navigation_context(
+                subsection="registration",
+            )
         )
+
         context["form_mode"] = "create"
 
         return context
 
     @transaction.atomic
     def form_valid(self, form):
+        """
+        Save the patient and record the authenticated user as
+        both the creator and the most recent updater.
+        """
         patient = form.save(commit=False)
+
         patient.created_by = self.request.user
         patient.updated_by = self.request.user
+
         patient.save()
+        form.save_m2m()
 
         self.object = patient
 
@@ -376,39 +410,87 @@ class PatientCreateView(LoginRequiredMixin, CreateView):
 
         return redirect(detail_url)
 
+    def form_invalid(self, form):
+        """
+        Re-render the bound form with validation errors.
+
+        HTMX requests receive the form partial with a 422
+        validation response. Standard requests receive the
+        complete patient form page.
+        """
+        context = self.get_context_data(form=form)
+
+        response = render(
+            self.request,
+            self.get_template_names()[0],
+            context,
+        )
+
+        if is_htmx(self.request):
+            response.status_code = 422
+
+        return response
+
 
 class PatientUpdateView(LoginRequiredMixin, UpdateView):
+    """
+    Update an existing patient record.
+
+    The patient primary key is supplied by the URL using the
+    keyword patient_id.
+    """
+
     model = Patient
     form_class = PatientForm
     pk_url_kwarg = "patient_id"
     template_name = "patients/patient_form.html"
+    partial_template_name = "patients/partials/patient_form.html"
 
     def get_queryset(self):
+        """
+        Use the standard patient queryset for update requests.
+        """
         return patient_queryset()
 
     def get_template_names(self):
+        """
+        Select the full-page or partial form template depending
+        on whether the request was made through HTMX.
+        """
         if is_htmx(self.request):
-            return ["patients/partials/patient_form.html"]
+            return [self.partial_template_name]
 
         return [self.template_name]
 
     def get_context_data(self, **kwargs):
+        """
+        Add selected-patient navigation and update-mode context.
+        """
         context = super().get_context_data(**kwargs)
 
         context.update(
             patient_navigation_context(
                 patient=self.object,
+                subsection="registration",
             )
         )
+
         context["form_mode"] = "update"
 
         return context
 
     @transaction.atomic
     def form_valid(self, form):
+        """
+        Save patient changes and record the authenticated user
+        as the most recent updater.
+        """
         patient = form.save(commit=False)
+
         patient.updated_by = self.request.user
+
         patient.save()
+        form.save_m2m()
 
         self.object = patient
 
@@ -422,6 +504,7 @@ class PatientUpdateView(LoginRequiredMixin, UpdateView):
         if is_htmx(self.request):
             return trigger_response(
                 "patientUpdated",
+                redirect_url=detail_url,
                 payload={
                     "patientId": str(patient.pk),
                     "mrn": patient.mrn,
@@ -430,6 +513,26 @@ class PatientUpdateView(LoginRequiredMixin, UpdateView):
 
         return redirect(detail_url)
 
+    def form_invalid(self, form):
+        """
+        Re-render the bound form with validation errors.
+
+        HTMX requests receive the form partial with a 422
+        validation response. Standard requests receive the
+        complete patient form page.
+        """
+        context = self.get_context_data(form=form)
+
+        response = render(
+            self.request,
+            self.get_template_names()[0],
+            context,
+        )
+
+        if is_htmx(self.request):
+            response.status_code = 422
+
+        return response
 
 # ============================================================
 # PATIENT ARCHIVE / RECORD STATUS
