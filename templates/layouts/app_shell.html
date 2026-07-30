@@ -21,13 +21,16 @@
     </div>
 
     <!-- =========================================================
-         APPLICATION CONTENT
+         APPLICATION BODY
     ========================================================== -->
     <div
         class="
             grid min-h-0 grid-cols-1
 
-            {% if active_primary_nav == 'clinical' and active_clinical_module %}
+            {% if active_primary_nav == 'clinical' and active_clinical_module == 'patients' and selected_patient %}
+                lg:grid-cols-[14rem_minmax(0,1fr)]
+
+            {% elif active_primary_nav == 'clinical' and active_clinical_module and active_clinical_module != 'patients' %}
                 lg:grid-cols-[14rem_minmax(0,1fr)]
 
             {% elif active_primary_nav == 'analytics' %}
@@ -44,17 +47,27 @@
         <!-- =====================================================
              CONTEXTUAL SIDEBAR
         ====================================================== -->
-        {% if active_primary_nav == "clinical" and active_clinical_module %}
+        {% if active_primary_nav == "clinical" and active_clinical_module == "patients" and selected_patient %}
             <aside
                 id="context-sidebar"
                 class="
                     hidden min-h-0 overflow-y-auto
-                    border-r border-emerald-200/70
-                    bg-emerald-50/80
-                    text-slate-800
-                    shadow-sm
-                    backdrop-blur-xl
-                    backdrop-saturate-150
+                    border-r border-slate-200
+                    bg-white text-slate-900
+                    lg:block
+                "
+                aria-label="Patient record navigation"
+            >
+                {% include "components/sidebars/clinical_sidebar.html" %}
+            </aside>
+
+        {% elif active_primary_nav == "clinical" and active_clinical_module and active_clinical_module != "patients" %}
+            <aside
+                id="context-sidebar"
+                class="
+                    hidden min-h-0 overflow-y-auto
+                    border-r border-slate-200
+                    bg-white text-slate-900
                     lg:block
                 "
                 aria-label="Clinical workflow navigation"
@@ -67,12 +80,8 @@
                 id="context-sidebar"
                 class="
                     hidden min-h-0 overflow-y-auto
-                    border-r border-emerald-200/70
-                    bg-emerald-50/80
-                    text-slate-800
-                    shadow-sm
-                    backdrop-blur-xl
-                    backdrop-saturate-150
+                    border-r border-slate-200
+                    bg-white text-slate-900
                     lg:block
                 "
                 aria-label="Analytics navigation"
@@ -85,12 +94,8 @@
                 id="context-sidebar"
                 class="
                     hidden min-h-0 overflow-y-auto
-                    border-r border-emerald-200/70
-                    bg-emerald-50/80
-                    text-slate-800
-                    shadow-sm
-                    backdrop-blur-xl
-                    backdrop-saturate-150
+                    border-r border-slate-200
+                    bg-white text-slate-900
                     lg:block
                 "
                 aria-label="AI clinical decision support navigation"
@@ -103,12 +108,8 @@
                 id="context-sidebar"
                 class="
                     hidden min-h-0 overflow-y-auto
-                    border-r border-emerald-200/70
-                    bg-emerald-50/80
-                    text-slate-800
-                    shadow-sm
-                    backdrop-blur-xl
-                    backdrop-saturate-150
+                    border-r border-slate-200
+                    bg-white text-slate-900
                     lg:block
                 "
                 aria-label="Administration navigation"
@@ -120,13 +121,11 @@
         <!-- =====================================================
              MAIN WORKSPACE
         ====================================================== -->
-        <main
+                <main
             id="workspace"
             class="
                 min-h-0 min-w-0 overflow-y-auto
-                bg-slate-50
-                px-3 pb-3 pt-2
-                md:px-4 md:pb-4 md:pt-2
+                bg-slate-50 p-3 md:p-4
             "
         >
             {% block workspace %}{% endblock %}
@@ -134,14 +133,7 @@
     </div>
 </div>
 
-
-<script>
-    document.addEventListener("htmx:beforeSwap", function (event) {
-        if (event.detail.xhr.status === 422) {
-            event.detail.shouldSwap = true;
-            event.detail.isError = false;
-        }
-    });
-</script>
-
+{% if selected_patient %}
+    {% include "components/patient_demographics_modal.html" %}
+{% endif %}
 {% endblock %}

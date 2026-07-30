@@ -150,6 +150,159 @@ class PatientAddressForm(TailwindModelForm):
         }
 
 
+from .models import PatientAllergy
+
+
+# ============================================================
+# PATIENT ALLERGY FORM
+# ============================================================
+
+class PatientAllergyForm(forms.ModelForm):
+    """
+    Creates and updates a patient's allergy or intolerance record.
+
+    The patient is assigned in the view and is intentionally excluded
+    from the visible form.
+    """
+
+    class Meta:
+        model = PatientAllergy
+
+        fields = (
+            "allergy_type",
+            "substance",
+            "reaction",
+            "severity",
+            "status",
+            "verification_status",
+            "onset_date",
+            "recorded_date",
+            "notes",
+        )
+
+        widgets = {
+            "allergy_type": forms.Select(
+                attrs={
+                    "class": (
+                        "block w-full rounded-md border-slate-300 "
+                        "bg-white px-3 py-2 text-sm text-slate-900 "
+                        "shadow-sm focus:border-red-500 "
+                        "focus:ring-red-500"
+                    ),
+                },
+            ),
+            "substance": forms.TextInput(
+                attrs={
+                    "class": (
+                        "block w-full rounded-md border-slate-300 "
+                        "bg-white px-3 py-2 text-sm text-slate-900 "
+                        "shadow-sm placeholder:text-slate-400 "
+                        "focus:border-red-500 focus:ring-red-500"
+                    ),
+                    "placeholder": (
+                        "Example: Penicillin, peanuts, latex"
+                    ),
+                    "autocomplete": "off",
+                },
+            ),
+            "reaction": forms.TextInput(
+                attrs={
+                    "class": (
+                        "block w-full rounded-md border-slate-300 "
+                        "bg-white px-3 py-2 text-sm text-slate-900 "
+                        "shadow-sm placeholder:text-slate-400 "
+                        "focus:border-red-500 focus:ring-red-500"
+                    ),
+                    "placeholder": (
+                        "Example: Hives, swelling, anaphylaxis"
+                    ),
+                    "autocomplete": "off",
+                },
+            ),
+            "severity": forms.Select(
+                attrs={
+                    "class": (
+                        "block w-full rounded-md border-slate-300 "
+                        "bg-white px-3 py-2 text-sm text-slate-900 "
+                        "shadow-sm focus:border-red-500 "
+                        "focus:ring-red-500"
+                    ),
+                },
+            ),
+            "status": forms.Select(
+                attrs={
+                    "class": (
+                        "block w-full rounded-md border-slate-300 "
+                        "bg-white px-3 py-2 text-sm text-slate-900 "
+                        "shadow-sm focus:border-red-500 "
+                        "focus:ring-red-500"
+                    ),
+                },
+            ),
+            "verification_status": forms.Select(
+                attrs={
+                    "class": (
+                        "block w-full rounded-md border-slate-300 "
+                        "bg-white px-3 py-2 text-sm text-slate-900 "
+                        "shadow-sm focus:border-red-500 "
+                        "focus:ring-red-500"
+                    ),
+                },
+            ),
+            "onset_date": forms.DateInput(
+                attrs={
+                    "class": (
+                        "block w-full rounded-md border-slate-300 "
+                        "bg-white px-3 py-2 text-sm text-slate-900 "
+                        "shadow-sm focus:border-red-500 "
+                        "focus:ring-red-500"
+                    ),
+                    "type": "date",
+                },
+            ),
+            "recorded_date": forms.DateInput(
+                attrs={
+                    "class": (
+                        "block w-full rounded-md border-slate-300 "
+                        "bg-white px-3 py-2 text-sm text-slate-900 "
+                        "shadow-sm focus:border-red-500 "
+                        "focus:ring-red-500"
+                    ),
+                    "type": "date",
+                },
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": (
+                        "block w-full rounded-md border-slate-300 "
+                        "bg-white px-3 py-2 text-sm text-slate-900 "
+                        "shadow-sm placeholder:text-slate-400 "
+                        "focus:border-red-500 focus:ring-red-500"
+                    ),
+                    "rows": 3,
+                    "placeholder": (
+                        "Enter additional clinical information."
+                    ),
+                },
+            ),
+        }
+
+    def clean_substance(self) -> str:
+        substance = self.cleaned_data.get("substance", "").strip()
+
+        if not substance:
+            raise forms.ValidationError(
+                "Enter the substance or allergen."
+            )
+
+        return substance
+
+    def clean_reaction(self) -> str:
+        return self.cleaned_data.get("reaction", "").strip()
+
+    def clean_notes(self) -> str:
+        return self.cleaned_data.get("notes", "").strip()
+
 class PatientContactPointForm(TailwindModelForm):
     class Meta:
         model = PatientContactPoint

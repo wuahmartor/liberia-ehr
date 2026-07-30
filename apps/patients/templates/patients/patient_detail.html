@@ -1,13 +1,20 @@
 {% extends "layouts/app_shell.html" %}
 
 {% block title %}
-    patient_detail | Liberia EHR
+    {{ patient.display_name|default:patient.full_name }} | Liberia EHR
 {% endblock %}
 
 {% block workspace %}
-<section>
-    <h1 class="text-2xl font-bold">
-        patient_detail
-    </h1>
-</section>
+    <!-- =========================================================
+         PATIENT DETAIL WORKSPACE
+
+         The content is separated into a partial so the same patient
+         record can be refreshed with HTMX without reloading the shell.
+    ========================================================== -->
+    <div
+        id="patient-detail-workspace"
+        class="min-w-0"
+    >
+        {% include "patients/partials/patient_detail.html" %}
+    </div>
 {% endblock %}

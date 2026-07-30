@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from django.contrib import admin
 from django.db.models import QuerySet
+from .models import PatientAllergy
+
 
 from .models import (
     EmergencyContact,
@@ -668,6 +670,42 @@ class PatientFlagAdmin(
         PatientFlagAcknowledgmentInline,
     )
 
+
+@admin.register(PatientAllergy)
+class PatientAllergyAdmin(admin.ModelAdmin):
+    list_display = (
+        "patient",
+        "substance",
+        "allergy_type",
+        "severity",
+        "status",
+        "verification_status",
+        "recorded_date",
+    )
+
+    list_filter = (
+        "allergy_type",
+        "severity",
+        "status",
+        "verification_status",
+    )
+
+    search_fields = (
+        "patient__mrn",
+        "patient__first_name",
+        "patient__last_name",
+        "substance",
+        "reaction",
+    )
+
+    autocomplete_fields = (
+        "patient",
+    )
+
+    ordering = (
+        "-recorded_date",
+        "patient__last_name",
+    )
 
 @admin.register(PatientFlagAcknowledgment)
 class PatientFlagAcknowledgmentAdmin(

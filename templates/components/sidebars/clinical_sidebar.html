@@ -1,18 +1,18 @@
-<div class="h-full bg-transparent p-3 text-slate-800">
+{% comment %}
+============================================================
+CLINICAL SIDEBAR DISPATCHER
 
-    {% if selected_patient %}
-        <div class="mb-3">
-            {% include "components/patient_identity.html" with patient=selected_patient %}
-        </div>
+File:
+templates/components/sidebars/clinical_sidebar.html
+============================================================
+{% endcomment %}
 
-    {% elif patient %}
-        <div class="mb-3">
-            {% include "components/patient_identity.html" with patient=patient %}
-        </div>
-    {% endif %}
-
+<div class="p-3">
     {% if active_clinical_module == "patients" %}
-        {% include "components/sidebars/patients_sidebar.html" %}
+        {% if selected_patient %}
+            {% include "components/patient_identity.html" %}
+            {% include "components/sidebars/patients_sidebar.html" %}
+        {% endif %}
 
     {% elif active_clinical_module == "nursing" %}
         {% include "components/sidebars/nursing_sidebar.html" %}
@@ -29,5 +29,4 @@
     {% elif active_clinical_module == "care-management" %}
         {% include "components/sidebars/care_management_sidebar.html" %}
     {% endif %}
-
 </div>

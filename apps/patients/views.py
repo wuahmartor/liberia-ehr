@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 import json
+import json
 
 from django.contrib.auth.decorators import login_required
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404, render
+
+from .forms import PatientAllergyForm
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, render
+from apps.patients.models import Patient, PatientAllergy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Prefetch, Q
+
 from django.http import (
     Http404,
     HttpRequest,
@@ -17,9 +26,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import View
 from django.views.generic import CreateView, UpdateView
-
 from apps.core.htmx import is_htmx
-
 from .forms import (
     EmergencyContactForm,
     InsuranceCoverageForm,
@@ -255,36 +262,254 @@ def patient_search(request: HttpRequest) -> HttpResponse:
 # PATIENT DETAIL AND SIDEBAR
 # ============================================================
 
+
 @login_required
-def patient_detail(
-    request: HttpRequest,
-    patient_id,
-) -> HttpResponse:
+def patient_detail(request, patient_id):
     patient = get_object_or_404(
         patient_queryset(),
         pk=patient_id,
     )
 
-    context = {
-        **patient_navigation_context(
-            patient=patient,
-            subsection="overview",
-        ),
-        "active_flags": [
-            flag
-            for flag in patient.flags.all()
-            if flag.currently_active
-        ],
-    }
+    active_flags = [
+        flag
+        for flag in patient.flags.all()
+        if flag.currently_active
+    ]
 
-    template_name = (
-        "patients/partials/patient_overview.html"
-        if is_htmx(request)
-        else "patients/patient_detail.html"
+
+    allergies = (
+        patient.allergies
+        .filter(
+            status=PatientAllergy.Status.ACTIVE,
+        )
+        .order_by(
+            "-severity",
+            "substance",
+        )
     )
 
-    return render(request, template_name, context)
+    context = {
+    **patient_navigation_context(
+        patient=patient,
+        subsection="overview",
+    ),
+    "active_flags": patient.active_flags,
+    "allergies": allergies,
+    "physicians": [],
+    "diagnoses": [],
+    "medications": [],
+    "surgeries": [],
+    "recent_encounters": [],
+    "clinical_records": [],
+}
 
+    return render(
+        request,
+        "patients/patient_detail.html",
+        context,
+    )
+
+
+# ============================================================
+# PATIENT ALLERGY QUERYSET
+# ============================================================
+
+def patient_allergy_queryset(patient: Patient):
+    """
+    Returns all allergy records for a patient.
+
+    Active records appear first, followed by severity and substance.
+    """
+
+    return (
+        PatientAllergy.objects
+        .filter(patient=patient)
+        .order_by(
+            "status",
+            "-severity",
+            "substance",
+        )
+    )
+
+
+# ============================================================
+# PATIENT ALLERGY CREATE
+# ============================================================
+
+@login_required
+def patient_allergy_create(
+    request: HttpRequest,
+    patient_id,
+) -> HttpResponse:
+    """
+    Displays and processes the form for adding an allergy.
+    """
+
+    patient = get_object_or_404(
+        Patient,
+        pk=patient_id,
+    )
+
+    if request.method == "POST":
+        form = PatientAllergyForm(request.POST)
+
+        if form.is_valid():
+            allergy = form.save(commit=False)
+
+            allergy.patient = patient
+            allergy.created_by = request.user
+            allergy.updated_by = request.user
+
+            allergy.save()
+
+            allergies = patient_allergy_queryset(patient)
+
+            response = render(
+                request,
+                "patients/partials/allergy_list.html",
+                {
+                    "patient": patient,
+                    "selected_patient": patient,
+                    "allergies": allergies,
+                },
+            )
+
+            response["HX-Trigger"] = json.dumps(
+                {
+                    "patientAllergySaved": {
+                        "message": (
+                            f"{allergy.substance} was added successfully."
+                        ),
+                    },
+                },
+            )
+
+            return response
+
+        response = render(
+            request,
+            "patients/partials/allergy_form.html",
+            {
+                "patient": patient,
+                "selected_patient": patient,
+                "form": form,
+                "form_mode": "create",
+                "allergy": None,
+            },
+        )
+
+        response["HX-Retarget"] = "#patient-allergy-modal-content"
+        response["HX-Reswap"] = "innerHTML"
+
+        return response
+
+    form = PatientAllergyForm()
+
+    return render(
+        request,
+        "patients/partials/allergy_form.html",
+        {
+            "patient": patient,
+            "selected_patient": patient,
+            "form": form,
+            "form_mode": "create",
+            "allergy": None,
+        },
+    )
+
+
+# ============================================================
+# PATIENT ALLERGY UPDATE
+# ============================================================
+
+@login_required
+def patient_allergy_update(
+    request: HttpRequest,
+    patient_id,
+    allergy_id: int,
+) -> HttpResponse:
+    """
+    Displays and processes the form for updating an allergy.
+    """
+
+    patient = get_object_or_404(
+        Patient,
+        pk=patient_id,
+    )
+
+    allergy = get_object_or_404(
+        PatientAllergy,
+        pk=allergy_id,
+        patient=patient,
+    )
+
+    if request.method == "POST":
+        form = PatientAllergyForm(
+            request.POST,
+            instance=allergy,
+        )
+
+        if form.is_valid():
+            allergy = form.save(commit=False)
+            allergy.updated_by = request.user
+            allergy.save()
+
+            allergies = patient_allergy_queryset(patient)
+
+            response = render(
+                request,
+                "patients/partials/allergy_list.html",
+                {
+                    "patient": patient,
+                    "selected_patient": patient,
+                    "allergies": allergies,
+                },
+            )
+
+            response["HX-Trigger"] = json.dumps(
+                {
+                    "patientAllergySaved": {
+                        "message": (
+                            f"{allergy.substance} was updated successfully."
+                        ),
+                    },
+                },
+            )
+
+            return response
+
+        response = render(
+            request,
+            "patients/partials/allergy_form.html",
+            {
+                "patient": patient,
+                "selected_patient": patient,
+                "form": form,
+                "form_mode": "update",
+                "allergy": allergy,
+            },
+        )
+
+        response["HX-Retarget"] = "#patient-allergy-modal-content"
+        response["HX-Reswap"] = "innerHTML"
+
+        return response
+
+    form = PatientAllergyForm(
+        instance=allergy,
+    )
+
+    return render(
+        request,
+        "patients/partials/allergy_form.html",
+        {
+            "patient": patient,
+            "selected_patient": patient,
+            "form": form,
+            "form_mode": "update",
+            "allergy": allergy,
+        },
+    )
 
 @login_required
 def patient_sidebar(

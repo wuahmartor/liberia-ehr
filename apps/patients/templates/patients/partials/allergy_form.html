@@ -1,0 +1,349 @@
+
+
+{% comment %}
+============================================================
+PATIENT ALLERGY FORM
+
+File:
+apps/patients/templates/patients/partials/allergy_form.html
+============================================================
+{% endcomment %}
+
+<div class="flex max-h-[90vh] flex-col overflow-hidden">
+    <!-- =========================================================
+         FORM HEADER
+    ========================================================== -->
+    <header
+        class="
+            flex shrink-0 items-start justify-between gap-4
+            border-b border-slate-200 bg-slate-50
+            px-4 py-3
+        "
+    >
+        <div>
+            <h2 class="text-sm font-semibold text-slate-900">
+                {% if form_mode == "update" %}
+                    Update Allergy
+                {% else %}
+                    Add Allergy
+                {% endif %}
+            </h2>
+
+            <p class="mt-0.5 text-[10px] text-slate-500">
+                {{ patient.get_full_name }}
+                · MRN {{ patient.mrn }}
+            </p>
+        </div>
+
+        <button
+            type="button"
+            class="
+                grid h-7 w-7 place-items-center
+                rounded-md text-slate-500 transition
+                hover:bg-slate-200 hover:text-slate-900
+            "
+            onclick="
+                document
+                    .getElementById('patient-allergy-modal')
+                    .close()
+            "
+            aria-label="Close allergy form"
+        >
+            <svg
+                class="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                />
+            </svg>
+        </button>
+    </header>
+
+    <!-- =========================================================
+         FORM BODY
+    ========================================================== -->
+    <form
+        method="post"
+        class="min-h-0 flex-1 overflow-y-auto"
+        {% if form_mode == "update" %}
+            hx-post="{% url 'patients:allergy_update' patient.pk allergy.pk %}"
+        {% else %}
+            hx-post="{% url 'patients:allergy_create' patient.pk %}"
+        {% endif %}
+        hx-target="#patient-allergy-list"
+        hx-swap="outerHTML"
+    >
+        {% csrf_token %}
+
+        <div class="space-y-4 p-4">
+            <!-- General form errors -->
+            {% if form.non_field_errors %}
+                <div
+                    class="
+                        rounded-md border border-red-200
+                        bg-red-50 px-3 py-2
+                        text-xs text-red-800
+                    "
+                >
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Substance -->
+            <div>
+                <label
+                    for="{{ form.substance.id_for_label }}"
+                    class="block text-xs font-semibold text-slate-700"
+                >
+                    Substance or allergen
+                    <span class="text-red-600">*</span>
+                </label>
+
+                <div class="mt-1">
+                    {{ form.substance }}
+                </div>
+
+                {% for error in form.substance.errors %}
+                    <p class="mt-1 text-[10px] text-red-600">
+                        {{ error }}
+                    </p>
+                {% endfor %}
+            </div>
+
+            <!-- Type and severity -->
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                    <label
+                        for="{{ form.allergy_type.id_for_label }}"
+                        class="block text-xs font-semibold text-slate-700"
+                    >
+                        Allergy type
+                    </label>
+
+                    <div class="mt-1">
+                        {{ form.allergy_type }}
+                    </div>
+
+                    {% for error in form.allergy_type.errors %}
+                        <p class="mt-1 text-[10px] text-red-600">
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                </div>
+
+                <div>
+                    <label
+                        for="{{ form.severity.id_for_label }}"
+                        class="block text-xs font-semibold text-slate-700"
+                    >
+                        Severity
+                    </label>
+
+                    <div class="mt-1">
+                        {{ form.severity }}
+                    </div>
+
+                    {% for error in form.severity.errors %}
+                        <p class="mt-1 text-[10px] text-red-600">
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Reaction -->
+            <div>
+                <label
+                    for="{{ form.reaction.id_for_label }}"
+                    class="block text-xs font-semibold text-slate-700"
+                >
+                    Reaction
+                </label>
+
+                <div class="mt-1">
+                    {{ form.reaction }}
+                </div>
+
+                {% for error in form.reaction.errors %}
+                    <p class="mt-1 text-[10px] text-red-600">
+                        {{ error }}
+                    </p>
+                {% endfor %}
+            </div>
+
+            <!-- Status and verification -->
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                    <label
+                        for="{{ form.status.id_for_label }}"
+                        class="block text-xs font-semibold text-slate-700"
+                    >
+                        Clinical status
+                    </label>
+
+                    <div class="mt-1">
+                        {{ form.status }}
+                    </div>
+
+                    {% for error in form.status.errors %}
+                        <p class="mt-1 text-[10px] text-red-600">
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                </div>
+
+                <div>
+                    <label
+                        for="{{ form.verification_status.id_for_label }}"
+                        class="block text-xs font-semibold text-slate-700"
+                    >
+                        Verification
+                    </label>
+
+                    <div class="mt-1">
+                        {{ form.verification_status }}
+                    </div>
+
+                    {% for error in form.verification_status.errors %}
+                        <p class="mt-1 text-[10px] text-red-600">
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Dates -->
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                    <label
+                        for="{{ form.onset_date.id_for_label }}"
+                        class="block text-xs font-semibold text-slate-700"
+                    >
+                        Onset date
+                    </label>
+
+                    <div class="mt-1">
+                        {{ form.onset_date }}
+                    </div>
+
+                    {% for error in form.onset_date.errors %}
+                        <p class="mt-1 text-[10px] text-red-600">
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                </div>
+
+                <div>
+                    <label
+                        for="{{ form.recorded_date.id_for_label }}"
+                        class="block text-xs font-semibold text-slate-700"
+                    >
+                        Recorded date
+                    </label>
+
+                    <div class="mt-1">
+                        {{ form.recorded_date }}
+                    </div>
+
+                    {% for error in form.recorded_date.errors %}
+                        <p class="mt-1 text-[10px] text-red-600">
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div>
+                <label
+                    for="{{ form.notes.id_for_label }}"
+                    class="block text-xs font-semibold text-slate-700"
+                >
+                    Clinical notes
+                </label>
+
+                <div class="mt-1">
+                    {{ form.notes }}
+                </div>
+
+                {% for error in form.notes.errors %}
+                    <p class="mt-1 text-[10px] text-red-600">
+                        {{ error }}
+                    </p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- =====================================================
+             FORM FOOTER
+        ====================================================== -->
+        <footer
+            class="
+                sticky bottom-0 flex items-center justify-end gap-2
+                border-t border-slate-200 bg-slate-50
+                px-4 py-3
+            "
+        >
+            <button
+                type="button"
+                class="
+                    rounded-md border border-slate-300
+                    bg-white px-3 py-1.5
+                    text-xs font-semibold text-slate-700
+                    shadow-sm transition hover:bg-slate-100
+                "
+                onclick="
+                    document
+                        .getElementById('patient-allergy-modal')
+                        .close()
+                "
+            >
+                Cancel
+            </button>
+
+            <button
+                type="submit"
+                class="
+                    inline-flex items-center gap-1.5
+                    rounded-md bg-red-700
+                    px-3 py-1.5
+                    text-xs font-semibold text-white
+                    shadow-sm transition
+                    hover:bg-red-800
+                    focus:outline-none
+                    focus:ring-2 focus:ring-red-500/40
+                "
+            >
+                <svg
+                    class="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M5 13l4 4L19 7"
+                    />
+                </svg>
+
+                {% if form_mode == "update" %}
+                    Save Changes
+                {% else %}
+                    Add Allergy
+                {% endif %}
+            </button>
+        </footer>
+    </form>
+</div>

@@ -551,6 +551,149 @@ class PatientAlias(UserTrackedModel):
         )
 
 
+class PatientAllergy(UserTrackedModel):
+    """
+    Stores allergy and intolerance information for a patient.
+    """
+
+    class AllergyType(models.TextChoices):
+        MEDICATION = "medication", "Medication"
+        FOOD = "food", "Food"
+        ENVIRONMENTAL = "environmental", "Environmental"
+        BIOLOGIC = "biologic", "Biologic"
+        OTHER = "other", "Other"
+
+    class Severity(models.TextChoices):
+        MILD = "mild", "Mild"
+        MODERATE = "moderate", "Moderate"
+        SEVERE = "severe", "Severe"
+        LIFE_THREATENING = "life_threatening", "Life-threatening"
+        UNKNOWN = "unknown", "Unknown"
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        INACTIVE = "inactive", "Inactive"
+        RESOLVED = "resolved", "Resolved"
+        ENTERED_IN_ERROR = "error", "Entered in error"
+
+    class VerificationStatus(models.TextChoices):
+        UNCONFIRMED = "unconfirmed", "Unconfirmed"
+        CONFIRMED = "confirmed", "Confirmed"
+        REFUTED = "refuted", "Refuted"
+
+    patient = models.ForeignKey(
+        Patient,
+        on_delete=models.CASCADE,
+        related_name="allergies",
+    )
+
+    allergy_type = models.CharField(
+        max_length=30,
+        choices=AllergyType.choices,
+        default=AllergyType.OTHER,
+        db_index=True,
+    )
+
+    substance = models.CharField(
+        max_length=200,
+        db_index=True,
+    )
+
+    reaction = models.CharField(
+        max_length=250,
+        blank=True,
+    )
+
+    severity = models.CharField(
+        max_length=30,
+        choices=Severity.choices,
+        default=Severity.UNKNOWN,
+        db_index=True,
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+        db_index=True,
+    )
+
+    verification_status = models.CharField(
+        max_length=20,
+        choices=VerificationStatus.choices,
+        default=VerificationStatus.UNCONFIRMED,
+    )
+
+    onset_date = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    recorded_date = models.DateField(
+        default=timezone.localdate,
+    )
+
+    notes = models.TextField(
+        blank=True,
+    )
+
+    class Meta:
+        ordering = (
+            "-severity",
+            "substance",
+        )
+        indexes = [
+            models.Index(
+                fields=("patient", "status"),
+                name="patient_allergy_status_idx",
+            ),
+            models.Index(
+                fields=("patient", "severity"),
+                name="patient_allergy_severity_idx",
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=(
+                    "patient",
+                    "substance",
+                    "allergy_type",
+                ),
+                condition=Q(status="active"),
+                name="patient_active_allergy_unique",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.patient.mrn} — "
+            f"{self.substance} "
+            f"({self.get_severity_display()})"
+        )
+
+    @property
+    def is_active(self):
+        return self.status == self.Status.ACTIVE
+
+    def clean(self):
+        self.substance = (self.substance or "").strip()
+        self.reaction = (self.reaction or "").strip()
+
+        if not self.substance:
+            raise ValidationError(
+                {"substance": "Enter the allergy substance."}
+            )
+
+    def save(self, *args, **kwargs):
+        self.substance = (self.substance or "").strip()
+        self.reaction = (self.reaction or "").strip()
+        self.notes = (self.notes or "").strip()
+
+        self.full_clean()
+
+        return super().save(*args, **kwargs)
+
+
 class PatientAddress(UserTrackedModel):
     class AddressType(models.TextChoices):
         HOME = "home", "Home"

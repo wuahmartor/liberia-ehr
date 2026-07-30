@@ -133,4 +133,30 @@ urlpatterns = [
         views.patient_child_delete,
         name="child-delete",
     ),
+
+     # ========================================================
+
+    # PATIENT ALLERGIES
+
+    # ========================================================
+
+    path(
+
+        "<uuid:patient_id>/allergies/add/",
+
+        views.patient_allergy_create,
+
+        name="allergy_create",
+
+    ),
+
+    path(
+
+        "<uuid:patient_id>/allergies/<int:allergy_id>/update/",
+
+        views.patient_allergy_update,
+
+        name="allergy_update",
+
+    ),
 ]
