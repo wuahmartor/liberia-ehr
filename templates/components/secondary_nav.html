@@ -1,176 +1,484 @@
+{% comment %}
+============================================================
+SECONDARY NAVIGATION
+
+File:
+templates/components/secondary_nav.html
+
+Purpose:
+- Display module-specific secondary navigation.
+- Provide patient search and patient actions.
+- Provide encounter list, creation, filtering, and selected
+  encounter actions.
+
+Expected context:
+- active_primary_nav
+- active_clinical_module
+
+Patient context:
+- query
+- selected_patient
+- active_patient_section
+- form_mode
+
+Encounter context:
+- active_encounter_module
+- selected_encounter or encounter
+- selected_patient
+============================================================
+{% endcomment %}
+
+
 {% if active_primary_nav == "clinical" and active_clinical_module == "patients" %}
-<div class="border-b border-slate-200 bg-white shadow-sm">
-    <div
-        class="
-            flex min-h-11 items-center gap-3
-            overflow-visible px-3 py-1.5
-            lg:px-4
-        "
-    >
-        {% comment %}
-        ========================================================
-        PATIENT SEARCH AND NEW PATIENT ACTION
-        ========================================================
-        {% endcomment %}
 
-        <div class="flex min-w-0 flex-1 items-center gap-3">
+    {% comment %}
+    ============================================================
+    PATIENTS SECONDARY NAVIGATION
+    ============================================================
+    {% endcomment %}
 
+    <div class="border-b border-slate-200 bg-white shadow-sm">
+        <div
+            class="
+                flex min-h-11 items-center gap-3
+                overflow-visible px-3 py-1.5
+                lg:px-4
+            "
+        >
             {% comment %}
-            ====================================================
-            PATIENT SEARCH
-            ====================================================
+            ========================================================
+            PATIENT SEARCH AND NEW PATIENT ACTION
+            ========================================================
             {% endcomment %}
 
-            <div
-                class="
-                    relative min-w-[14rem]
-                    max-w-lg flex-1
-                "
-                x-data="{ open: false }"
-                @click.outside="open = false"
-                @keydown.escape.window="open = false"
-            >
-                <div class="relative">
-                    <svg
-                        class="
-                            pointer-events-none absolute
-                            left-2.5 top-1/2
-                            h-4 w-4 -translate-y-1/2
-                            text-slate-400
-                        "
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        aria-hidden="true"
-                    >
-                        <circle cx="11" cy="11" r="8"></circle>
-
-                        <path
-                            stroke-linecap="round"
-                            d="m21 21-4.35-4.35"
-                        ></path>
-                    </svg>
-
-                    <input
-                        type="search"
-                        name="q"
-                        value="{{ query|default:'' }}"
-                        class="
-                            w-full rounded-md
-                            border border-slate-300
-                            bg-white py-1.5
-                            pl-8 pr-9
-                            text-xs text-slate-900
-                            placeholder:text-slate-400
-                            focus:border-ehr-500
-                            focus:outline-none
-                            focus:ring-1
-                            focus:ring-ehr-500
-                        "
-                        placeholder="Search by name, MRN, phone, or identifier"
-                        hx-get="{% url 'patients:search-results' %}"
-                        hx-trigger="input changed delay:350ms, search"
-                        hx-target="#patient-search-results"
-                        hx-swap="innerHTML"
-                        hx-indicator="#patient-search-spinner"
-                        hx-include="this"
-                        @focus="open = true"
-                        @input="open = true"
-                        autocomplete="off"
-                        aria-label="Search patients"
-                    >
-
-                    <span
-                        id="patient-search-spinner"
-                        class="
-                            htmx-indicator absolute
-                            right-2.5 top-1/2
-                            -translate-y-1/2
-                        "
-                        aria-label="Searching"
-                    >
-                        <svg
-                            class="h-4 w-4 animate-spin text-ehr-700"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            aria-hidden="true"
-                        >
-                            <circle
-                                class="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                stroke-width="4"
-                            ></circle>
-
-                            <path
-                                class="opacity-75"
-                                fill="currentColor"
-                                d="
-                                    M4 12a8 8 0 018-8V0
-                                    C5.373 0 0 5.373 0 12h4z
-                                "
-                            ></path>
-                        </svg>
-                    </span>
-                </div>
+            <div class="flex min-w-0 flex-1 items-center gap-3">
 
                 {% comment %}
-                =================================================
-                SEARCH RESULTS DROPDOWN
-                =================================================
+                ====================================================
+                PATIENT SEARCH
+                ====================================================
                 {% endcomment %}
 
                 <div
-                    id="patient-search-results"
-                    x-cloak
-                    x-show="open"
-                    x-transition.origin.top
                     class="
-                        absolute left-0 right-0 top-full
-                        z-[70] mt-1
-                        max-h-80 overflow-y-auto
-                        rounded-lg border border-slate-200
-                        bg-white shadow-xl
+                        relative min-w-[14rem]
+                        max-w-lg flex-1
                     "
-                ></div>
+                    x-data="{ open: false }"
+                    @click.outside="open = false"
+                    @keydown.escape.window="open = false"
+                >
+                    <div class="relative">
+                        <svg
+                            class="
+                                pointer-events-none absolute
+                                left-2.5 top-1/2
+                                h-4 w-4 -translate-y-1/2
+                                text-slate-400
+                            "
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                        >
+                            <circle cx="11" cy="11" r="8"></circle>
+
+                            <path
+                                stroke-linecap="round"
+                                d="m21 21-4.35-4.35"
+                            ></path>
+                        </svg>
+
+                        <input
+                            type="search"
+                            name="q"
+                            value="{{ query|default:'' }}"
+                            class="
+                                w-full rounded-md
+                                border border-slate-300
+                                bg-white py-1.5
+                                pl-8 pr-9
+                                text-xs text-slate-900
+                                placeholder:text-slate-400
+                                focus:border-ehr-500
+                                focus:outline-none
+                                focus:ring-1
+                                focus:ring-ehr-500
+                            "
+                            placeholder="Search by name, MRN, phone, or identifier"
+                            hx-get="{% url 'patients:search-results' %}"
+                            hx-trigger="input changed delay:350ms, search"
+                            hx-target="#patient-search-results"
+                            hx-swap="innerHTML"
+                            hx-indicator="#patient-search-spinner"
+                            hx-include="this"
+                            @focus="open = true"
+                            @input="open = true"
+                            autocomplete="off"
+                            aria-label="Search patients"
+                        >
+
+                        <span
+                            id="patient-search-spinner"
+                            class="
+                                htmx-indicator absolute
+                                right-2.5 top-1/2
+                                -translate-y-1/2
+                            "
+                            aria-label="Searching"
+                        >
+                            <svg
+                                class="h-4 w-4 animate-spin text-ehr-700"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                aria-hidden="true"
+                            >
+                                <circle
+                                    class="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    stroke-width="4"
+                                ></circle>
+
+                                <path
+                                    class="opacity-75"
+                                    fill="currentColor"
+                                    d="
+                                        M4 12a8 8 0 018-8V0
+                                        C5.373 0 0 5.373 0 12h4z
+                                    "
+                                ></path>
+                            </svg>
+                        </span>
+                    </div>
+
+                    {% comment %}
+                    =================================================
+                    SEARCH RESULTS DROPDOWN
+                    =================================================
+                    {% endcomment %}
+
+                    <div
+                        id="patient-search-results"
+                        x-cloak
+                        x-show="open"
+                        x-transition.origin.top
+                        class="
+                            absolute left-0 right-0 top-full
+                            z-[70] mt-1
+                            max-h-80 overflow-y-auto
+                            rounded-lg border border-slate-200
+                            bg-white shadow-xl
+                        "
+                    ></div>
+                </div>
+
+                {% comment %}
+                ====================================================
+                NEW PATIENT ACTION
+                ====================================================
+                {% endcomment %}
+
+                <div
+                    class="
+                        hidden shrink-0 items-center gap-2
+                        whitespace-nowrap sm:flex
+                    "
+                >
+                    <a
+                        href="{% url 'patients:create' %}"
+                        hx-boost="false"
+                        class="
+                            inline-flex items-center gap-1.5
+                            rounded-md px-2.5 py-1.5
+                            text-xs font-semibold
+                            transition
+                            focus:outline-none
+                            focus:ring-2
+                            focus:ring-ehr-500/30
+
+                            {% if form_mode == 'create' %}
+                                bg-ehr-900 text-white
+                            {% else %}
+                                bg-ehr-800 text-white
+                                hover:bg-ehr-900
+                            {% endif %}
+                        "
+                        {% if form_mode == "create" %}
+                            aria-current="page"
+                        {% endif %}
+                    >
+                        <svg
+                            class="h-3.5 w-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M12 5v14M5 12h14"
+                            />
+                        </svg>
+
+                        <span>New Patient?</span>
+                    </a>
+                </div>
             </div>
 
             {% comment %}
-            ====================================================
-            NEW PATIENT LABEL AND ACTION
-            ====================================================
+            ========================================================
+            SELECTED PATIENT ACTIONS
+            ========================================================
             {% endcomment %}
 
-            <div
-                class="
-                    hidden shrink-0 items-center gap-2
-                    whitespace-nowrap sm:flex
-                "
-            >
+            {% if selected_patient %}
+                <nav
+                    class="
+                        ml-auto flex shrink-0
+                        items-center gap-1 whitespace-nowrap
+                    "
+                    aria-label="Selected patient actions"
+                >
+                    <a
+                        href="{% url 'patients:detail' patient_id=selected_patient.pk %}"
+                        hx-boost="false"
+                        class="
+                            secondary-nav-link
+
+                            {% if active_patient_section == 'overview' and form_mode != 'update' %}
+                                bg-ehr-50 text-ehr-800
+                            {% endif %}
+                        "
+                        {% if active_patient_section == "overview" and form_mode != "update" %}
+                            aria-current="page"
+                        {% endif %}
+                    >
+                        <svg
+                            class="h-3.5 w-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="
+                                    M15 12a3 3 0 11-6 0
+                                    3 3 0 016 0z
+                                "
+                            />
+
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="
+                                    M2.458 12
+                                    C3.732 7.943 7.523 5 12 5
+                                    c4.478 0 8.268 2.943 9.542 7
+                                    -1.274 4.057-5.064 7-9.542 7
+                                    -4.477 0-8.268-2.943-9.542-7z
+                                "
+                            />
+                        </svg>
+
+                        <span>View Record</span>
+                    </a>
+
+                    <a
+                        href="{% url 'patients:update' patient_id=selected_patient.pk %}"
+                        hx-boost="false"
+                        class="
+                            secondary-nav-link
+
+                            {% if form_mode == 'update' %}
+                                bg-ehr-50 text-ehr-800
+                            {% endif %}
+                        "
+                        {% if form_mode == "update" %}
+                            aria-current="page"
+                        {% endif %}
+                    >
+                        <svg
+                            class="h-3.5 w-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="
+                                    M11 4H4a2 2 0 00-2 2v14
+                                    a2 2 0 002 2h14
+                                    a2 2 0 002-2v-7
+                                "
+                            />
+
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="
+                                    M18.5 2.5a2.121 2.121 0 013 3
+                                    L12 15l-4 1
+                                    1-4 9.5-9.5z
+                                "
+                            />
+                        </svg>
+
+                        <span>Edit Demographics</span>
+                    </a>
+                </nav>
+            {% endif %}
+        </div>
+
+        {% comment %}
+        ============================================================
+        MOBILE REGISTER PATIENT ACTION
+        ============================================================
+        {% endcomment %}
+
+        <div class="border-t border-slate-100 px-3 py-2 sm:hidden">
+            <div class="flex items-center justify-between gap-3">
+                <span class="text-xs font-medium text-slate-500">
+                    New Patient?
+                </span>
 
                 <a
                     href="{% url 'patients:create' %}"
                     hx-boost="false"
                     class="
                         inline-flex items-center gap-1.5
+                        rounded-md bg-ehr-800
+                        px-2.5 py-1.5
+                        text-xs font-semibold text-white
+                        transition hover:bg-ehr-900
+                    "
+                >
+                    <svg
+                        class="h-3.5 w-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 5v14M5 12h14"
+                        />
+                    </svg>
+
+                    <span>Register Patient</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+
+{% elif active_primary_nav == "clinical" and active_clinical_module == "encounters" %}
+
+    {% comment %}
+    ============================================================
+    ENCOUNTERS SECONDARY NAVIGATION
+    ============================================================
+    {% endcomment %}
+
+    <div class="border-b border-slate-200 bg-white shadow-sm">
+        <div
+            class="
+                flex min-h-11 items-center gap-3
+                overflow-x-auto px-3 py-1.5
+                lg:px-4
+            "
+        >
+            {% comment %}
+            ========================================================
+            ENCOUNTER MODULE NAVIGATION
+            ========================================================
+            {% endcomment %}
+
+            <nav
+                class="
+                    flex min-w-0 flex-1
+                    items-center gap-1 whitespace-nowrap
+                "
+                aria-label="Encounter navigation"
+            >
+                <a
+                    href="{% url 'encounters:list' %}"
+                    hx-boost="false"
+                    class="
+                        inline-flex items-center gap-1.5
                         rounded-md px-2.5 py-1.5
-                        text-xs font-semibold
-                        transition
+                        text-xs font-semibold transition
                         focus:outline-none
                         focus:ring-2
                         focus:ring-ehr-500/30
 
-                        {% if form_mode == 'create' %}
+                        {% if active_encounter_module == 'list' %}
+                            bg-ehr-50 text-ehr-800
+                        {% else %}
+                            text-slate-600
+                            hover:bg-slate-100
+                            hover:text-slate-900
+                        {% endif %}
+                    "
+                    {% if active_encounter_module == "list" %}
+                        aria-current="page"
+                    {% endif %}
+                >
+                    <svg
+                        class="h-3.5 w-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="
+                                M4 6h16
+                                M4 12h16
+                                M4 18h16
+                            "
+                        />
+                    </svg>
+
+                    <span>Encounter List</span>
+                </a>
+
+                <a
+                    href="{% url 'encounters:create' %}"
+                    hx-boost="false"
+                    class="
+                        inline-flex items-center gap-1.5
+                        rounded-md px-2.5 py-1.5
+                        text-xs font-semibold transition
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-ehr-500/30
+
+                        {% if active_encounter_module == 'create' %}
                             bg-ehr-900 text-white
                         {% else %}
                             bg-ehr-800 text-white
                             hover:bg-ehr-900
                         {% endif %}
                     "
-                    {% if form_mode == "create" %}
+                    {% if active_encounter_module == "create" %}
                         aria-current="page"
                     {% endif %}
                 >
@@ -189,38 +497,323 @@
                         />
                     </svg>
 
-                    <span>New Patient?</span>
+                    <span>New Encounter</span>
                 </a>
-            </div>
+            </nav>
+
+            {% comment %}
+            ========================================================
+            SELECTED ENCOUNTER ACTIONS
+
+            The detail and update views should provide:
+            - encounter
+            or:
+            - selected_encounter
+            ========================================================
+            {% endcomment %}
+
+            {% if encounter %}
+                <nav
+                    class="
+                        ml-auto flex shrink-0
+                        items-center gap-1 whitespace-nowrap
+                    "
+                    aria-label="Selected encounter actions"
+                >
+                    <a
+                        href="{% url 'encounters:detail' encounter.pk %}"
+                        hx-boost="false"
+                        class="
+                            secondary-nav-link
+
+                            {% if active_encounter_module == 'detail' %}
+                                bg-ehr-50 text-ehr-800
+                            {% endif %}
+                        "
+                        {% if active_encounter_module == "detail" %}
+                            aria-current="page"
+                        {% endif %}
+                    >
+                        <svg
+                            class="h-3.5 w-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="
+                                    M9 12h6
+                                    M9 16h6
+                                    M9 8h2
+                                    M5 4h14
+                                    a2 2 0 012 2v14
+                                    H3V6a2 2 0 012-2z
+                                "
+                            />
+                        </svg>
+
+                        <span>Encounter Summary</span>
+                    </a>
+
+                    <a
+                        href="{% url 'encounters:update' encounter.pk %}"
+                        hx-boost="false"
+                        class="
+                            secondary-nav-link
+
+                            {% if active_encounter_module == 'update' %}
+                                bg-ehr-50 text-ehr-800
+                            {% endif %}
+                        "
+                        {% if active_encounter_module == "update" %}
+                            aria-current="page"
+                        {% endif %}
+                    >
+                        <svg
+                            class="h-3.5 w-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="
+                                    M11 4H4a2 2 0 00-2 2v14
+                                    a2 2 0 002 2h14
+                                    a2 2 0 002-2v-7
+                                "
+                            />
+
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="
+                                    M18.5 2.5a2.121 2.121 0 013 3
+                                    L12 15l-4 1
+                                    1-4 9.5-9.5z
+                                "
+                            />
+                        </svg>
+
+                        <span>Edit Encounter</span>
+                    </a>
+
+                    {% if encounter.patient %}
+                        <a
+                            href="{% url 'patients:detail' patient_id=encounter.patient.pk %}"
+                            hx-boost="false"
+                            class="
+                                secondary-nav-link
+                                text-slate-600
+                                hover:bg-slate-100
+                                hover:text-slate-900
+                            "
+                        >
+                            <svg
+                                class="h-3.5 w-3.5"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="
+                                        M15 12a3 3 0 11-6 0
+                                        3 3 0 016 0z
+                                    "
+                                />
+
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="
+                                        M2.458 12
+                                        C3.732 7.943 7.523 5 12 5
+                                        c4.478 0 8.268 2.943 9.542 7
+                                        -1.274 4.057-5.064 7-9.542 7
+                                        -4.477 0-8.268-2.943-9.542-7z
+                                    "
+                                />
+                            </svg>
+
+                            <span>Patient Record</span>
+                        </a>
+                    {% endif %}
+                </nav>
+
+            {% elif selected_encounter %}
+                <nav
+                    class="
+                        ml-auto flex shrink-0
+                        items-center gap-1 whitespace-nowrap
+                    "
+                    aria-label="Selected encounter actions"
+                >
+                    <a
+                        href="{% url 'encounters:detail' selected_encounter.pk %}"
+                        hx-boost="false"
+                        class="
+                            secondary-nav-link
+
+                            {% if active_encounter_module == 'detail' %}
+                                bg-ehr-50 text-ehr-800
+                            {% endif %}
+                        "
+                        {% if active_encounter_module == "detail" %}
+                            aria-current="page"
+                        {% endif %}
+                    >
+                        <svg
+                            class="h-3.5 w-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="
+                                    M9 12h6
+                                    M9 16h6
+                                    M9 8h2
+                                    M5 4h14
+                                    a2 2 0 012 2v14
+                                    H3V6a2 2 0 012-2z
+                                "
+                            />
+                        </svg>
+
+                        <span>Encounter Summary</span>
+                    </a>
+
+                    <a
+                        href="{% url 'encounters:update' selected_encounter.pk %}"
+                        hx-boost="false"
+                        class="
+                            secondary-nav-link
+
+                            {% if active_encounter_module == 'update' %}
+                                bg-ehr-50 text-ehr-800
+                            {% endif %}
+                        "
+                        {% if active_encounter_module == "update" %}
+                            aria-current="page"
+                        {% endif %}
+                    >
+                        <svg
+                            class="h-3.5 w-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="
+                                    M11 4H4a2 2 0 00-2 2v14
+                                    a2 2 0 002 2h14
+                                    a2 2 0 002-2v-7
+                                "
+                            />
+
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="
+                                    M18.5 2.5a2.121 2.121 0 013 3
+                                    L12 15l-4 1
+                                    1-4 9.5-9.5z
+                                "
+                            />
+                        </svg>
+
+                        <span>Edit Encounter</span>
+                    </a>
+
+                    {% if selected_encounter.patient %}
+                        <a
+                            href="{% url 'patients:detail' patient_id=selected_encounter.patient.pk %}"
+                            hx-boost="false"
+                            class="
+                                secondary-nav-link
+                                text-slate-600
+                                hover:bg-slate-100
+                                hover:text-slate-900
+                            "
+                        >
+                            <svg
+                                class="h-3.5 w-3.5"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="
+                                        M15 12a3 3 0 11-6 0
+                                        3 3 0 016 0z
+                                    "
+                                />
+
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="
+                                        M2.458 12
+                                        C3.732 7.943 7.523 5 12 5
+                                        c4.478 0 8.268 2.943 9.542 7
+                                        -1.274 4.057-5.064 7-9.542 7
+                                        -4.477 0-8.268-2.943-9.542-7z
+                                    "
+                                />
+                            </svg>
+
+                            <span>Patient Record</span>
+                        </a>
+                    {% endif %}
+                </nav>
+            {% endif %}
         </div>
 
         {% comment %}
-        ========================================================
-        SELECTED PATIENT ACTIONS
-        ========================================================
+        ============================================================
+        MOBILE ENCOUNTER ACTIONS
+        ============================================================
         {% endcomment %}
 
-        {% if selected_patient %}
-            <nav
-                class="
-                    ml-auto flex shrink-0
-                    items-center gap-1 whitespace-nowrap
-                "
-                aria-label="Selected patient actions"
-            >
+        <div class="border-t border-slate-100 px-3 py-2 sm:hidden">
+            <div class="flex items-center justify-between gap-3">
+                <span class="text-xs font-medium text-slate-500">
+                    Encounter workflow
+                </span>
+
                 <a
-                    href="{% url 'patients:detail' patient_id=selected_patient.pk %}"
+                    href="{% url 'encounters:create' %}"
                     hx-boost="false"
                     class="
-                        secondary-nav-link
-
-                        {% if active_patient_section == 'overview' and form_mode != 'update' %}
-                            bg-ehr-50 text-ehr-800
-                        {% endif %}
+                        inline-flex items-center gap-1.5
+                        rounded-md bg-ehr-800
+                        px-2.5 py-1.5
+                        text-xs font-semibold text-white
+                        transition hover:bg-ehr-900
                     "
-                    {% if active_patient_section == "overview" and form_mode != "update" %}
-                        aria-current="page"
-                    {% endif %}
                 >
                     <svg
                         class="h-3.5 w-3.5"
@@ -233,118 +826,14 @@
                         <path
                             stroke-linecap="round"
                             stroke-linejoin="round"
-                            d="
-                                M15 12a3 3 0 11-6 0
-                                3 3 0 016 0z
-                            "
-                        />
-
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="
-                                M2.458 12
-                                C3.732 7.943 7.523 5 12 5
-                                c4.478 0 8.268 2.943 9.542 7
-                                -1.274 4.057-5.064 7-9.542 7
-                                -4.477 0-8.268-2.943-9.542-7z
-                            "
+                            d="M12 5v14M5 12h14"
                         />
                     </svg>
 
-                    <span>View Record</span>
+                    <span>New Encounter</span>
                 </a>
-
-                <a
-                    href="{% url 'patients:update' patient_id=selected_patient.pk %}"
-                    hx-boost="false"
-                    class="
-                        secondary-nav-link
-
-                        {% if form_mode == 'update' %}
-                            bg-ehr-50 text-ehr-800
-                        {% endif %}
-                    "
-                    {% if form_mode == "update" %}
-                        aria-current="page"
-                    {% endif %}
-                >
-                    <svg
-                        class="h-3.5 w-3.5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        aria-hidden="true"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="
-                                M11 4H4a2 2 0 00-2 2v14
-                                a2 2 0 002 2h14
-                                a2 2 0 002-2v-7
-                            "
-                        />
-
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="
-                                M18.5 2.5a2.121 2.121 0 013 3
-                                L12 15l-4 1
-                                1-4 9.5-9.5z
-                            "
-                        />
-                    </svg>
-
-                    <span>Edit Demographics</span>
-                </a>
-            </nav>
-        {% endif %}
-    </div>
-
-    {% comment %}
-    ============================================================
-    MOBILE REGISTER PATIENT ACTION
-    ============================================================
-    {% endcomment %}
-
-    <div class="border-t border-slate-100 px-3 py-2 sm:hidden">
-        <div class="flex items-center justify-between gap-3">
-            <span class="text-xs font-medium text-slate-500">
-                New Patient?
-            </span>
-
-            <a
-                href="{% url 'patients:create' %}"
-                hx-boost="false"
-                class="
-                    inline-flex items-center gap-1.5
-                    rounded-md bg-ehr-800
-                    px-2.5 py-1.5
-                    text-xs font-semibold text-white
-                    transition hover:bg-ehr-900
-                "
-            >
-                <svg
-                    class="h-3.5 w-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    aria-hidden="true"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M12 5v14M5 12h14"
-                    />
-                </svg>
-
-                <span>Register Patient</span>
-            </a>
+            </div>
         </div>
     </div>
-</div>
+
 {% endif %}

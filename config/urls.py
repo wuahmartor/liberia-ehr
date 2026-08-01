@@ -21,6 +21,20 @@ urlpatterns = [
         include("apps.facilities.urls"),
     ),
 
+    # ============================================================
+
+    # ENCOUNTERS
+
+    # ============================================================
+
+    path(
+
+        "encounters/",
+
+        include("apps.encounters.urls"),
+
+    ),
+    
     # Django password reset URLs
     path(
         "accounts/",

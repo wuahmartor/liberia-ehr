@@ -1,26 +1,104 @@
 {% extends "layouts/app_shell.html" %}
 
+{% comment %}
+============================================================
+ENCOUNTER FORM PAGE
+
+Used for encounter creation and updates.
+============================================================
+{% endcomment %}
+
+
 {% block title %}
-    encounters Form | Liberia EHR
-{% endblock %}
+    {% if form.instance.pk %}
+        Update Encounter
+    {% else %}
+        New Encounter
+    {% endif %}
+{% endblock title %}
+
 
 {% block workspace %}
-<section class="max-w-3xl">
-    <h1 class="text-2xl font-bold capitalize">
-        encounters Form
-    </h1>
+<section class="mx-auto max-w-5xl space-y-4">
+    <header>
+        <h1 class="text-lg font-semibold text-slate-900">
+            {% if form.instance.pk %}
+                Update Encounter
+            {% else %}
+                New Encounter
+            {% endif %}
+        </h1>
 
-    <form method="post" class="mt-6 space-y-4">
+        <p class="mt-1 text-sm text-slate-500">
+            Record the patient visit, status, priority, and provider.
+        </p>
+    </header>
+
+    <form
+        method="post"
+        class="
+            overflow-hidden rounded-xl
+            border border-slate-200
+            bg-white shadow-sm
+        "
+        novalidate
+    >
         {% csrf_token %}
 
         {% include "encounters/partials/form_fields.html" %}
 
-        <button
-            type="submit"
-            class="rounded-lg bg-ehr-800 px-4 py-2 font-semibold text-white"
+        <div
+            class="
+                flex flex-col-reverse gap-2
+                border-t border-slate-200
+                bg-slate-50 px-4 py-3
+                sm:flex-row sm:justify-end
+            "
         >
-            Save
-        </button>
+            {% if form.instance.pk %}
+                <a
+                    href="{% url 'encounters:detail' form.instance.pk %}"
+                    class="
+                        inline-flex items-center justify-center
+                        rounded-lg border border-slate-300
+                        bg-white px-4 py-2
+                        text-xs font-semibold text-slate-700
+                        hover:bg-slate-50
+                    "
+                >
+                    Cancel
+                </a>
+            {% else %}
+                <a
+                    href="{% url 'encounters:list' %}"
+                    class="
+                        inline-flex items-center justify-center
+                        rounded-lg border border-slate-300
+                        bg-white px-4 py-2
+                        text-xs font-semibold text-slate-700
+                        hover:bg-slate-50
+                    "
+                >
+                    Cancel
+                </a>
+            {% endif %}
+
+            <button
+                type="submit"
+                class="
+                    inline-flex items-center justify-center
+                    rounded-lg bg-ehr-700
+                    px-4 py-2 text-xs font-semibold
+                    text-white hover:bg-ehr-800
+                "
+            >
+                {% if form.instance.pk %}
+                    Save Changes
+                {% else %}
+                    Create Encounter
+                {% endif %}
+            </button>
+        </div>
     </form>
 </section>
-{% endblock %}
+{% endblock workspace %}
