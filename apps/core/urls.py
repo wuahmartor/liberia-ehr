@@ -33,13 +33,6 @@ urlpatterns = [
         name="analytics_dashboard",
     ),
 
-    # Administration
-    path(
-        "administration/",
-        views.administration_dashboard,
-        name="administration_dashboard",
-    ),
-
     # Department dashboards
     path(
         "pharmacy/",

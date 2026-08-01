@@ -10,10 +10,6 @@ urlpatterns = [
         include("apps.accounts.urls"),
     ),
 
-    path(
-        "",
-        include("apps.core.urls"),
-    ),
 
     path(
         "patients/",
@@ -31,5 +27,14 @@ urlpatterns = [
         include("django.contrib.auth.urls"),
     ),
 
-    path("pharmacy/", include("apps.pharmacy.urls")),
+    path("pharmacy/", include("apps.pharmacy.urls"),
+         ),
+
+    path("administration/", include("apps.administration.urls"),
+         ),
+
+      path(
+            "",
+            include("apps.core.urls"),
+        ),
 ]

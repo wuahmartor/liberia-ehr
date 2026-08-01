@@ -1,0 +1,22 @@
+{% extends "layouts/app_shell.html" %}
+
+{% comment %}
+============================================================
+ADMINISTRATION DASHBOARD
+
+Full-page template used for:
+- Direct browser navigation
+- Page refreshes
+- Bookmarked administration dashboard URLs
+============================================================
+{% endcomment %}
+
+
+{% block title %}
+    Administration
+{% endblock title %}
+
+
+{% block workspace %}
+    {% include "administration/partials/dashboard_workspace.html" %}
+{% endblock workspace %}

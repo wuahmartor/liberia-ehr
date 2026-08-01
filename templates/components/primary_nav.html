@@ -1,29 +1,50 @@
 {% load static %}
 
+{% comment %}
+============================================================
+PRIMARY NAVIGATION COMPONENT
+
+File:
+templates/components/primary_nav.html
+
+Purpose:
+- Provide the main Liberia EHR navigation.
+- Display desktop dropdown menus.
+- Display a separate mobile navigation panel.
+- Display the authenticated user's identity and account actions.
+- Navigate between complete application modules.
+
+Primary modules:
+1. Clinical
+2. Analytics
+3. AI / CDS
+4. Administration
+
+Important navigation behavior:
+- Module dashboard links use normal Django navigation.
+- The Administration dashboard does not use hx-get.
+- Full-page navigation allows app_shell.html to update:
+  - Primary navigation state
+  - Secondary navigation
+  - Contextual sidebar
+  - Main workspace
+============================================================
+{% endcomment %}
+
+
 <!-- =========================================================
-     PRIMARY NAVIGATION COMPONENT
-     File: templates/components/primary_nav.html
-
-     Purpose:
-     - Provides the main Liberia EHR top navigation.
-     - Desktop navigation has four primary groups:
-       1. Clinical
-       2. Analytics
-       3. AI / CDS
-       4. Administration
-
-     Important structure:
-     - Clinical contains patient-care workflow items.
-     - Administration contains Scheduling and system setup.
-     - Mobile navigation is separate and appears only on small screens.
+     ALPINE.JS CLOAK SUPPORT
 ========================================================== -->
-
 <style>
     [x-cloak] {
         display: none !important;
     }
 </style>
 
+
+<!-- =========================================================
+     PRIMARY NAVIGATION HEADER
+========================================================== -->
 <header
     x-data="{
         openMenu: null,
@@ -38,6 +59,12 @@
         closeMenus() {
             this.openMenu = null;
             this.profileOpen = false;
+        },
+
+        closeAllMenus() {
+            this.openMenu = null;
+            this.profileOpen = false;
+            this.mobileMenuOpen = false;
         }
     }"
     class="
@@ -46,21 +73,15 @@
         from-ehr-900 to-ehr-800
         text-white shadow
     "
-    @keydown.escape.window="closeMenus()"
+    @keydown.escape.window="closeAllMenus()"
 >
     <!-- =====================================================
-         SECTION 1: TOP NAVIGATION BAR WRAPPER
-         Contains:
-         - Mobile menu button
-         - Application logo
-         - Desktop primary navigation
-         - Right-side user actions
+         SECTION 1: TOP NAVIGATION BAR
     ====================================================== -->
     <div class="flex h-12 items-center gap-2 px-3 lg:px-4">
 
         <!-- =================================================
-             SECTION 1A: MOBILE MENU TOGGLE BUTTON
-             Visible only on small screens.
+             MOBILE MENU TOGGLE
         ================================================== -->
         <button
             type="button"
@@ -94,18 +115,20 @@
             </svg>
         </button>
 
+
         <!-- =================================================
-             SECTION 1B: APPLICATION LOGO / HOME LINK
+             APPLICATION LOGO AND HOME LINK
         ================================================== -->
         <a
             href="{% url 'core:dashboard' %}"
             class="
                 mr-1 flex shrink-0 items-center
-                gap-2 font-semibold
+                gap-2 rounded-md font-semibold
                 focus:outline-none
                 focus:ring-2 focus:ring-white/40
                 lg:mr-2
             "
+            @click="closeAllMenus()"
         >
             <span
                 class="
@@ -123,15 +146,9 @@
             </span>
         </a>
 
-        <!-- =================================================
-             SECTION 1C: DESKTOP PRIMARY NAVIGATION
-             Visible on large screens and above.
 
-             Top-level desktop items:
-             - Clinical
-             - Analytics
-             - AI / CDS
-             - Administration
+        <!-- =================================================
+             DESKTOP PRIMARY NAVIGATION
         ================================================== -->
         <nav
             class="
@@ -144,15 +161,7 @@
             {% with active=active_primary_nav %}
 
                 <!-- =========================================
-                     DESKTOP MENU 1: CLINICAL
-                     Contains clinical workflow areas:
-                     - Dashboard
-                     - Patients
-                     - Nursing
-                     - Orders
-                     - Medications
-                     - Pharmacy
-                     - Care Management
+                     DESKTOP CLINICAL MENU
                 ========================================== -->
                 <div
                     class="relative"
@@ -205,77 +214,109 @@
                         role="menu"
                     >
                         <div class="primary-dropdown-list">
+
+                            <!-- Clinical dashboard -->
                             <a
                                 href="{% url 'core:clinical_dashboard' %}"
                                 class="primary-dropdown-link"
                                 role="menuitem"
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">▦</span>
-                                <span class="primary-dropdown-label">Clinical Dashboard</span>
+
+                                <span class="primary-dropdown-label">
+                                    Clinical Dashboard
+                                </span>
                             </a>
 
+                            <!-- Patients -->
                             <a
                                 href="{% url 'patients:list' %}"
                                 class="primary-dropdown-link"
                                 role="menuitem"
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">♙</span>
-                                <span class="primary-dropdown-label">Patients</span>
+
+                                <span class="primary-dropdown-label">
+                                    Patients
+                                </span>
                             </a>
 
                             <div class="primary-dropdown-divider"></div>
 
+                            <!-- Nursing -->
                             <a
                                 href="#"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
                                 <span class="primary-dropdown-icon">♡</span>
-                                <span class="primary-dropdown-label">Nursing</span>
+
+                                <span class="primary-dropdown-label">
+                                    Nursing
+                                </span>
                             </a>
 
+                            <!-- Orders -->
                             <a
                                 href="#"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
                                 <span class="primary-dropdown-icon">▤</span>
-                                <span class="primary-dropdown-label">Orders</span>
+
+                                <span class="primary-dropdown-label">
+                                    Orders
+                                </span>
                             </a>
 
+                            <!-- Medications -->
                             <a
                                 href="#"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
                                 <span class="primary-dropdown-icon">◇</span>
-                                <span class="primary-dropdown-label">Medications</span>
+
+                                <span class="primary-dropdown-label">
+                                    Medications
+                                </span>
                             </a>
 
+                            <!-- Pharmacy -->
                             <a
-                                href="#"
+                                href="{% url 'pharmacy:dashboard' %}"
                                 class="primary-dropdown-link"
                                 role="menuitem"
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">⌂</span>
-                                <span class="primary-dropdown-label">Pharmacy</span>
+
+                                <span class="primary-dropdown-label">
+                                    Pharmacy
+                                </span>
                             </a>
 
+                            <!-- Care management -->
                             <a
                                 href="#"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
                                 <span class="primary-dropdown-icon">⇄</span>
-                                <span class="primary-dropdown-label">Care Management</span>
+
+                                <span class="primary-dropdown-label">
+                                    Care Management
+                                </span>
                             </a>
                         </div>
                     </div>
                 </div>
 
+
                 <!-- =========================================
-                     DESKTOP MENU 2: ANALYTICS
-                     Contains dashboards and reporting areas.
+                     DESKTOP ANALYTICS MENU
                 ========================================== -->
                 <div
                     class="relative"
@@ -328,51 +369,105 @@
                         role="menu"
                     >
                         <div class="primary-dropdown-list">
+
+                            <!-- Analytics dashboard -->
                             <a
                                 href="{% url 'core:analytics_dashboard' %}"
                                 class="primary-dropdown-link"
                                 role="menuitem"
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">▦</span>
-                                <span class="primary-dropdown-label">Analytics Dashboard</span>
+
+                                <span class="primary-dropdown-label">
+                                    Analytics Dashboard
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                            <!-- Clinical analytics -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">✚</span>
-                                <span class="primary-dropdown-label">Clinical Analytics</span>
+
+                                <span class="primary-dropdown-label">
+                                    Clinical Analytics
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                            <!-- Nursing analytics -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">♡</span>
-                                <span class="primary-dropdown-label">Nursing Analytics</span>
+
+                                <span class="primary-dropdown-label">
+                                    Nursing Analytics
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                            <!-- Operations analytics -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">⌂</span>
-                                <span class="primary-dropdown-label">Operations</span>
+
+                                <span class="primary-dropdown-label">
+                                    Operations
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                            <!-- Quality analytics -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">✓</span>
-                                <span class="primary-dropdown-label">Quality</span>
+
+                                <span class="primary-dropdown-label">
+                                    Quality
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                            <!-- Public health analytics -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">◎</span>
-                                <span class="primary-dropdown-label">Public Health</span>
+
+                                <span class="primary-dropdown-label">
+                                    Public Health
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                            <!-- Reports -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">⇩</span>
-                                <span class="primary-dropdown-label">Reports</span>
+
+                                <span class="primary-dropdown-label">
+                                    Reports
+                                </span>
                             </a>
                         </div>
                     </div>
                 </div>
 
+
                 <!-- =========================================
-                     DESKTOP MENU 3: AI / CDS
-                     Contains clinical decision support items.
+                     DESKTOP AI / CDS MENU
                 ========================================== -->
                 <div
                     class="relative"
@@ -425,59 +520,113 @@
                         role="menu"
                     >
                         <div class="primary-dropdown-list">
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+
+                            <!-- Alerts -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">!</span>
-                                <span class="primary-dropdown-label">Alerts</span>
+
+                                <span class="primary-dropdown-label">
+                                    Alerts
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                            <!-- Recommendations -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">◇</span>
-                                <span class="primary-dropdown-label">Recommendations</span>
+
+                                <span class="primary-dropdown-label">
+                                    Recommendations
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                            <!-- Risk scores -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">↗</span>
-                                <span class="primary-dropdown-label">Risk Scores</span>
+
+                                <span class="primary-dropdown-label">
+                                    Risk Scores
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                            <!-- Clinical summaries -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">✦</span>
-                                <span class="primary-dropdown-label">Clinical Summaries</span>
+
+                                <span class="primary-dropdown-label">
+                                    Clinical Summaries
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                            <!-- Natural-language search -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">⌕</span>
-                                <span class="primary-dropdown-label">Natural-Language Search</span>
+
+                                <span class="primary-dropdown-label">
+                                    Natural-Language Search
+                                </span>
                             </a>
 
                             {% if request.user.is_staff %}
                                 <div class="primary-dropdown-divider"></div>
 
-                                <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <!-- CDS rules -->
+                                <a
+                                    href="#"
+                                    class="primary-dropdown-link"
+                                    role="menuitem"
+                                >
                                     <span class="primary-dropdown-icon">⚙</span>
-                                    <span class="primary-dropdown-label">Rules</span>
+
+                                    <span class="primary-dropdown-label">
+                                        Rules
+                                    </span>
                                 </a>
 
-                                <a href="#" class="primary-dropdown-link" role="menuitem">
+                                <!-- AI/CDS performance -->
+                                <a
+                                    href="#"
+                                    class="primary-dropdown-link"
+                                    role="menuitem"
+                                >
                                     <span class="primary-dropdown-icon">▥</span>
-                                    <span class="primary-dropdown-label">Performance</span>
+
+                                    <span class="primary-dropdown-label">
+                                        Performance
+                                    </span>
                                 </a>
                             {% endif %}
                         </div>
                     </div>
                 </div>
 
+
                 <!-- =========================================
-                     DESKTOP MENU 4: ADMINISTRATION
-                     Contains system and operational setup:
-                     - Administration Dashboard
-                     - Scheduling
-                     - Users and Staff
-                     - Roles and Permissions
-                     - Facilities
-                     - Audit Logs
-                     - Settings
-                     - Django Admin for staff users
+                     DESKTOP ADMINISTRATION MENU
+
+                     Important:
+                     The Administration dashboard link uses a
+                     normal href. It does not use HTMX because
+                     the complete application shell must reload.
                 ========================================== -->
                 <div
                     class="relative"
@@ -503,7 +652,10 @@
 
                         <svg
                             class="h-3.5 w-3.5 transition-transform"
-                            :class="{ 'rotate-180': openMenu === 'administration' }"
+                            :class="{
+                                'rotate-180':
+                                    openMenu === 'administration'
+                            }"
                             viewBox="0 0 20 20"
                             fill="currentColor"
                             aria-hidden="true"
@@ -530,45 +682,132 @@
                         role="menu"
                     >
                         <div class="primary-dropdown-list">
+
+                            <!-- Administration dashboard -->
                             <a
-                                href="{% url 'core:administration_dashboard' %}"
+                                href="{% url 'administration:dashboard' %}"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                                @click="openMenu = null"
+                            >
+                                <span class="primary-dropdown-icon">▦</span>
+
+                                <span class="primary-dropdown-label">
+                                    Administration Dashboard
+                                </span>
+                            </a>
+
+                            <div class="primary-dropdown-divider"></div>
+
+                            <!-- Scheduling -->
+                            <a
+                                href="#"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">▦</span>
-                                <span class="primary-dropdown-label">Administration Dashboard</span>
-                            </a>
-
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
                                 <span class="primary-dropdown-icon">□</span>
-                                <span class="primary-dropdown-label">Scheduling</span>
+
+                                <span class="primary-dropdown-label">
+                                    Scheduling
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
-                                <span class="primary-dropdown-icon">♙</span>
-                                <span class="primary-dropdown-label">Users and Staff</span>
-                            </a>
+                            <!-- Users and staff -->
+                            {% if request.user.is_staff %}
+                                <a
+                                    href="{% url 'admin:auth_user_changelist' %}"
+                                    class="primary-dropdown-link"
+                                    role="menuitem"
+                                    @click="openMenu = null"
+                                >
+                                    <span class="primary-dropdown-icon">♙</span>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
-                                <span class="primary-dropdown-icon">◇</span>
-                                <span class="primary-dropdown-label">Roles and Permissions</span>
-                            </a>
+                                    <span class="primary-dropdown-label">
+                                        Users and Staff
+                                    </span>
+                                </a>
+                            {% else %}
+                                <a
+                                    href="#"
+                                    class="primary-dropdown-link"
+                                    role="menuitem"
+                                >
+                                    <span class="primary-dropdown-icon">♙</span>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                                    <span class="primary-dropdown-label">
+                                        Users and Staff
+                                    </span>
+                                </a>
+                            {% endif %}
+
+                            <!-- Roles and permissions -->
+                            {% if request.user.is_staff %}
+                                <a
+                                    href="{% url 'admin:auth_group_changelist' %}"
+                                    class="primary-dropdown-link"
+                                    role="menuitem"
+                                    @click="openMenu = null"
+                                >
+                                    <span class="primary-dropdown-icon">◇</span>
+
+                                    <span class="primary-dropdown-label">
+                                        Roles and Permissions
+                                    </span>
+                                </a>
+                            {% else %}
+                                <a
+                                    href="#"
+                                    class="primary-dropdown-link"
+                                    role="menuitem"
+                                >
+                                    <span class="primary-dropdown-icon">◇</span>
+
+                                    <span class="primary-dropdown-label">
+                                        Roles and Permissions
+                                    </span>
+                                </a>
+                            {% endif %}
+
+                            <!-- Facilities -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">⌂</span>
-                                <span class="primary-dropdown-label">Facilities</span>
+
+                                <span class="primary-dropdown-label">
+                                    Facilities
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                            <!-- Audit logs -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">▤</span>
-                                <span class="primary-dropdown-label">Audit Logs</span>
+
+                                <span class="primary-dropdown-label">
+                                    Audit Logs
+                                </span>
                             </a>
 
-                            <a href="#" class="primary-dropdown-link" role="menuitem">
+                            <!-- System settings -->
+                            <a
+                                href="#"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                            >
                                 <span class="primary-dropdown-icon">⚙</span>
-                                <span class="primary-dropdown-label">Settings</span>
+
+                                <span class="primary-dropdown-label">
+                                    System Settings
+                                </span>
                             </a>
 
+                            <!-- Django administration -->
                             {% if request.user.is_staff %}
                                 <div class="primary-dropdown-divider"></div>
 
@@ -576,9 +815,13 @@
                                     href="{% url 'admin:index' %}"
                                     class="primary-dropdown-link"
                                     role="menuitem"
+                                    @click="openMenu = null"
                                 >
                                     <span class="primary-dropdown-icon">⚙</span>
-                                    <span class="primary-dropdown-label">Django Admin</span>
+
+                                    <span class="primary-dropdown-label">
+                                        Django Admin
+                                    </span>
                                 </a>
                             {% endif %}
                         </div>
@@ -588,20 +831,15 @@
             {% endwith %}
         </nav>
 
+
         <!-- =================================================
-             SECTION 1D: RIGHT-SIDE USER ACTIONS
-             Contains:
-             - Notification button
-             - User identity
-             - Profile dropdown
-             - Sign out button
-             - Sign in link for anonymous users
+             RIGHT-SIDE USER ACTIONS
         ================================================== -->
         <div class="ml-auto flex shrink-0 items-center gap-1.5">
 
-            <!-- ---------------------------------------------
+            <!-- =============================================
                  NOTIFICATIONS BUTTON
-            ---------------------------------------------- -->
+            ============================================== -->
             <button
                 type="button"
                 class="
@@ -645,11 +883,12 @@
                 ></span>
             </button>
 
+
             {% if request.user.is_authenticated %}
 
-                <!-- -----------------------------------------
-                     DESKTOP USER IDENTITY DISPLAY
-                ------------------------------------------ -->
+                <!-- =========================================
+                     DESKTOP USER IDENTITY
+                ========================================== -->
                 <div
                     class="
                         hidden items-center gap-2
@@ -709,9 +948,10 @@
                     </div>
                 </div>
 
-                <!-- -----------------------------------------
+
+                <!-- =========================================
                      USER PROFILE DROPDOWN
-                ------------------------------------------ -->
+                ========================================== -->
                 <div
                     class="relative"
                     @click.outside="profileOpen = false"
@@ -775,7 +1015,7 @@
                         "
                         role="menu"
                     >
-                        <!-- User profile summary -->
+                        <!-- Profile summary -->
                         <div
                             class="
                                 border-b border-slate-100
@@ -836,12 +1076,13 @@
                             </div>
                         </div>
 
-                        <!-- Profile dropdown links -->
+                        <!-- Account links -->
                         <div class="py-1">
                             <a
                                 href="{% url 'accounts:profile' %}"
                                 class="primary-dropdown-link"
                                 role="menuitem"
+                                @click="profileOpen = false"
                             >
                                 <span aria-hidden="true">👤</span>
                                 <span>My Profile</span>
@@ -861,6 +1102,7 @@
                                     href="{% url 'admin:index' %}"
                                     class="primary-dropdown-link"
                                     role="menuitem"
+                                    @click="profileOpen = false"
                                 >
                                     <span aria-hidden="true">⚙️</span>
                                     <span>Django Administration</span>
@@ -868,7 +1110,7 @@
                             {% endif %}
                         </div>
 
-                        <!-- Sign out inside profile menu -->
+                        <!-- Dropdown sign out -->
                         <div class="border-t border-slate-100 p-1">
                             <form
                                 method="post"
@@ -895,9 +1137,10 @@
                     </div>
                 </div>
 
-                <!-- -----------------------------------------
+
+                <!-- =========================================
                      DESKTOP SIGN OUT BUTTON
-                ------------------------------------------ -->
+                ========================================== -->
                 <form
                     method="post"
                     action="{% url 'accounts:logout' %}"
@@ -946,9 +1189,9 @@
 
             {% else %}
 
-                <!-- -----------------------------------------
-                     SIGN IN LINK FOR ANONYMOUS USERS
-                ------------------------------------------ -->
+                <!-- =========================================
+                     SIGN IN LINK
+                ========================================== -->
                 <a
                     href="{% url 'accounts:login' %}"
                     class="
@@ -967,17 +1210,9 @@
         </div>
     </div>
 
-    <!-- =====================================================
-         SECTION 2: MOBILE PRIMARY NAVIGATION PANEL
-         Visible only when:
-         - Screen is below lg
-         - mobileMenuOpen is true
 
-         Mobile groups:
-         - Clinical
-         - Analytics
-         - AI / CDS
-         - Administration
+    <!-- =====================================================
+         SECTION 2: MOBILE PRIMARY NAVIGATION
     ====================================================== -->
     <div
         x-cloak
@@ -995,12 +1230,22 @@
         >
 
             <!-- =============================================
-                 MOBILE MENU 1: CLINICAL
+                 MOBILE CLINICAL MENU
             ============================================== -->
-            <div x-data="{ expanded: false }">
+            <div
+                x-data="{
+                    expanded:
+                        '{{ active_primary_nav }}' === 'clinical'
+                }"
+            >
                 <button
                     type="button"
-                    class="mobile-primary-nav-button"
+                    class="
+                        mobile-primary-nav-button
+                        {% if active_primary_nav == 'clinical' %}
+                            mobile-primary-nav-button-active
+                        {% endif %}
+                    "
                     @click="expanded = !expanded"
                     :aria-expanded="expanded.toString()"
                 >
@@ -1022,6 +1267,7 @@
                     <a
                         href="{% url 'core:clinical_dashboard' %}"
                         class="mobile-primary-nav-link"
+                        @click="mobileMenuOpen = false"
                     >
                         Clinical Dashboard
                     </a>
@@ -1029,44 +1275,67 @@
                     <a
                         href="{% url 'patients:list' %}"
                         class="mobile-primary-nav-link"
+                        @click="mobileMenuOpen = false"
                     >
                         Patients
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Nursing
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Orders
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Medications
                     </a>
 
                     <a
                         href="{% url 'pharmacy:dashboard' %}"
-                        class="primary-dropdown-link"
-                        role="menuitem"
+                        class="mobile-primary-nav-link"
+                        @click="mobileMenuOpen = false"
                     >
-                        <span class="primary-dropdown-icon">⌂</span>
-                        <span class="primary-dropdown-label">Pharmacy</span>
+                        Pharmacy
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Care Management
                     </a>
                 </div>
             </div>
 
+
             <!-- =============================================
-                 MOBILE MENU 2: ANALYTICS
+                 MOBILE ANALYTICS MENU
             ============================================== -->
-            <div x-data="{ expanded: false }">
+            <div
+                x-data="{
+                    expanded:
+                        '{{ active_primary_nav }}' === 'analytics'
+                }"
+            >
                 <button
                     type="button"
-                    class="mobile-primary-nav-button"
+                    class="
+                        mobile-primary-nav-button
+                        {% if active_primary_nav == 'analytics' %}
+                            mobile-primary-nav-button-active
+                        {% endif %}
+                    "
                     @click="expanded = !expanded"
                     :aria-expanded="expanded.toString()"
                 >
@@ -1088,43 +1357,73 @@
                     <a
                         href="{% url 'core:analytics_dashboard' %}"
                         class="mobile-primary-nav-link"
+                        @click="mobileMenuOpen = false"
                     >
                         Analytics Dashboard
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Clinical Analytics
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Nursing Analytics
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Operations
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Quality
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Public Health
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Reports
                     </a>
                 </div>
             </div>
 
+
             <!-- =============================================
-                 MOBILE MENU 3: AI / CDS
+                 MOBILE AI / CDS MENU
             ============================================== -->
-            <div x-data="{ expanded: false }">
+            <div
+                x-data="{
+                    expanded:
+                        '{{ active_primary_nav }}' === 'ai-cds'
+                }"
+            >
                 <button
                     type="button"
-                    class="mobile-primary-nav-button"
+                    class="
+                        mobile-primary-nav-button
+                        {% if active_primary_nav == 'ai-cds' %}
+                            mobile-primary-nav-button-active
+                        {% endif %}
+                    "
                     @click="expanded = !expanded"
                     :aria-expanded="expanded.toString()"
                 >
@@ -1143,45 +1442,79 @@
                     x-show="expanded"
                     class="mobile-primary-nav-panel"
                 >
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Alerts
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Recommendations
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Risk Scores
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Clinical Summaries
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Natural-Language Search
                     </a>
 
                     {% if request.user.is_staff %}
-                        <a href="#" class="mobile-primary-nav-link">
+                        <a
+                            href="#"
+                            class="mobile-primary-nav-link"
+                        >
                             Rules
                         </a>
 
-                        <a href="#" class="mobile-primary-nav-link">
+                        <a
+                            href="#"
+                            class="mobile-primary-nav-link"
+                        >
                             Performance
                         </a>
                     {% endif %}
                 </div>
             </div>
 
+
             <!-- =============================================
-                 MOBILE MENU 4: ADMINISTRATION
+                 MOBILE ADMINISTRATION MENU
+
+                 Uses normal full-page navigation.
             ============================================== -->
-            <div x-data="{ expanded: false }">
+            <div
+                x-data="{
+                    expanded:
+                        '{{ active_primary_nav }}' === 'administration'
+                }"
+            >
                 <button
                     type="button"
-                    class="mobile-primary-nav-button"
+                    class="
+                        mobile-primary-nav-button
+                        {% if active_primary_nav == 'administration' %}
+                            mobile-primary-nav-button-active
+                        {% endif %}
+                    "
                     @click="expanded = !expanded"
                     :aria-expanded="expanded.toString()"
                 >
@@ -1200,41 +1533,89 @@
                     x-show="expanded"
                     class="mobile-primary-nav-panel"
                 >
+                    <!-- Administration dashboard -->
                     <a
-                        href="{% url 'core:administration_dashboard' %}"
+                        href="{% url 'administration:dashboard' %}"
                         class="mobile-primary-nav-link"
+                        @click="mobileMenuOpen = false"
                     >
                         Administration Dashboard
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <!-- Scheduling -->
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Scheduling
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
-                        Users and Staff
-                    </a>
+                    <!-- Users and staff -->
+                    {% if request.user.is_staff %}
+                        <a
+                            href="{% url 'admin:auth_user_changelist' %}"
+                            class="mobile-primary-nav-link"
+                            @click="mobileMenuOpen = false"
+                        >
+                            Users and Staff
+                        </a>
+                    {% else %}
+                        <a
+                            href="#"
+                            class="mobile-primary-nav-link"
+                        >
+                            Users and Staff
+                        </a>
+                    {% endif %}
 
-                    <a href="#" class="mobile-primary-nav-link">
-                        Roles and Permissions
-                    </a>
+                    <!-- Roles and permissions -->
+                    {% if request.user.is_staff %}
+                        <a
+                            href="{% url 'admin:auth_group_changelist' %}"
+                            class="mobile-primary-nav-link"
+                            @click="mobileMenuOpen = false"
+                        >
+                            Roles and Permissions
+                        </a>
+                    {% else %}
+                        <a
+                            href="#"
+                            class="mobile-primary-nav-link"
+                        >
+                            Roles and Permissions
+                        </a>
+                    {% endif %}
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <!-- Facilities -->
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Facilities
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
+                    <!-- Audit logs -->
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
                         Audit Logs
                     </a>
 
-                    <a href="#" class="mobile-primary-nav-link">
-                        Settings
+                    <!-- System settings -->
+                    <a
+                        href="#"
+                        class="mobile-primary-nav-link"
+                    >
+                        System Settings
                     </a>
 
+                    <!-- Django administration -->
                     {% if request.user.is_staff %}
                         <a
                             href="{% url 'admin:index' %}"
                             class="mobile-primary-nav-link"
+                            @click="mobileMenuOpen = false"
                         >
                             Django Admin
                         </a>
@@ -1243,9 +1624,9 @@
             </div>
         </nav>
 
+
         <!-- =================================================
-             SECTION 2B: MOBILE ACCOUNT INFORMATION
-             Visible only when user is authenticated.
+             MOBILE ACCOUNT INFORMATION
         ================================================== -->
         {% if request.user.is_authenticated %}
             <div
@@ -1303,6 +1684,7 @@
                             text-xs font-semibold
                             transition hover:bg-white/20
                         "
+                        @click="mobileMenuOpen = false"
                     >
                         My Profile
                     </a>
