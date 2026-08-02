@@ -211,6 +211,10 @@ class EncounterCreateView(
     active_encounter_module = "create"
 
     def get_initial(self):
+        """
+        Preselect the patient supplied by the patient sidebar.
+        """
+
         initial = super().get_initial()
 
         patient_id = self.request.GET.get("patient")

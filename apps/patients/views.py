@@ -1,37 +1,52 @@
+"""
+Liberia EHR Patient Views
+
+File:
+apps/patients/views.py
+
+Purpose:
+- Manage patient registration and demographic records.
+- Display patient lists, searches, details, and clinical overview.
+- Manage patient allergies, identifiers, addresses, contacts,
+  relationships, insurance, consents, and flags.
+- Connect the selected patient to an active clinical encounter.
+- Restrict encounter-specific sidebar actions unless an active,
+  open encounter exists.
+"""
+
 from __future__ import annotations
 
 import json
-import json
 
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, render
-
-from .forms import PatientAllergyForm
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, render
-from apps.patients.models import Patient, PatientAllergy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Prefetch, Q
-
 from django.http import (
     Http404,
     HttpRequest,
     HttpResponse,
     HttpResponseBadRequest,
 )
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import (
+    get_object_or_404,
+    redirect,
+    render,
+)
 from django.urls import reverse
 from django.views import View
 from django.views.generic import CreateView, UpdateView
+
 from apps.core.htmx import is_htmx
+from apps.encounters.models import Encounter
+
 from .forms import (
     EmergencyContactForm,
     InsuranceCoverageForm,
     PatientAddressForm,
     PatientAliasForm,
+    PatientAllergyForm,
     PatientConsentForm,
     PatientContactPointForm,
     PatientFlagForm,
@@ -45,6 +60,7 @@ from .models import (
     Patient,
     PatientAddress,
     PatientAlias,
+    PatientAllergy,
     PatientConsent,
     PatientContactPoint,
     PatientFlag,
@@ -55,8 +71,13 @@ from .models import (
 )
 
 
+# ============================================================
+# CONFIGURATION
+# ============================================================
+
 PATIENT_PAGE_SIZE = 25
 PATIENT_SEARCH_LIMIT = 12
+RECENT_ENCOUNTER_LIMIT = 10
 
 
 # ============================================================
@@ -67,11 +88,13 @@ def patient_queryset():
     """
     Return the standard patient queryset used throughout the app.
 
-    Facility-level and object-level security should eventually
-    be applied here or in a dedicated selector.
+    Facility-level and object-level security can later be applied
+    here or through a dedicated selector layer.
     """
+
     return (
-        Patient.objects.select_related(
+        Patient.objects
+        .select_related(
             "registration_facility",
             "created_by",
             "updated_by",
@@ -86,6 +109,7 @@ def patient_queryset():
             "relationships_to__patient",
             "consents",
             "insurance_coverages",
+            "allergies",
             Prefetch(
                 "flags",
                 queryset=PatientFlag.objects.order_by(
@@ -98,14 +122,97 @@ def patient_queryset():
     )
 
 
+def active_encounter_queryset():
+    """
+    Return encounters considered active for clinical documentation.
+
+    Planned and scheduled encounters are intentionally excluded
+    because the patient has not yet arrived for direct clinical care.
+    """
+
+    return Encounter.objects.filter(
+        is_active=True,
+        status__in=[
+            Encounter.EncounterStatus.ARRIVED,
+            Encounter.EncounterStatus.TRIAGED,
+            Encounter.EncounterStatus.IN_PROGRESS,
+            Encounter.EncounterStatus.ON_HOLD,
+        ],
+    )
+
+
+def get_patient_active_encounter(
+    patient: Patient,
+) -> Encounter | None:
+    """
+    Return the patient's most recent active clinical encounter.
+
+    Encounter-specific actions such as triage, vitals, diagnoses,
+    orders, medications, notes, and flowsheets should only be
+    enabled when this function returns an encounter.
+    """
+
+    return (
+        active_encounter_queryset()
+        .filter(patient=patient)
+        .select_related(
+            "patient",
+            "attending_provider",
+            "created_by",
+            "registered_by",
+            "check_in_user",
+            "triaged_by",
+        )
+        .order_by(
+            "-start_datetime",
+            "-created_at",
+        )
+        .first()
+    )
+
+
+def patient_recent_encounters(
+    patient: Patient,
+    *,
+    limit: int = RECENT_ENCOUNTER_LIMIT,
+):
+    """
+    Return the patient's recent encounter history.
+    """
+
+    return (
+        Encounter.objects
+        .filter(patient=patient)
+        .select_related(
+            "attending_provider",
+            "created_by",
+            "registered_by",
+            "check_in_user",
+            "triaged_by",
+        )
+        .order_by(
+            "-start_datetime",
+            "-created_at",
+        )[:limit]
+    )
+
+
 def patient_navigation_context(
     *,
     patient: Patient | None = None,
     subsection: str = "overview",
+    active_encounter: Encounter | None = None,
 ) -> dict:
     """
-    Shared navigation context for the Clinical > Patients workflow.
+    Shared navigation context for Clinical > Patients.
+
+    When a patient is supplied and active_encounter is omitted,
+    the patient's current active encounter is retrieved.
     """
+
+    if patient is not None and active_encounter is None:
+        active_encounter = get_patient_active_encounter(patient)
+
     return {
         "patient": patient,
         "selected_patient": patient,
@@ -113,6 +220,8 @@ def patient_navigation_context(
         "active_clinical_module": "patients",
         "active_secondary_nav": "patients",
         "active_patient_section": subsection,
+        "active_encounter": active_encounter,
+        "has_active_encounter": active_encounter is not None,
     }
 
 
@@ -123,8 +232,9 @@ def trigger_response(
     payload: dict | None = None,
 ) -> HttpResponse:
     """
-    Return a standard HTMX response with an event trigger.
+    Return a standard HTMX response containing an event trigger.
     """
+
     response = HttpResponse(status=204)
 
     if payload is None:
@@ -146,12 +256,14 @@ def trigger_response(
 # PATIENT LIST AND SEARCH
 # ============================================================
 
-# ============================================================
-# PATIENT LIST AND SEARCH
-# ============================================================
-
 @login_required
-def patient_list(request: HttpRequest) -> HttpResponse:
+def patient_list(
+    request: HttpRequest,
+) -> HttpResponse:
+    """
+    Display and filter the patient registry.
+    """
+
     query = request.GET.get("q", "").strip()
     status = request.GET.get("status", "all").strip()
     facility_id = request.GET.get("facility", "").strip()
@@ -168,15 +280,21 @@ def patient_list(request: HttpRequest) -> HttpResponse:
         )
 
     elif status == "inactive":
-        patients = patients.filter(
-            Q(record_status=Patient.RecordStatus.INACTIVE)
-            | Q(is_active=False)
-        ).exclude(
-            record_status=Patient.RecordStatus.MERGED,
+        patients = (
+            patients
+            .filter(
+                Q(record_status=Patient.RecordStatus.INACTIVE)
+                | Q(is_active=False)
+            )
+            .exclude(
+                record_status=Patient.RecordStatus.MERGED,
+            )
         )
 
     elif status == "deceased":
-        patients = patients.filter(is_deceased=True)
+        patients = patients.filter(
+            is_deceased=True,
+        )
 
     elif status == "merged":
         patients = patients.filter(
@@ -188,10 +306,7 @@ def patient_list(request: HttpRequest) -> HttpResponse:
             record_status=Patient.RecordStatus.ENTERED_IN_ERROR,
         )
 
-    elif status == "all":
-        pass
-
-    else:
+    elif status != "all":
         status = "all"
 
     if facility_id:
@@ -205,8 +320,14 @@ def patient_list(request: HttpRequest) -> HttpResponse:
         "date_of_birth",
     )
 
-    paginator = Paginator(patients, PATIENT_PAGE_SIZE)
-    page_obj = paginator.get_page(request.GET.get("page"))
+    paginator = Paginator(
+        patients,
+        PATIENT_PAGE_SIZE,
+    )
+
+    page_obj = paginator.get_page(
+        request.GET.get("page"),
+    )
 
     context = {
         **patient_navigation_context(),
@@ -223,13 +344,22 @@ def patient_list(request: HttpRequest) -> HttpResponse:
         else "patients/patient_list.html"
     )
 
-    return render(request, template_name, context)
+    return render(
+        request,
+        template_name,
+        context,
+    )
 
 
 @login_required
-def patient_search(request: HttpRequest) -> HttpResponse:
-    query = request.GET.get("q", "").strip()
+def patient_search(
+    request: HttpRequest,
+) -> HttpResponse:
+    """
+    Return patient-search dropdown results.
+    """
 
+    query = request.GET.get("q", "").strip()
     patients = Patient.objects.none()
 
     if len(query) >= 2:
@@ -258,17 +388,36 @@ def patient_search(request: HttpRequest) -> HttpResponse:
         },
     )
 
+
 # ============================================================
 # PATIENT DETAIL AND SIDEBAR
 # ============================================================
 
-
 @login_required
-def patient_detail(request, patient_id):
+def patient_detail(
+    request: HttpRequest,
+    patient_id,
+) -> HttpResponse:
+    """
+    Display the selected patient's clinical overview.
+
+    Patient history remains available without an encounter.
+    Encounter-specific clinical actions are enabled only when the
+    patient has an active, open encounter.
+    """
+
+    # ========================================================
+    # PATIENT
+    # ========================================================
+
     patient = get_object_or_404(
         patient_queryset(),
         pk=patient_id,
     )
+
+    # ========================================================
+    # ACTIVE PATIENT FLAGS
+    # ========================================================
 
     active_flags = [
         flag
@@ -276,6 +425,130 @@ def patient_detail(request, patient_id):
         if flag.currently_active
     ]
 
+    # ========================================================
+    # ACTIVE ALLERGIES
+    # ========================================================
+
+    allergies = (
+        patient.allergies
+        .filter(
+            status=PatientAllergy.Status.ACTIVE,
+        )
+        .order_by(
+            "-severity",
+            "substance",
+        )
+    )
+
+    # ========================================================
+    # ACTIVE ENCOUNTER
+    # ========================================================
+
+    active_encounter = get_patient_active_encounter(
+        patient,
+    )
+
+    # ========================================================
+    # RECENT ENCOUNTERS
+    # ========================================================
+
+    recent_encounters = patient_recent_encounters(
+        patient,
+    )
+
+    # ========================================================
+    # DIAGNOSES
+    #
+    # Diagnosis integration can be added when the diagnosis
+    # related_name and field names are confirmed.
+    # ========================================================
+
+    diagnoses = []
+
+    # ========================================================
+    # PAGE CONTEXT
+    # ========================================================
+
+    context = {
+        **patient_navigation_context(
+            patient=patient,
+            subsection="overview",
+            active_encounter=active_encounter,
+        ),
+
+        "active_flags": active_flags,
+        "allergies": allergies,
+
+        "recent_encounters": recent_encounters,
+
+        "physicians": [],
+        "diagnoses": diagnoses,
+        "medications": [],
+        "surgeries": [],
+        "clinical_records": [],
+    }
+
+    return render(
+        request,
+        "patients/patient_detail.html",
+        context,
+    )
+
+
+@login_required
+def patient_sidebar(
+    request: HttpRequest,
+    patient_id,
+) -> HttpResponse:
+    """
+    Render the selected patient's sidebar.
+
+    The active encounter is included so encounter-specific sidebar
+    actions can be conditionally displayed.
+    """
+
+    patient = get_object_or_404(
+        patient_queryset(),
+        pk=patient_id,
+    )
+
+    active_encounter = get_patient_active_encounter(
+        patient,
+    )
+
+    return render(
+        request,
+        "patients/partials/patient_sidebar.html",
+        patient_navigation_context(
+            patient=patient,
+            active_encounter=active_encounter,
+        ),
+    )
+
+
+@login_required
+def patient_overview(
+    request: HttpRequest,
+    patient_id,
+) -> HttpResponse:
+    """
+    Render the patient overview partial.
+    """
+
+    patient = get_object_or_404(
+        patient_queryset(),
+        pk=patient_id,
+    )
+
+    active_encounter = get_patient_active_encounter(
+        patient,
+    )
+
+    active_flags = [
+        flag
+        for flag in patient.flags.all()
+        if flag.currently_active
+    ]
 
     allergies = (
         patient.allergies
@@ -289,23 +562,24 @@ def patient_detail(request, patient_id):
     )
 
     context = {
-    **patient_navigation_context(
-        patient=patient,
-        subsection="overview",
-    ),
-    "active_flags": patient.active_flags,
-    "allergies": allergies,
-    "physicians": [],
-    "diagnoses": [],
-    "medications": [],
-    "surgeries": [],
-    "recent_encounters": [],
-    "clinical_records": [],
-}
+        **patient_navigation_context(
+            patient=patient,
+            subsection="overview",
+            active_encounter=active_encounter,
+        ),
+        "active_flags": active_flags,
+        "allergies": allergies,
+        "recent_encounters": patient_recent_encounters(patient),
+        "physicians": [],
+        "diagnoses": [],
+        "medications": [],
+        "surgeries": [],
+        "clinical_records": [],
+    }
 
     return render(
         request,
-        "patients/patient_detail.html",
+        "patients/partials/patient_overview.html",
         context,
     )
 
@@ -314,9 +588,11 @@ def patient_detail(request, patient_id):
 # PATIENT ALLERGY QUERYSET
 # ============================================================
 
-def patient_allergy_queryset(patient: Patient):
+def patient_allergy_queryset(
+    patient: Patient,
+):
     """
-    Returns all allergy records for a patient.
+    Return all allergy records for a patient.
 
     Active records appear first, followed by severity and substance.
     """
@@ -342,7 +618,7 @@ def patient_allergy_create(
     patient_id,
 ) -> HttpResponse:
     """
-    Displays and processes the form for adding an allergy.
+    Display and process the add-allergy form.
     """
 
     patient = get_object_or_404(
@@ -351,18 +627,23 @@ def patient_allergy_create(
     )
 
     if request.method == "POST":
-        form = PatientAllergyForm(request.POST)
+        form = PatientAllergyForm(
+            request.POST,
+        )
 
         if form.is_valid():
-            allergy = form.save(commit=False)
+            allergy = form.save(
+                commit=False,
+            )
 
             allergy.patient = patient
             allergy.created_by = request.user
             allergy.updated_by = request.user
-
             allergy.save()
 
-            allergies = patient_allergy_queryset(patient)
+            allergies = patient_allergy_queryset(
+                patient,
+            )
 
             response = render(
                 request,
@@ -381,7 +662,7 @@ def patient_allergy_create(
                             f"{allergy.substance} was added successfully."
                         ),
                     },
-                },
+                }
             )
 
             return response
@@ -398,7 +679,9 @@ def patient_allergy_create(
             },
         )
 
-        response["HX-Retarget"] = "#patient-allergy-modal-content"
+        response["HX-Retarget"] = (
+            "#patient-allergy-modal-content"
+        )
         response["HX-Reswap"] = "innerHTML"
 
         return response
@@ -429,7 +712,7 @@ def patient_allergy_update(
     allergy_id: int,
 ) -> HttpResponse:
     """
-    Displays and processes the form for updating an allergy.
+    Display and process the update-allergy form.
     """
 
     patient = get_object_or_404(
@@ -450,11 +733,16 @@ def patient_allergy_update(
         )
 
         if form.is_valid():
-            allergy = form.save(commit=False)
+            allergy = form.save(
+                commit=False,
+            )
+
             allergy.updated_by = request.user
             allergy.save()
 
-            allergies = patient_allergy_queryset(patient)
+            allergies = patient_allergy_queryset(
+                patient,
+            )
 
             response = render(
                 request,
@@ -473,7 +761,7 @@ def patient_allergy_update(
                             f"{allergy.substance} was updated successfully."
                         ),
                     },
-                },
+                }
             )
 
             return response
@@ -490,7 +778,9 @@ def patient_allergy_update(
             },
         )
 
-        response["HX-Retarget"] = "#patient-allergy-modal-content"
+        response["HX-Retarget"] = (
+            "#patient-allergy-modal-content"
+        )
         response["HX-Reswap"] = "innerHTML"
 
         return response
@@ -511,74 +801,34 @@ def patient_allergy_update(
         },
     )
 
-@login_required
-def patient_sidebar(
-    request: HttpRequest,
-    patient_id,
-) -> HttpResponse:
-    patient = get_object_or_404(
-        patient_queryset(),
-        pk=patient_id,
-    )
-
-    return render(
-        request,
-        "patients/partials/patient_sidebar.html",
-        patient_navigation_context(patient=patient),
-    )
-
-
-@login_required
-def patient_overview(
-    request: HttpRequest,
-    patient_id,
-) -> HttpResponse:
-    patient = get_object_or_404(
-        patient_queryset(),
-        pk=patient_id,
-    )
-
-    return render(
-        request,
-        "patients/partials/patient_overview.html",
-        patient_navigation_context(
-            patient=patient,
-            subsection="overview",
-        ),
-    )
-
 
 # ============================================================
 # PATIENT CREATE AND UPDATE
 # ============================================================
 
-# ============================================================
-# PATIENT CREATE AND UPDATE
-# ============================================================
-
-# ============================================================
-# PATIENT CREATE AND UPDATE
-# ============================================================
-
-
-class PatientCreateView(LoginRequiredMixin, CreateView):
+class PatientCreateView(
+    LoginRequiredMixin,
+    CreateView,
+):
     """
     Create a new patient record.
 
     Standard requests render the complete patient form page.
-    HTMX requests render only the form partial for the modal.
+    HTMX requests render only the form partial.
     """
 
     model = Patient
     form_class = PatientForm
     template_name = "patients/patient_form.html"
-    partial_template_name = "patients/partials/patient_form.html"
+    partial_template_name = (
+        "patients/partials/patient_form.html"
+    )
 
     def get_template_names(self):
         """
-        Select the full-page or partial form template depending
-        on whether the request was made through HTMX.
+        Return the full or partial form template.
         """
+
         if is_htmx(self.request):
             return [self.partial_template_name]
 
@@ -586,8 +836,9 @@ class PatientCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         """
-        Add shared navigation and create-mode context.
+        Add navigation and create-mode context.
         """
+
         context = super().get_context_data(**kwargs)
 
         context.update(
@@ -603,10 +854,12 @@ class PatientCreateView(LoginRequiredMixin, CreateView):
     @transaction.atomic
     def form_valid(self, form):
         """
-        Save the patient and record the authenticated user as
-        both the creator and the most recent updater.
+        Save the patient and audit users.
         """
-        patient = form.save(commit=False)
+
+        patient = form.save(
+            commit=False,
+        )
 
         patient.created_by = self.request.user
         patient.updated_by = self.request.user
@@ -637,13 +890,12 @@ class PatientCreateView(LoginRequiredMixin, CreateView):
 
     def form_invalid(self, form):
         """
-        Re-render the bound form with validation errors.
-
-        HTMX requests receive the form partial with a 422
-        validation response. Standard requests receive the
-        complete patient form page.
+        Return validation errors.
         """
-        context = self.get_context_data(form=form)
+
+        context = self.get_context_data(
+            form=form,
+        )
 
         response = render(
             self.request,
@@ -657,31 +909,34 @@ class PatientCreateView(LoginRequiredMixin, CreateView):
         return response
 
 
-class PatientUpdateView(LoginRequiredMixin, UpdateView):
+class PatientUpdateView(
+    LoginRequiredMixin,
+    UpdateView,
+):
     """
     Update an existing patient record.
-
-    The patient primary key is supplied by the URL using the
-    keyword patient_id.
     """
 
     model = Patient
     form_class = PatientForm
     pk_url_kwarg = "patient_id"
     template_name = "patients/patient_form.html"
-    partial_template_name = "patients/partials/patient_form.html"
+    partial_template_name = (
+        "patients/partials/patient_form.html"
+    )
 
     def get_queryset(self):
         """
-        Use the standard patient queryset for update requests.
+        Use the shared patient queryset.
         """
+
         return patient_queryset()
 
     def get_template_names(self):
         """
-        Select the full-page or partial form template depending
-        on whether the request was made through HTMX.
+        Return the full or partial form template.
         """
+
         if is_htmx(self.request):
             return [self.partial_template_name]
 
@@ -689,14 +944,20 @@ class PatientUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         """
-        Add selected-patient navigation and update-mode context.
+        Add selected-patient and update-mode context.
         """
+
         context = super().get_context_data(**kwargs)
+
+        active_encounter = get_patient_active_encounter(
+            self.object,
+        )
 
         context.update(
             patient_navigation_context(
                 patient=self.object,
                 subsection="registration",
+                active_encounter=active_encounter,
             )
         )
 
@@ -707,10 +968,12 @@ class PatientUpdateView(LoginRequiredMixin, UpdateView):
     @transaction.atomic
     def form_valid(self, form):
         """
-        Save patient changes and record the authenticated user
-        as the most recent updater.
+        Save patient changes and audit the updater.
         """
-        patient = form.save(commit=False)
+
+        patient = form.save(
+            commit=False,
+        )
 
         patient.updated_by = self.request.user
 
@@ -740,13 +1003,12 @@ class PatientUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_invalid(self, form):
         """
-        Re-render the bound form with validation errors.
-
-        HTMX requests receive the form partial with a 422
-        validation response. Standard requests receive the
-        complete patient form page.
+        Return validation errors.
         """
-        context = self.get_context_data(form=form)
+
+        context = self.get_context_data(
+            form=form,
+        )
 
         response = render(
             self.request,
@@ -759,28 +1021,49 @@ class PatientUpdateView(LoginRequiredMixin, UpdateView):
 
         return response
 
+
 # ============================================================
 # PATIENT ARCHIVE / RECORD STATUS
 # ============================================================
 
-class PatientArchiveView(LoginRequiredMixin, View):
+class PatientArchiveView(
+    LoginRequiredMixin,
+    View,
+):
     """
-    Soft-deactivate a patient rather than deleting the record.
+    Soft-deactivate a patient instead of deleting the record.
     """
 
-    template_name = "patients/patient_confirm_delete.html"
+    template_name = (
+        "patients/patient_confirm_delete.html"
+    )
+
     partial_template_name = (
         "patients/partials/patient_confirm_delete.html"
     )
 
     def get_object(self, patient_id):
+        """
+        Retrieve the patient.
+        """
+
         return get_object_or_404(
             patient_queryset(),
             pk=patient_id,
         )
 
-    def get(self, request, patient_id):
-        patient = self.get_object(patient_id)
+    def get(
+        self,
+        request: HttpRequest,
+        patient_id,
+    ) -> HttpResponse:
+        """
+        Display archive confirmation.
+        """
+
+        patient = self.get_object(
+            patient_id,
+        )
 
         template_name = (
             self.partial_template_name
@@ -800,8 +1083,18 @@ class PatientArchiveView(LoginRequiredMixin, View):
         )
 
     @transaction.atomic
-    def post(self, request, patient_id):
-        patient = self.get_object(patient_id)
+    def post(
+        self,
+        request: HttpRequest,
+        patient_id,
+    ) -> HttpResponse:
+        """
+        Archive the patient record.
+        """
+
+        patient = self.get_object(
+            patient_id,
+        )
 
         reason = request.POST.get(
             "archive_reason",
@@ -813,7 +1106,9 @@ class PatientArchiveView(LoginRequiredMixin, View):
                 "An archive reason is required."
             )
 
-        patient.record_status = Patient.RecordStatus.INACTIVE
+        patient.record_status = (
+            Patient.RecordStatus.INACTIVE
+        )
         patient.is_active = False
         patient.updated_by = request.user
 
@@ -832,7 +1127,9 @@ class PatientArchiveView(LoginRequiredMixin, View):
 
         patient.save()
 
-        list_url = reverse("patients:list")
+        list_url = reverse(
+            "patients:list",
+        )
 
         if is_htmx(request):
             return trigger_response(
@@ -846,13 +1143,24 @@ class PatientArchiveView(LoginRequiredMixin, View):
         return redirect(list_url)
 
 
-class PatientRestoreView(LoginRequiredMixin, View):
+class PatientRestoreView(
+    LoginRequiredMixin,
+    View,
+):
     """
     Restore an inactive patient record.
     """
 
     @transaction.atomic
-    def post(self, request, patient_id):
+    def post(
+        self,
+        request: HttpRequest,
+        patient_id,
+    ) -> HttpResponse:
+        """
+        Restore an eligible inactive record.
+        """
+
         patient = get_object_or_404(
             patient_queryset(),
             pk=patient_id,
@@ -872,7 +1180,9 @@ class PatientRestoreView(LoginRequiredMixin, View):
                 "A deceased patient cannot be restored as active."
             )
 
-        patient.record_status = Patient.RecordStatus.ACTIVE
+        patient.record_status = (
+            Patient.RecordStatus.ACTIVE
+        )
         patient.is_active = True
         patient.updated_by = request.user
         patient.save()
@@ -894,7 +1204,7 @@ class PatientRestoreView(LoginRequiredMixin, View):
 
 
 # ============================================================
-# GENERIC PATIENT CHILD RECORDS
+# GENERIC PATIENT CHILD RECORD CONFIGURATION
 # ============================================================
 
 CHILD_CONFIG = {
@@ -955,7 +1265,13 @@ CHILD_CONFIG = {
 }
 
 
-def child_config(kind: str) -> dict:
+def child_config(
+    kind: str,
+) -> dict:
+    """
+    Return configuration for a child-record type.
+    """
+
     try:
         return CHILD_CONFIG[kind]
     except KeyError as exc:
@@ -964,18 +1280,29 @@ def child_config(kind: str) -> dict:
         ) from exc
 
 
+# ============================================================
+# GENERIC PATIENT CHILD RECORD LIST
+# ============================================================
+
 @login_required
 def patient_child_list(
     request: HttpRequest,
     patient_id,
     kind: str,
 ) -> HttpResponse:
+    """
+    Display a patient's child records.
+    """
+
     patient = get_object_or_404(
         patient_queryset(),
         pk=patient_id,
     )
 
-    config = child_config(kind)
+    config = child_config(
+        kind,
+    )
+
     records = getattr(
         patient,
         config["related_name"],
@@ -996,18 +1323,29 @@ def patient_child_list(
     )
 
 
+# ============================================================
+# GENERIC PATIENT CHILD RECORD CREATE
+# ============================================================
+
 @login_required
 def patient_child_create(
     request: HttpRequest,
     patient_id,
     kind: str,
 ) -> HttpResponse:
+    """
+    Create a patient child record.
+    """
+
     patient = get_object_or_404(
         patient_queryset(),
         pk=patient_id,
     )
 
-    config = child_config(kind)
+    config = child_config(
+        kind,
+    )
+
     form_class = config["form"]
 
     form = form_class(
@@ -1017,7 +1355,10 @@ def patient_child_create(
 
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
-            record = form.save(commit=False)
+            record = form.save(
+                commit=False,
+            )
+
             record.patient = patient
 
             if hasattr(record, "created_by_id"):
@@ -1068,6 +1409,10 @@ def patient_child_create(
     )
 
 
+# ============================================================
+# GENERIC PATIENT CHILD RECORD UPDATE
+# ============================================================
+
 @login_required
 def patient_child_update(
     request: HttpRequest,
@@ -1075,12 +1420,19 @@ def patient_child_update(
     kind: str,
     record_id: int,
 ) -> HttpResponse:
+    """
+    Update a patient child record.
+    """
+
     patient = get_object_or_404(
         patient_queryset(),
         pk=patient_id,
     )
 
-    config = child_config(kind)
+    config = child_config(
+        kind,
+    )
+
     model_class = config["model"]
     form_class = config["form"]
 
@@ -1098,7 +1450,9 @@ def patient_child_update(
 
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
-            record = form.save(commit=False)
+            record = form.save(
+                commit=False,
+            )
 
             if hasattr(record, "updated_by_id"):
                 record.updated_by = request.user
@@ -1145,6 +1499,10 @@ def patient_child_update(
     )
 
 
+# ============================================================
+# GENERIC PATIENT CHILD RECORD DELETE
+# ============================================================
+
 @login_required
 def patient_child_delete(
     request: HttpRequest,
@@ -1152,12 +1510,19 @@ def patient_child_delete(
     kind: str,
     record_id: int,
 ) -> HttpResponse:
+    """
+    Delete a patient child record.
+    """
+
     patient = get_object_or_404(
         patient_queryset(),
         pk=patient_id,
     )
 
-    config = child_config(kind)
+    config = child_config(
+        kind,
+    )
+
     model_class = config["model"]
 
     record = get_object_or_404(
@@ -1217,6 +1582,10 @@ def patient_flag_acknowledge(
     patient_id,
     flag_id: int,
 ) -> HttpResponse:
+    """
+    Acknowledge a patient safety or clinical flag.
+    """
+
     if request.method != "POST":
         return HttpResponseBadRequest(
             "Flag acknowledgment requires POST."
@@ -1251,6 +1620,7 @@ def patient_flag_acknowledge(
             "notes",
             acknowledgment.notes,
         ).strip()
+
         acknowledgment.save(
             update_fields=[
                 "notes",
@@ -1282,13 +1652,18 @@ def patient_merge_review(
     request: HttpRequest,
     patient_id,
 ) -> HttpResponse:
+    """
+    Display merge history involving the selected patient.
+    """
+
     patient = get_object_or_404(
         patient_queryset(),
         pk=patient_id,
     )
 
     merge_records = (
-        PatientMergeRecord.objects.filter(
+        PatientMergeRecord.objects
+        .filter(
             Q(surviving_patient=patient)
             | Q(duplicate_patient=patient)
         )
@@ -1297,7 +1672,9 @@ def patient_merge_review(
             "duplicate_patient",
             "reviewed_by",
         )
-        .order_by("-created_at")
+        .order_by(
+            "-created_at",
+        )
     )
 
     return render(

@@ -20,8 +20,19 @@ Primary modules:
 3. AI / CDS
 4. Administration
 
+Clinical modules:
+- Clinical Dashboard
+- Patients
+- Encounters
+- Nursing
+- Orders
+- Medications
+- Pharmacy
+- Care Management
+
 Important navigation behavior:
 - Module dashboard links use normal Django navigation.
+- Full-page module links use hx-boost="false".
 - The Administration dashboard does not use hx-get.
 - Full-page navigation allows app_shell.html to update:
   - Primary navigation state
@@ -121,6 +132,7 @@ Important navigation behavior:
         ================================================== -->
         <a
             href="{% url 'core:dashboard' %}"
+            hx-boost="false"
             class="
                 mr-1 flex shrink-0 items-center
                 gap-2 rounded-md font-semibold
@@ -215,96 +227,146 @@ Important navigation behavior:
                     >
                         <div class="primary-dropdown-list">
 
-                            <!-- Clinical dashboard -->
+                            <!-- =================================
+                                 CLINICAL DASHBOARD
+                            ================================== -->
                             <a
                                 href="{% url 'core:clinical_dashboard' %}"
+                                hx-boost="false"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                                 @click="openMenu = null"
                             >
-                                <span class="primary-dropdown-icon">▦</span>
+                                <span class="primary-dropdown-icon">
+                                    ▦
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Clinical Dashboard
                                 </span>
                             </a>
 
-                            <!-- Patients -->
+                            <!-- =================================
+                                 PATIENTS
+                            ================================== -->
                             <a
                                 href="{% url 'patients:list' %}"
+                                hx-boost="false"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                                 @click="openMenu = null"
                             >
-                                <span class="primary-dropdown-icon">♙</span>
+                                <span class="primary-dropdown-icon">
+                                    ♙
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Patients
                                 </span>
                             </a>
 
+                            <!-- =================================
+                                 ENCOUNTERS
+                            ================================== -->
+                            <a
+                                href="{% url 'encounters:list' %}"
+                                hx-boost="false"
+                                class="primary-dropdown-link"
+                                role="menuitem"
+                                @click="openMenu = null"
+                            >
+                                <span class="primary-dropdown-icon">
+                                    ▤
+                                </span>
+
+                                <span class="primary-dropdown-label">
+                                    Encounters
+                                </span>
+                            </a>
+
                             <div class="primary-dropdown-divider"></div>
 
-                            <!-- Nursing -->
+                            <!-- =================================
+                                 NURSING
+                            ================================== -->
                             <a
                                 href="#"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">♡</span>
+                                <span class="primary-dropdown-icon">
+                                    ♡
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Nursing
                                 </span>
                             </a>
 
-                            <!-- Orders -->
+                            <!-- =================================
+                                 ORDERS
+                            ================================== -->
                             <a
                                 href="#"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">▤</span>
+                                <span class="primary-dropdown-icon">
+                                    ☷
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Orders
                                 </span>
                             </a>
 
-                            <!-- Medications -->
+                            <!-- =================================
+                                 MEDICATIONS
+                            ================================== -->
                             <a
                                 href="#"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">◇</span>
+                                <span class="primary-dropdown-icon">
+                                    ◇
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Medications
                                 </span>
                             </a>
 
-                            <!-- Pharmacy -->
+                            <!-- =================================
+                                 PHARMACY
+                            ================================== -->
                             <a
                                 href="{% url 'pharmacy:dashboard' %}"
+                                hx-boost="false"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                                 @click="openMenu = null"
                             >
-                                <span class="primary-dropdown-icon">⌂</span>
+                                <span class="primary-dropdown-icon">
+                                    ⌂
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Pharmacy
                                 </span>
                             </a>
 
-                            <!-- Care management -->
+                            <!-- =================================
+                                 CARE MANAGEMENT
+                            ================================== -->
                             <a
                                 href="#"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">⇄</span>
+                                <span class="primary-dropdown-icon">
+                                    ⇄
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Care Management
@@ -373,11 +435,14 @@ Important navigation behavior:
                             <!-- Analytics dashboard -->
                             <a
                                 href="{% url 'core:analytics_dashboard' %}"
+                                hx-boost="false"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                                 @click="openMenu = null"
                             >
-                                <span class="primary-dropdown-icon">▦</span>
+                                <span class="primary-dropdown-icon">
+                                    ▦
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Analytics Dashboard
@@ -390,7 +455,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">✚</span>
+                                <span class="primary-dropdown-icon">
+                                    ✚
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Clinical Analytics
@@ -403,7 +470,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">♡</span>
+                                <span class="primary-dropdown-icon">
+                                    ♡
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Nursing Analytics
@@ -416,7 +485,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">⌂</span>
+                                <span class="primary-dropdown-icon">
+                                    ⌂
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Operations
@@ -429,7 +500,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">✓</span>
+                                <span class="primary-dropdown-icon">
+                                    ✓
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Quality
@@ -442,7 +515,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">◎</span>
+                                <span class="primary-dropdown-icon">
+                                    ◎
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Public Health
@@ -455,7 +530,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">⇩</span>
+                                <span class="primary-dropdown-icon">
+                                    ⇩
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Reports
@@ -527,7 +604,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">!</span>
+                                <span class="primary-dropdown-icon">
+                                    !
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Alerts
@@ -540,7 +619,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">◇</span>
+                                <span class="primary-dropdown-icon">
+                                    ◇
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Recommendations
@@ -553,7 +634,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">↗</span>
+                                <span class="primary-dropdown-icon">
+                                    ↗
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Risk Scores
@@ -566,7 +649,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">✦</span>
+                                <span class="primary-dropdown-icon">
+                                    ✦
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Clinical Summaries
@@ -579,7 +664,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">⌕</span>
+                                <span class="primary-dropdown-icon">
+                                    ⌕
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Natural-Language Search
@@ -595,7 +682,9 @@ Important navigation behavior:
                                     class="primary-dropdown-link"
                                     role="menuitem"
                                 >
-                                    <span class="primary-dropdown-icon">⚙</span>
+                                    <span class="primary-dropdown-icon">
+                                        ⚙
+                                    </span>
 
                                     <span class="primary-dropdown-label">
                                         Rules
@@ -608,7 +697,9 @@ Important navigation behavior:
                                     class="primary-dropdown-link"
                                     role="menuitem"
                                 >
-                                    <span class="primary-dropdown-icon">▥</span>
+                                    <span class="primary-dropdown-icon">
+                                        ▥
+                                    </span>
 
                                     <span class="primary-dropdown-label">
                                         Performance
@@ -622,11 +713,6 @@ Important navigation behavior:
 
                 <!-- =========================================
                      DESKTOP ADMINISTRATION MENU
-
-                     Important:
-                     The Administration dashboard link uses a
-                     normal href. It does not use HTMX because
-                     the complete application shell must reload.
                 ========================================== -->
                 <div
                     class="relative"
@@ -686,11 +772,14 @@ Important navigation behavior:
                             <!-- Administration dashboard -->
                             <a
                                 href="{% url 'administration:dashboard' %}"
+                                hx-boost="false"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                                 @click="openMenu = null"
                             >
-                                <span class="primary-dropdown-icon">▦</span>
+                                <span class="primary-dropdown-icon">
+                                    ▦
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Administration Dashboard
@@ -705,7 +794,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">□</span>
+                                <span class="primary-dropdown-icon">
+                                    □
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Scheduling
@@ -716,11 +807,14 @@ Important navigation behavior:
                             {% if request.user.is_staff %}
                                 <a
                                     href="{% url 'admin:auth_user_changelist' %}"
+                                    hx-boost="false"
                                     class="primary-dropdown-link"
                                     role="menuitem"
                                     @click="openMenu = null"
                                 >
-                                    <span class="primary-dropdown-icon">♙</span>
+                                    <span class="primary-dropdown-icon">
+                                        ♙
+                                    </span>
 
                                     <span class="primary-dropdown-label">
                                         Users and Staff
@@ -732,7 +826,9 @@ Important navigation behavior:
                                     class="primary-dropdown-link"
                                     role="menuitem"
                                 >
-                                    <span class="primary-dropdown-icon">♙</span>
+                                    <span class="primary-dropdown-icon">
+                                        ♙
+                                    </span>
 
                                     <span class="primary-dropdown-label">
                                         Users and Staff
@@ -744,11 +840,14 @@ Important navigation behavior:
                             {% if request.user.is_staff %}
                                 <a
                                     href="{% url 'admin:auth_group_changelist' %}"
+                                    hx-boost="false"
                                     class="primary-dropdown-link"
                                     role="menuitem"
                                     @click="openMenu = null"
                                 >
-                                    <span class="primary-dropdown-icon">◇</span>
+                                    <span class="primary-dropdown-icon">
+                                        ◇
+                                    </span>
 
                                     <span class="primary-dropdown-label">
                                         Roles and Permissions
@@ -760,7 +859,9 @@ Important navigation behavior:
                                     class="primary-dropdown-link"
                                     role="menuitem"
                                 >
-                                    <span class="primary-dropdown-icon">◇</span>
+                                    <span class="primary-dropdown-icon">
+                                        ◇
+                                    </span>
 
                                     <span class="primary-dropdown-label">
                                         Roles and Permissions
@@ -774,7 +875,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">⌂</span>
+                                <span class="primary-dropdown-icon">
+                                    ⌂
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Facilities
@@ -787,7 +890,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">▤</span>
+                                <span class="primary-dropdown-icon">
+                                    ▤
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     Audit Logs
@@ -800,7 +905,9 @@ Important navigation behavior:
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
-                                <span class="primary-dropdown-icon">⚙</span>
+                                <span class="primary-dropdown-icon">
+                                    ⚙
+                                </span>
 
                                 <span class="primary-dropdown-label">
                                     System Settings
@@ -813,11 +920,14 @@ Important navigation behavior:
 
                                 <a
                                     href="{% url 'admin:index' %}"
+                                    hx-boost="false"
                                     class="primary-dropdown-link"
                                     role="menuitem"
                                     @click="openMenu = null"
                                 >
-                                    <span class="primary-dropdown-icon">⚙</span>
+                                    <span class="primary-dropdown-icon">
+                                        ⚙
+                                    </span>
 
                                     <span class="primary-dropdown-label">
                                         Django Admin
@@ -1080,6 +1190,7 @@ Important navigation behavior:
                         <div class="py-1">
                             <a
                                 href="{% url 'accounts:profile' %}"
+                                hx-boost="false"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                                 @click="profileOpen = false"
@@ -1100,6 +1211,7 @@ Important navigation behavior:
                             {% if request.user.is_staff %}
                                 <a
                                     href="{% url 'admin:index' %}"
+                                    hx-boost="false"
                                     class="primary-dropdown-link"
                                     role="menuitem"
                                     @click="profileOpen = false"
@@ -1194,6 +1306,7 @@ Important navigation behavior:
                 ========================================== -->
                 <a
                     href="{% url 'accounts:login' %}"
+                    hx-boost="false"
                     class="
                         rounded-md border border-white/20
                         bg-white/10 px-3 py-1.5
@@ -1264,22 +1377,37 @@ Important navigation behavior:
                     x-show="expanded"
                     class="mobile-primary-nav-panel"
                 >
+                    <!-- Clinical dashboard -->
                     <a
                         href="{% url 'core:clinical_dashboard' %}"
+                        hx-boost="false"
                         class="mobile-primary-nav-link"
                         @click="mobileMenuOpen = false"
                     >
                         Clinical Dashboard
                     </a>
 
+                    <!-- Patients -->
                     <a
                         href="{% url 'patients:list' %}"
+                        hx-boost="false"
                         class="mobile-primary-nav-link"
                         @click="mobileMenuOpen = false"
                     >
                         Patients
                     </a>
 
+                    <!-- Encounters -->
+                    <a
+                        href="{% url 'encounters:list' %}"
+                        hx-boost="false"
+                        class="mobile-primary-nav-link"
+                        @click="mobileMenuOpen = false"
+                    >
+                        Encounters
+                    </a>
+
+                    <!-- Nursing -->
                     <a
                         href="#"
                         class="mobile-primary-nav-link"
@@ -1287,6 +1415,7 @@ Important navigation behavior:
                         Nursing
                     </a>
 
+                    <!-- Orders -->
                     <a
                         href="#"
                         class="mobile-primary-nav-link"
@@ -1294,6 +1423,7 @@ Important navigation behavior:
                         Orders
                     </a>
 
+                    <!-- Medications -->
                     <a
                         href="#"
                         class="mobile-primary-nav-link"
@@ -1301,14 +1431,17 @@ Important navigation behavior:
                         Medications
                     </a>
 
+                    <!-- Pharmacy -->
                     <a
                         href="{% url 'pharmacy:dashboard' %}"
+                        hx-boost="false"
                         class="mobile-primary-nav-link"
                         @click="mobileMenuOpen = false"
                     >
                         Pharmacy
                     </a>
 
+                    <!-- Care management -->
                     <a
                         href="#"
                         class="mobile-primary-nav-link"
@@ -1356,6 +1489,7 @@ Important navigation behavior:
                 >
                     <a
                         href="{% url 'core:analytics_dashboard' %}"
+                        hx-boost="false"
                         class="mobile-primary-nav-link"
                         @click="mobileMenuOpen = false"
                     >
@@ -1498,8 +1632,6 @@ Important navigation behavior:
 
             <!-- =============================================
                  MOBILE ADMINISTRATION MENU
-
-                 Uses normal full-page navigation.
             ============================================== -->
             <div
                 x-data="{
@@ -1536,6 +1668,7 @@ Important navigation behavior:
                     <!-- Administration dashboard -->
                     <a
                         href="{% url 'administration:dashboard' %}"
+                        hx-boost="false"
                         class="mobile-primary-nav-link"
                         @click="mobileMenuOpen = false"
                     >
@@ -1554,6 +1687,7 @@ Important navigation behavior:
                     {% if request.user.is_staff %}
                         <a
                             href="{% url 'admin:auth_user_changelist' %}"
+                            hx-boost="false"
                             class="mobile-primary-nav-link"
                             @click="mobileMenuOpen = false"
                         >
@@ -1572,6 +1706,7 @@ Important navigation behavior:
                     {% if request.user.is_staff %}
                         <a
                             href="{% url 'admin:auth_group_changelist' %}"
+                            hx-boost="false"
                             class="mobile-primary-nav-link"
                             @click="mobileMenuOpen = false"
                         >
@@ -1614,6 +1749,7 @@ Important navigation behavior:
                     {% if request.user.is_staff %}
                         <a
                             href="{% url 'admin:index' %}"
+                            hx-boost="false"
                             class="mobile-primary-nav-link"
                             @click="mobileMenuOpen = false"
                         >
@@ -1678,6 +1814,7 @@ Important navigation behavior:
                 <div class="mt-3 grid grid-cols-2 gap-2">
                     <a
                         href="{% url 'accounts:profile' %}"
+                        hx-boost="false"
                         class="
                             rounded-md bg-white/10
                             px-3 py-2 text-center
