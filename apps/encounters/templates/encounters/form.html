@@ -4,38 +4,73 @@
 ============================================================
 ENCOUNTER FORM PAGE
 
-Used for encounter creation and updates.
+File:
+apps/encounters/templates/encounters/form.html
+
+Purpose:
+- Create a new encounter.
+- Update an existing encounter.
+- Display the patient selector during creation.
+- Always display the correct action button.
+
+Important:
+- Do not use form.instance.pk to determine create versus update.
+- Encounter uses a UUID primary key that exists before the first save.
+- Use the explicit is_create and is_update context values.
 ============================================================
 {% endcomment %}
 
 
 {% block title %}
-    {% if form.instance.pk %}
+    {% if is_update %}
         Update Encounter
     {% else %}
-        New Encounter
+        Start Encounter
     {% endif %}
 {% endblock title %}
 
 
 {% block workspace %}
 <section class="mx-auto max-w-5xl space-y-4">
+
+    <!-- =========================================================
+         PAGE HEADER
+    ========================================================== -->
     <header>
-        <h1 class="text-lg font-semibold text-slate-900">
-            {% if form.instance.pk %}
+        <p
+            class="
+                text-[11px] font-semibold uppercase
+                tracking-wide text-ehr-700
+            "
+        >
+            Clinical Encounter
+        </p>
+
+        <h1 class="mt-1 text-xl font-semibold text-slate-900">
+            {% if is_update %}
                 Update Encounter
             {% else %}
-                New Encounter
+                Start Encounter
             {% endif %}
         </h1>
 
         <p class="mt-1 text-sm text-slate-500">
-            Record the patient visit, status, priority, and provider.
+            {% if is_update %}
+                Update the encounter details and workflow status.
+            {% else %}
+                Select a patient and enter the encounter information.
+                Recorder names, dates, and times are generated automatically.
+            {% endif %}
         </p>
     </header>
 
+
+    <!-- =========================================================
+         FORM
+    ========================================================== -->
     <form
         method="post"
+        action=""
         class="
             overflow-hidden rounded-xl
             border border-slate-200
@@ -45,60 +80,430 @@ Used for encounter creation and updates.
     >
         {% csrf_token %}
 
-        {% include "encounters/partials/form_fields.html" %}
+        <!-- =====================================================
+             NON-FIELD ERRORS
+        ====================================================== -->
+        {% if form.non_field_errors %}
+            <div
+                class="
+                    border-b border-red-200
+                    bg-red-50 px-4 py-3
+                "
+                role="alert"
+            >
+                {% for error in form.non_field_errors %}
+                    <p class="text-sm text-red-700">
+                        {{ error }}
+                    </p>
+                {% endfor %}
+            </div>
+        {% endif %}
 
-        <div
+
+        <div class="space-y-6 p-4 sm:p-5">
+
+            <!-- =================================================
+                 ENCOUNTER DETAILS
+            ================================================== -->
+            <section>
+                <div class="mb-4 border-b border-slate-200 pb-2">
+                    <h2 class="text-sm font-semibold text-slate-900">
+                        Encounter details
+                    </h2>
+
+                    <p class="mt-0.5 text-xs text-slate-500">
+                        Select the patient and enter the visit information.
+                    </p>
+                </div>
+
+                <div
+                    class="
+                        grid grid-cols-1 gap-4
+                        md:grid-cols-2
+                    "
+                >
+                    <!-- Patient -->
+                    <div class="md:col-span-2">
+                        <label
+                            for="{{ form.patient.id_for_label }}"
+                            class="
+                                mb-1 block text-xs font-medium
+                                text-slate-700
+                            "
+                        >
+                            {{ form.patient.label }}
+                            <span class="text-red-600">*</span>
+                        </label>
+
+                        {{ form.patient }}
+
+                        {% if form.patient.help_text %}
+                            <p class="mt-1 text-xs text-slate-500">
+                                {{ form.patient.help_text }}
+                            </p>
+                        {% endif %}
+
+                        {% for error in form.patient.errors %}
+                            <p class="mt-1 text-xs font-medium text-red-600">
+                                {{ error }}
+                            </p>
+                        {% endfor %}
+                    </div>
+
+
+                    <!-- Encounter Type -->
+                    <div>
+                        <label
+                            for="{{ form.encounter_type.id_for_label }}"
+                            class="
+                                mb-1 block text-xs font-medium
+                                text-slate-700
+                            "
+                        >
+                            {{ form.encounter_type.label }}
+                            <span class="text-red-600">*</span>
+                        </label>
+
+                        {{ form.encounter_type }}
+
+                        {% for error in form.encounter_type.errors %}
+                            <p class="mt-1 text-xs font-medium text-red-600">
+                                {{ error }}
+                            </p>
+                        {% endfor %}
+                    </div>
+
+
+                    <!-- Status -->
+                    <div>
+                        <label
+                            for="{{ form.status.id_for_label }}"
+                            class="
+                                mb-1 block text-xs font-medium
+                                text-slate-700
+                            "
+                        >
+                            {{ form.status.label }}
+                            <span class="text-red-600">*</span>
+                        </label>
+
+                        {{ form.status }}
+
+                        {% for error in form.status.errors %}
+                            <p class="mt-1 text-xs font-medium text-red-600">
+                                {{ error }}
+                            </p>
+                        {% endfor %}
+                    </div>
+
+
+                    <!-- Priority -->
+                    <div>
+                        <label
+                            for="{{ form.priority.id_for_label }}"
+                            class="
+                                mb-1 block text-xs font-medium
+                                text-slate-700
+                            "
+                        >
+                            {{ form.priority.label }}
+                            <span class="text-red-600">*</span>
+                        </label>
+
+                        {{ form.priority }}
+
+                        {% for error in form.priority.errors %}
+                            <p class="mt-1 text-xs font-medium text-red-600">
+                                {{ error }}
+                            </p>
+                        {% endfor %}
+                    </div>
+
+
+                    <!-- Attending Provider -->
+                    <div>
+                        <label
+                            for="{{ form.attending_provider.id_for_label }}"
+                            class="
+                                mb-1 block text-xs font-medium
+                                text-slate-700
+                            "
+                        >
+                            {{ form.attending_provider.label }}
+                        </label>
+
+                        {{ form.attending_provider }}
+
+                        {% for error in form.attending_provider.errors %}
+                            <p class="mt-1 text-xs font-medium text-red-600">
+                                {{ error }}
+                            </p>
+                        {% endfor %}
+                    </div>
+
+
+                    <!-- Reason for Visit -->
+                    <div class="md:col-span-2">
+                        <label
+                            for="{{ form.reason_for_visit.id_for_label }}"
+                            class="
+                                mb-1 block text-xs font-medium
+                                text-slate-700
+                            "
+                        >
+                            {{ form.reason_for_visit.label }}
+                        </label>
+
+                        {{ form.reason_for_visit }}
+
+                        {% if form.reason_for_visit.help_text %}
+                            <p class="mt-1 text-xs text-slate-500">
+                                {{ form.reason_for_visit.help_text }}
+                            </p>
+                        {% endif %}
+
+                        {% for error in form.reason_for_visit.errors %}
+                            <p class="mt-1 text-xs font-medium text-red-600">
+                                {{ error }}
+                            </p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- =================================================
+                 REGISTRATION AND IDENTITY
+            ================================================== -->
+            <section>
+                <div class="mb-4 border-b border-slate-200 pb-2">
+                    <h2 class="text-sm font-semibold text-slate-900">
+                        Registration and identity
+                    </h2>
+
+                    <p class="mt-0.5 text-xs text-slate-500">
+                        The responsible user, date, and time are recorded
+                        automatically.
+                    </p>
+                </div>
+
+                <div
+                    class="
+                        grid grid-cols-1 gap-3
+                        md:grid-cols-2
+                    "
+                >
+                    <div
+                        class="
+                            rounded-lg border border-slate-200
+                            bg-slate-50 p-3
+                        "
+                    >
+                        <label
+                            for="{{ form.registration_completed.id_for_label }}"
+                            class="flex cursor-pointer items-start gap-3"
+                        >
+                            <span class="pt-0.5">
+                                {{ form.registration_completed }}
+                            </span>
+
+                            <span>
+                                <span
+                                    class="
+                                        block text-sm font-medium
+                                        text-slate-800
+                                    "
+                                >
+                                    {{ form.registration_completed.label }}
+                                </span>
+
+                                <span
+                                    class="
+                                        mt-0.5 block text-xs
+                                        leading-5 text-slate-500
+                                    "
+                                >
+                                    {{ form.registration_completed.help_text }}
+                                </span>
+                            </span>
+                        </label>
+
+                        {% for error in form.registration_completed.errors %}
+                            <p class="mt-2 text-xs font-medium text-red-600">
+                                {{ error }}
+                            </p>
+                        {% endfor %}
+                    </div>
+
+
+                    <div
+                        class="
+                            rounded-lg border border-slate-200
+                            bg-slate-50 p-3
+                        "
+                    >
+                        <label
+                            for="{{ form.identity_verified.id_for_label }}"
+                            class="flex cursor-pointer items-start gap-3"
+                        >
+                            <span class="pt-0.5">
+                                {{ form.identity_verified }}
+                            </span>
+
+                            <span>
+                                <span
+                                    class="
+                                        block text-sm font-medium
+                                        text-slate-800
+                                    "
+                                >
+                                    {{ form.identity_verified.label }}
+                                </span>
+
+                                <span
+                                    class="
+                                        mt-0.5 block text-xs
+                                        leading-5 text-slate-500
+                                    "
+                                >
+                                    {{ form.identity_verified.help_text }}
+                                </span>
+                            </span>
+                        </label>
+
+                        {% for error in form.identity_verified.errors %}
+                            <p class="mt-2 text-xs font-medium text-red-600">
+                                {{ error }}
+                            </p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- =================================================
+                 NOTES
+            ================================================== -->
+            <section>
+                <div class="mb-4 border-b border-slate-200 pb-2">
+                    <h2 class="text-sm font-semibold text-slate-900">
+                        Encounter notes
+                    </h2>
+                </div>
+
+                <label
+                    for="{{ form.notes.id_for_label }}"
+                    class="
+                        mb-1 block text-xs font-medium
+                        text-slate-700
+                    "
+                >
+                    {{ form.notes.label }}
+                </label>
+
+                {{ form.notes }}
+
+                {% for error in form.notes.errors %}
+                    <p class="mt-1 text-xs font-medium text-red-600">
+                        {{ error }}
+                    </p>
+                {% endfor %}
+            </section>
+        </div>
+
+
+        <!-- =====================================================
+            ENCOUNTER FORM ACTIONS
+        ====================================================== -->
+        <footer
             class="
-                flex flex-col-reverse gap-2
+                relative z-20
+                flex flex-col gap-3
                 border-t border-slate-200
-                bg-slate-50 px-4 py-3
-                sm:flex-row sm:justify-end
+                bg-slate-50 px-4 py-4
+                sm:flex-row sm:items-center
+                sm:justify-between
             "
         >
-            {% if form.instance.pk %}
-                <a
-                    href="{% url 'encounters:detail' form.instance.pk %}"
-                    class="
-                        inline-flex items-center justify-center
-                        rounded-lg border border-slate-300
-                        bg-white px-4 py-2
-                        text-xs font-semibold text-slate-700
-                        hover:bg-slate-50
-                    "
-                >
-                    Cancel
-                </a>
-            {% else %}
-                <a
-                    href="{% url 'encounters:list' %}"
-                    class="
-                        inline-flex items-center justify-center
-                        rounded-lg border border-slate-300
-                        bg-white px-4 py-2
-                        text-xs font-semibold text-slate-700
-                        hover:bg-slate-50
-                    "
-                >
-                    Cancel
-                </a>
-            {% endif %}
+            <p class="text-xs text-slate-500">
+                Encounter number, recorders, dates, and times are
+                generated automatically.
+            </p>
 
-            <button
-                type="submit"
+            <div
                 class="
-                    inline-flex items-center justify-center
-                    rounded-lg bg-ehr-700
-                    px-4 py-2 text-xs font-semibold
-                    text-white hover:bg-ehr-800
+                    flex w-full flex-col-reverse gap-2
+                    sm:w-auto sm:flex-row sm:items-center
                 "
             >
-                {% if form.instance.pk %}
-                    Save Changes
+                {% if is_update and active_encounter %}
+                    <a
+                        href="{% url 'encounters:detail' active_encounter.pk %}"
+                        hx-boost="false"
+                        class="
+                            inline-flex min-h-11 min-w-28
+                            items-center justify-center
+                            rounded-lg border border-slate-300
+                            bg-white px-5 py-2.5
+                            text-sm font-semibold text-slate-700
+                            shadow-sm transition
+                            hover:bg-slate-100
+                            focus:outline-none
+                            focus:ring-2 focus:ring-slate-300
+                        "
+                    >
+                        Cancel
+                    </a>
                 {% else %}
-                    Create Encounter
+                    <a
+                        href="{% url 'encounters:list' %}"
+                        hx-boost="false"
+                        class="
+                            inline-flex min-h-11 min-w-28
+                            items-center justify-center
+                            rounded-lg border border-slate-300
+                            bg-white px-5 py-2.5
+                            text-sm font-semibold text-slate-700
+                            shadow-sm transition
+                            hover:bg-slate-100
+                            focus:outline-none
+                            focus:ring-2 focus:ring-slate-300
+                        "
+                    >
+                        Cancel
+                    </a>
                 {% endif %}
-            </button>
-        </div>
+
+                <button
+                    type="submit"
+                    name="submit_encounter"
+                    value="1"
+                    class="
+                        inline-flex min-h-11 min-w-44
+                        items-center justify-center gap-2
+                        rounded-lg border border-emerald-800
+                        bg-emerald-700 px-6 py-2.5
+                        text-sm font-bold text-white
+                        shadow-sm transition
+                        hover:bg-emerald-800
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-emerald-500
+                        focus:ring-offset-2
+                    "
+                    style="background-color: #047857; color: #ffffff;"
+                >
+                    {% if is_update %}
+                        <span aria-hidden="true">✓</span>
+                        <span>Save Changes</span>
+                    {% else %}
+                        <span aria-hidden="true">＋</span>
+                        <span>Create Encounter</span>
+                    {% endif %}
+                </button>
+            </div>
+        </footer>
+
     </form>
 </section>
 {% endblock workspace %}

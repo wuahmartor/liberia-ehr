@@ -1,0 +1,32 @@
+{% comment %}
+============================================================
+PRIMARY SIDEBAR DISPATCHER
+
+File:
+templates/components/sidebars/sidebar_dispatcher.html
+
+Purpose:
+- Render exactly one primary sidebar.
+- Default safely to the Clinical sidebar.
+- Support ai_cds and the older ai-cds value.
+============================================================
+{% endcomment %}
+
+
+{% if active_primary_nav == "analytics" %}
+
+    {% include "components/sidebars/analytics_sidebar.html" %}
+
+{% elif active_primary_nav == "ai_cds" or active_primary_nav == "ai-cds" %}
+
+    {% include "components/sidebars/ai_cds_sidebar.html" %}
+
+{% elif active_primary_nav == "administration" %}
+
+    {% include "components/sidebars/administration_sidebar.html" %}
+
+{% else %}
+
+    {% include "components/sidebars/clinical_sidebar.html" %}
+
+{% endif %}

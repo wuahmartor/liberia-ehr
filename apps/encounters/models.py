@@ -7,9 +7,23 @@ apps/encounters/models.py
 Purpose:
 - Represent patient visits and episodes of care.
 - Distinguish patient registration from the clinical encounter.
-- Track check-in, triage, clinical start, and completion timestamps.
+- Track registration, identity verification, arrival, triage,
+  clinical start, and completion timestamps.
+- Automatically record the staff member responsible for workflow actions.
 - Connect diagnoses, medications, orders, nursing records, and results.
-- Support outpatient, inpatient, emergency, telehealth, and community care.
+- Support outpatient, inpatient, emergency, telehealth, community,
+  laboratory, imaging, pharmacy, maternity, and surgical care.
+
+Important implementation rule:
+- Dates, times, identifiers, and workflow timestamps are generated
+  automatically by the model.
+- Staff recorder fields are populated from the authenticated user by
+  calling:
+
+      encounter.save(actor=request.user)
+
+  A Django model cannot independently determine request.user because
+  models do not have direct access to the HTTP request.
 
 Recommended workflow:
 - New patient:
@@ -30,19 +44,19 @@ import uuid
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils import timezone
 
 
 class Encounter(models.Model):
     """
-    Represents a clinical interaction between a patient and the health system.
+    Represents one clinical interaction between a patient and the
+    healthcare system.
 
-    The Patient model represents the person's longitudinal identity and
-    demographics. This Encounter model represents one specific visit or
-    episode of care.
+    The Patient model represents the person's longitudinal identity.
+    The Encounter model represents one specific visit or episode of care.
 
-    A single patient may therefore have many encounters over time.
+    One patient may have many encounters over time.
     """
 
     # =================================================================
@@ -147,7 +161,7 @@ class Encounter(models.Model):
     )
 
     # =================================================================
-    # REGISTRATION AND IDENTITY VERIFICATION
+    # REGISTRATION
     # =================================================================
 
     registration_completed = models.BooleanField(
@@ -159,6 +173,33 @@ class Encounter(models.Model):
         ),
     )
 
+    registered_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+        db_index=True,
+        help_text=(
+            "Automatically recorded when registration is marked complete."
+        ),
+    )
+
+    registered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name="registered_encounters",
+        help_text=(
+            "Automatically populated with the staff member who completed "
+            "encounter registration."
+        ),
+    )
+
+    # =================================================================
+    # IDENTITY VERIFICATION
+    # =================================================================
+
     identity_verified = models.BooleanField(
         default=False,
         db_index=True,
@@ -168,23 +209,27 @@ class Encounter(models.Model):
         ),
     )
 
-    registered_at = models.DateTimeField(
+    identity_verified_at = models.DateTimeField(
         null=True,
         blank=True,
+        editable=False,
         db_index=True,
         help_text=(
-            "Date and time registration requirements were completed "
-            "for this encounter."
+            "Automatically recorded when patient identity is verified."
         ),
     )
 
-    registered_by = models.ForeignKey(
+    identity_verified_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="registered_encounters",
-        help_text="Staff member who completed encounter registration.",
+        editable=False,
+        related_name="identity_verified_encounters",
+        help_text=(
+            "Automatically populated with the staff member who verified "
+            "the patient's identity."
+        ),
     )
 
     # =================================================================
@@ -194,8 +239,12 @@ class Encounter(models.Model):
     arrived_at = models.DateTimeField(
         null=True,
         blank=True,
+        editable=False,
         db_index=True,
-        help_text="Date and time the patient arrived or checked in.",
+        help_text=(
+            "Automatically recorded when the encounter status becomes "
+            "arrived or advances beyond arrival."
+        ),
     )
 
     check_in_user = models.ForeignKey(
@@ -203,8 +252,12 @@ class Encounter(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        editable=False,
         related_name="checked_in_encounters",
-        help_text="Staff member who checked the patient in.",
+        help_text=(
+            "Automatically populated with the staff member who checked "
+            "the patient in."
+        ),
     )
 
     # =================================================================
@@ -214,8 +267,11 @@ class Encounter(models.Model):
     triaged_at = models.DateTimeField(
         null=True,
         blank=True,
+        editable=False,
         db_index=True,
-        help_text="Date and time triage was completed.",
+        help_text=(
+            "Automatically recorded when triage is completed."
+        ),
     )
 
     triaged_by = models.ForeignKey(
@@ -223,8 +279,12 @@ class Encounter(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        editable=False,
         related_name="triaged_encounters",
-        help_text="Nurse or clinician who completed triage.",
+        help_text=(
+            "Automatically populated with the nurse or clinician who "
+            "completed triage."
+        ),
     )
 
     # =================================================================
@@ -235,32 +295,65 @@ class Encounter(models.Model):
         default=timezone.now,
         db_index=True,
         help_text=(
-            "Planned or administrative beginning of the encounter. "
-            "Use clinical_start_at for the time direct clinical care began."
+            "Administrative beginning of the encounter. Automatically "
+            "defaults to the time the encounter is created."
         ),
     )
 
     clinical_start_at = models.DateTimeField(
         null=True,
         blank=True,
+        editable=False,
         db_index=True,
-        help_text="Date and time direct clinical care began.",
+        help_text=(
+            "Automatically recorded when direct clinical care begins."
+        ),
+    )
+
+    clinical_started_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name="clinically_started_encounters",
+        help_text=(
+            "Automatically populated with the clinician who began "
+            "direct clinical care."
+        ),
     )
 
     completed_at = models.DateTimeField(
         null=True,
         blank=True,
+        editable=False,
         db_index=True,
-        help_text="Date and time the encounter was clinically completed.",
+        help_text=(
+            "Automatically recorded when the encounter is completed."
+        ),
+    )
+
+    completed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name="completed_encounters",
+        help_text=(
+            "Automatically populated with the staff member who completed "
+            "the encounter."
+        ),
     )
 
     end_datetime = models.DateTimeField(
         null=True,
         blank=True,
+        editable=False,
         db_index=True,
         help_text=(
-            "Administrative end of the encounter. This normally matches "
-            "completed_at when the encounter is completed."
+            "Administrative end of the encounter. Automatically populated "
+            "when the encounter is completed."
         ),
     )
 
@@ -281,7 +374,55 @@ class Encounter(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="created_encounters",
-        help_text="User who created the encounter record.",
+        editable=False,
+        help_text=(
+            "Automatically populated with the authenticated user who "
+            "created the encounter."
+        ),
+    )
+
+    # =================================================================
+    # CANCELLATION AND ERROR AUDIT
+    # =================================================================
+
+    cancelled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+        db_index=True,
+    )
+
+    cancelled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name="cancelled_encounters",
+    )
+
+    entered_in_error_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+        db_index=True,
+    )
+
+    entered_in_error_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name="erroneous_encounters",
+    )
+
+    status_reason = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text=(
+            "Reason for cancellation, hold status, or entry-in-error."
+        ),
     )
 
     # =================================================================
@@ -294,16 +435,19 @@ class Encounter(models.Model):
 
     is_active = models.BooleanField(
         default=True,
+        editable=False,
         db_index=True,
     )
 
     created_at = models.DateTimeField(
         auto_now_add=True,
+        editable=False,
         db_index=True,
     )
 
     updated_at = models.DateTimeField(
         auto_now=True,
+        editable=False,
     )
 
     # =================================================================
@@ -345,7 +489,10 @@ class Encounter(models.Model):
                 name="enc_status_triaged_idx",
             ),
             models.Index(
-                fields=["registration_completed", "identity_verified"],
+                fields=[
+                    "registration_completed",
+                    "identity_verified",
+                ],
                 name="enc_registration_identity_idx",
             ),
         ]
@@ -354,29 +501,21 @@ class Encounter(models.Model):
             models.CheckConstraint(
                 condition=(
                     Q(end_datetime__isnull=True)
-                    | Q(end_datetime__gte=models.F("start_datetime"))
+                    | Q(end_datetime__gte=F("start_datetime"))
                 ),
                 name="encounter_end_after_start",
             ),
             models.CheckConstraint(
                 condition=(
                     Q(completed_at__isnull=True)
-                    | Q(
-                        completed_at__gte=models.F(
-                            "start_datetime"
-                        )
-                    )
+                    | Q(completed_at__gte=F("start_datetime"))
                 ),
                 name="enc_completed_after_start",
             ),
             models.CheckConstraint(
                 condition=(
                     Q(clinical_start_at__isnull=True)
-                    | Q(
-                        clinical_start_at__gte=models.F(
-                            "start_datetime"
-                        )
-                    )
+                    | Q(clinical_start_at__gte=F("start_datetime"))
                 ),
                 name="enc_clinical_start_after_start",
             ),
@@ -394,24 +533,91 @@ class Encounter(models.Model):
         )
 
     # =================================================================
+    # INTERNAL WORKFLOW HELPERS
+    # =================================================================
+
+    @property
+    def requires_triage(self):
+        """
+        Return whether this encounter type normally requires triage.
+
+        Laboratory-only, imaging-only, and pharmacy-only encounters do
+        not automatically require a formal triage stage.
+        """
+
+        return self.encounter_type not in {
+            self.EncounterType.LABORATORY,
+            self.EncounterType.IMAGING,
+            self.EncounterType.PHARMACY,
+        }
+
+    def _previous_database_values(self):
+        """
+        Return selected previous values for transition detection.
+
+        This prevents a normal edit from being treated as a new workflow
+        action after a timestamp has already been recorded.
+        """
+
+        if self._state.adding or not self.pk:
+            return {}
+
+        return (
+            type(self)
+            .objects
+            .filter(pk=self.pk)
+            .values(
+                "status",
+                "registration_completed",
+                "identity_verified",
+            )
+            .first()
+            or {}
+        )
+
+    @staticmethod
+    def _add_update_fields(kwargs, field_names):
+        """
+        Add automatically changed fields to update_fields.
+
+        Without this helper, calling:
+
+            encounter.save(update_fields={"status"}, actor=request.user)
+
+        could change status without saving its automatic timestamp and
+        recorder fields.
+        """
+
+        update_fields = kwargs.get("update_fields")
+
+        if update_fields is None:
+            return
+
+        kwargs["update_fields"] = set(update_fields).union(field_names)
+
+    # =================================================================
     # VALIDATION
     # =================================================================
 
     def clean(self):
         """
-        Validate encounter timestamps and workflow requirements.
+        Validate encounter workflow consistency and timestamp ordering.
 
-        Validation permits emergency encounters to begin before complete
-        registration because urgent care must not be delayed.
+        Automatically generated timestamps are not required here because
+        ModelForm validation calls clean() before save() has populated them.
+
+        The save() method populates automatic timestamps first and then calls
+        full_clean(), so timestamp requirements are enforced after automatic
+        values are available.
         """
 
         super().clean()
 
         errors = {}
 
-        # -------------------------------------------------------------
-        # END DATE VALIDATION
-        # -------------------------------------------------------------
+        # =================================================================
+        # GENERAL START AND END VALIDATION
+        # =================================================================
 
         if (
             self.start_datetime
@@ -422,45 +628,61 @@ class Encounter(models.Model):
                 "The encounter end time cannot be before its start time."
             )
 
-        # -------------------------------------------------------------
-        # REGISTRATION VALIDATION
-        # -------------------------------------------------------------
+        # =================================================================
+        # REGISTRATION CONSISTENCY
+        # =================================================================
 
-        if self.registration_completed and not self.registered_at:
-            errors["registered_at"] = (
-                "Provide the registration completion time when "
-                "registration is marked complete."
-            )
-
+        # registered_at is automatically generated during save().
+        # Only reject a recorded timestamp when registration is not marked
+        # complete.
         if self.registered_at and not self.registration_completed:
             errors["registration_completed"] = (
-                "Mark registration as completed when a registration "
+                "Registration must be marked complete when a registration "
                 "completion time has been recorded."
             )
 
-        # -------------------------------------------------------------
-        # ARRIVAL VALIDATION
-        # -------------------------------------------------------------
+        # =================================================================
+        # IDENTITY VERIFICATION CONSISTENCY
+        # =================================================================
 
-        if self.status in {
-            self.EncounterStatus.ARRIVED,
-            self.EncounterStatus.TRIAGED,
-            self.EncounterStatus.IN_PROGRESS,
-            self.EncounterStatus.ON_HOLD,
-            self.EncounterStatus.COMPLETED,
-        } and not self.arrived_at:
+        # identity_verified_at is automatically generated during save().
+        if self.identity_verified_at and not self.identity_verified:
+            errors["identity_verified"] = (
+                "Identity must be marked verified when an identity "
+                "verification time has been recorded."
+            )
+
+        # Non-emergency encounters should normally complete registration
+        # before identity verification.
+        if (
+            self.identity_verified
+            and not self.registration_completed
+            and self.encounter_type != self.EncounterType.EMERGENCY
+        ):
+            errors["identity_verified"] = (
+                "Complete registration before confirming identity "
+                "verification."
+            )
+
+        # =================================================================
+        # ARRIVAL ORDER VALIDATION
+        # =================================================================
+
+        if (
+            self.start_datetime
+            and self.arrived_at
+            and self.arrived_at < self.start_datetime
+        ):
             errors["arrived_at"] = (
-                "An arrived or active encounter must have an arrival time."
+                "The arrival time cannot be before the encounter start time."
             )
 
-        # -------------------------------------------------------------
-        # TRIAGE VALIDATION
-        # -------------------------------------------------------------
+        # Do not require arrived_at here. It is automatically populated
+        # during save() based on encounter status.
 
-        if self.status == self.EncounterStatus.TRIAGED and not self.triaged_at:
-            errors["triaged_at"] = (
-                "A triaged encounter must have a triage completion time."
-            )
+        # =================================================================
+        # TRIAGE ORDER VALIDATION
+        # =================================================================
 
         if (
             self.arrived_at
@@ -471,16 +693,20 @@ class Encounter(models.Model):
                 "Triage cannot be completed before the patient arrives."
             )
 
-        # -------------------------------------------------------------
-        # CLINICAL START VALIDATION
-        # -------------------------------------------------------------
+        # Do not require triaged_at here. It is automatically populated
+        # during save() when appropriate.
+
+        # =================================================================
+        # CLINICAL START ORDER VALIDATION
+        # =================================================================
 
         if (
-            self.status == self.EncounterStatus.IN_PROGRESS
-            and not self.clinical_start_at
+            self.start_datetime
+            and self.clinical_start_at
+            and self.clinical_start_at < self.start_datetime
         ):
             errors["clinical_start_at"] = (
-                "An encounter in progress must have a clinical start time."
+                "Clinical care cannot begin before the encounter starts."
             )
 
         if (
@@ -492,20 +718,21 @@ class Encounter(models.Model):
                 "Clinical care cannot begin before the patient arrives."
             )
 
-        # -------------------------------------------------------------
-        # COMPLETION VALIDATION
-        # -------------------------------------------------------------
+        # Do not require clinical_start_at here. It is automatically
+        # populated during save().
 
-        if self.status == self.EncounterStatus.COMPLETED:
-            if not self.completed_at:
-                errors["completed_at"] = (
-                    "A completed encounter must have a completion time."
-                )
+        # =================================================================
+        # COMPLETION ORDER VALIDATION
+        # =================================================================
 
-            if not self.end_datetime:
-                errors["end_datetime"] = (
-                    "A completed encounter must have an end date and time."
-                )
+        if (
+            self.start_datetime
+            and self.completed_at
+            and self.completed_at < self.start_datetime
+        ):
+            errors["completed_at"] = (
+                "The completion time cannot precede the encounter start time."
+            )
 
         if (
             self.clinical_start_at
@@ -526,17 +753,45 @@ class Encounter(models.Model):
                 "completion time."
             )
 
-        # -------------------------------------------------------------
-        # CANCELLED AND ERROR STATUS VALIDATION
-        # -------------------------------------------------------------
+        # completed_at and end_datetime are generated during save() when
+        # status becomes COMPLETED. Do not require them during ModelForm
+        # validation.
+
+        # =================================================================
+        # CANCELLED AND ENTERED-IN-ERROR VALIDATION
+        # =================================================================
 
         if self.status in {
             self.EncounterStatus.CANCELLED,
             self.EncounterStatus.ENTERED_IN_ERROR,
-        } and self.completed_at:
-            errors["completed_at"] = (
-                "A cancelled or erroneous encounter cannot have a "
-                "clinical completion time."
+        }:
+            if self.completed_at:
+                errors["completed_at"] = (
+                    "A cancelled encounter or an encounter entered in error "
+                    "cannot have a clinical completion time."
+                )
+
+            if not self.status_reason.strip():
+                errors["status_reason"] = (
+                    "Provide a reason when cancelling an encounter or marking "
+                    "it as entered in error."
+                )
+
+        # =================================================================
+        # COMPLETED ENCOUNTER CONSISTENCY
+        # =================================================================
+
+        if (
+            self.status != self.EncounterStatus.COMPLETED
+            and self.completed_at
+            and self.status not in {
+                self.EncounterStatus.CANCELLED,
+                self.EncounterStatus.ENTERED_IN_ERROR,
+            }
+        ):
+            errors["status"] = (
+                "An encounter with a clinical completion time must have "
+                "Completed status."
             )
 
         if errors:
@@ -546,15 +801,37 @@ class Encounter(models.Model):
     # SAVE WORKFLOW AUTOMATION
     # =================================================================
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, actor=None, validate=True, **kwargs):
         """
-        Generate the encounter number and populate workflow timestamps.
+        Save the encounter and populate automatic workflow information.
 
-        Timestamps are populated only when they are empty. Existing values
-        are preserved so the historical workflow remains accurate.
+        Parameters:
+            actor:
+                The authenticated user performing the action. Views,
+                forms, services, and admin classes should call:
+
+                    encounter.save(actor=request.user)
+
+            validate:
+                Run model validation before saving. Defaults to True.
+
+        Existing timestamps and recorder fields are preserved to maintain
+        an accurate historical audit trail.
         """
 
         current_time = timezone.now()
+        previous = self._previous_database_values()
+        automatic_fields = set()
+
+        previous_status = previous.get("status")
+        previous_registration_completed = previous.get(
+            "registration_completed",
+            False,
+        )
+        previous_identity_verified = previous.get(
+            "identity_verified",
+            False,
+        )
 
         # -------------------------------------------------------------
         # GENERATE ENCOUNTER NUMBER
@@ -564,63 +841,423 @@ class Encounter(models.Model):
             date_part = timezone.localdate().strftime("%Y%m%d")
             uuid_part = uuid.uuid4().hex[:8].upper()
 
-            self.encounter_number = (
-                f"ENC-{date_part}-{uuid_part}"
-            )
+            self.encounter_number = f"ENC-{date_part}-{uuid_part}"
+            automatic_fields.add("encounter_number")
 
         # -------------------------------------------------------------
-        # REGISTRATION TIMESTAMP
+        # ASSIGN ENCOUNTER CREATOR
         # -------------------------------------------------------------
+
+        if self._state.adding and not self.created_by_id:
+            if actor is None:
+                raise ValidationError(
+                    {
+                        "created_by": (
+                            "The authenticated user is required when "
+                            "creating an encounter. Call "
+                            "encounter.save(actor=request.user)."
+                        )
+                    }
+                )
+
+            self.created_by = actor
+            automatic_fields.add("created_by")
+
+        # -------------------------------------------------------------
+        # REGISTRATION AUTOMATION
+        # -------------------------------------------------------------
+
+        registration_just_completed = (
+            self.registration_completed
+            and not previous_registration_completed
+        )
 
         if self.registration_completed and not self.registered_at:
             self.registered_at = current_time
+            automatic_fields.add("registered_at")
+
+        if (
+            registration_just_completed
+            and actor is not None
+            and not self.registered_by_id
+        ):
+            self.registered_by = actor
+            automatic_fields.add("registered_by")
 
         # -------------------------------------------------------------
-        # STATUS-BASED WORKFLOW TIMESTAMPS
+        # IDENTITY VERIFICATION AUTOMATION
         # -------------------------------------------------------------
 
-        if self.status in {
+        identity_just_verified = (
+            self.identity_verified
+            and not previous_identity_verified
+        )
+
+        if self.identity_verified and not self.identity_verified_at:
+            self.identity_verified_at = current_time
+            automatic_fields.add("identity_verified_at")
+
+        if (
+            identity_just_verified
+            and actor is not None
+            and not self.identity_verified_by_id
+        ):
+            self.identity_verified_by = actor
+            automatic_fields.add("identity_verified_by")
+
+        # -------------------------------------------------------------
+        # STATUS TRANSITION DETECTION
+        # -------------------------------------------------------------
+
+        status_changed = (
+            self._state.adding
+            or previous_status != self.status
+        )
+
+        arrival_or_later_statuses = {
             self.EncounterStatus.ARRIVED,
             self.EncounterStatus.TRIAGED,
             self.EncounterStatus.IN_PROGRESS,
             self.EncounterStatus.ON_HOLD,
             self.EncounterStatus.COMPLETED,
-        } and not self.arrived_at:
-            self.arrived_at = current_time
+        }
 
-        if self.status in {
+        triage_or_later_statuses = {
             self.EncounterStatus.TRIAGED,
             self.EncounterStatus.IN_PROGRESS,
             self.EncounterStatus.ON_HOLD,
             self.EncounterStatus.COMPLETED,
-        } and not self.triaged_at:
-            self.triaged_at = current_time
+        }
 
-        if self.status in {
+        clinical_or_later_statuses = {
             self.EncounterStatus.IN_PROGRESS,
             self.EncounterStatus.ON_HOLD,
             self.EncounterStatus.COMPLETED,
-        } and not self.clinical_start_at:
+        }
+
+        # -------------------------------------------------------------
+        # ARRIVAL AUTOMATION
+        # -------------------------------------------------------------
+
+        if (
+            self.status in arrival_or_later_statuses
+            and not self.arrived_at
+        ):
+            self.arrived_at = current_time
+            automatic_fields.add("arrived_at")
+
+            if actor is not None and not self.check_in_user_id:
+                self.check_in_user = actor
+                automatic_fields.add("check_in_user")
+
+        # -------------------------------------------------------------
+        # TRIAGE AUTOMATION
+        # -------------------------------------------------------------
+
+        if (
+            self.requires_triage
+            and self.status in triage_or_later_statuses
+            and not self.triaged_at
+        ):
+            self.triaged_at = current_time
+            automatic_fields.add("triaged_at")
+
+            if actor is not None and not self.triaged_by_id:
+                self.triaged_by = actor
+                automatic_fields.add("triaged_by")
+
+        # -------------------------------------------------------------
+        # CLINICAL START AUTOMATION
+        # -------------------------------------------------------------
+
+        if (
+            self.status in clinical_or_later_statuses
+            and not self.clinical_start_at
+        ):
             self.clinical_start_at = current_time
+            automatic_fields.add("clinical_start_at")
+
+            if actor is not None and not self.clinical_started_by_id:
+                self.clinical_started_by = actor
+                automatic_fields.add("clinical_started_by")
+
+        # -------------------------------------------------------------
+        # COMPLETION AUTOMATION
+        # -------------------------------------------------------------
 
         if self.status == self.EncounterStatus.COMPLETED:
             if not self.completed_at:
                 self.completed_at = current_time
+                automatic_fields.add("completed_at")
 
             if not self.end_datetime:
                 self.end_datetime = self.completed_at
+                automatic_fields.add("end_datetime")
 
-        # -------------------------------------------------------------
-        # CANCELLED OR ERROR RECORDS ARE NOT ACTIVE
-        # -------------------------------------------------------------
+            if (
+                status_changed
+                and actor is not None
+                and not self.completed_by_id
+            ):
+                self.completed_by = actor
+                automatic_fields.add("completed_by")
 
-        if self.status in {
-            self.EncounterStatus.CANCELLED,
-            self.EncounterStatus.ENTERED_IN_ERROR,
-        }:
             self.is_active = False
+            automatic_fields.add("is_active")
+
+        # -------------------------------------------------------------
+        # CANCELLATION AUTOMATION
+        # -------------------------------------------------------------
+
+        elif self.status == self.EncounterStatus.CANCELLED:
+            if not self.cancelled_at:
+                self.cancelled_at = current_time
+                automatic_fields.add("cancelled_at")
+
+            if (
+                status_changed
+                and actor is not None
+                and not self.cancelled_by_id
+            ):
+                self.cancelled_by = actor
+                automatic_fields.add("cancelled_by")
+
+            self.is_active = False
+            automatic_fields.add("is_active")
+
+        # -------------------------------------------------------------
+        # ENTERED-IN-ERROR AUTOMATION
+        # -------------------------------------------------------------
+
+        elif self.status == self.EncounterStatus.ENTERED_IN_ERROR:
+            if not self.entered_in_error_at:
+                self.entered_in_error_at = current_time
+                automatic_fields.add("entered_in_error_at")
+
+            if (
+                status_changed
+                and actor is not None
+                and not self.entered_in_error_by_id
+            ):
+                self.entered_in_error_by = actor
+                automatic_fields.add("entered_in_error_by")
+
+            self.is_active = False
+            automatic_fields.add("is_active")
+
+        # -------------------------------------------------------------
+        # OPEN ENCOUNTERS REMAIN ACTIVE
+        # -------------------------------------------------------------
+
+        else:
+            if not self.is_active:
+                self.is_active = True
+                automatic_fields.add("is_active")
+
+        # -------------------------------------------------------------
+        # SUPPORT save(update_fields=...)
+        # -------------------------------------------------------------
+
+        self._add_update_fields(kwargs, automatic_fields)
+
+        # -------------------------------------------------------------
+        # VALIDATE AFTER AUTOMATIC FIELDS ARE POPULATED
+        # -------------------------------------------------------------
+
+        if validate:
+            exclude = None
+
+            if kwargs.get("update_fields"):
+                update_fields = set(kwargs["update_fields"])
+                all_fields = {
+                    field.name
+                    for field in self._meta.fields
+                }
+                exclude = list(all_fields - update_fields)
+
+            self.full_clean(exclude=exclude)
 
         super().save(*args, **kwargs)
+
+    # =================================================================
+    # EXPLICIT WORKFLOW TRANSITION METHODS
+    # =================================================================
+
+    def complete_registration(self, user):
+        """
+        Mark registration as complete and automatically record the
+        responsible user and timestamp.
+        """
+
+        self.registration_completed = True
+        self.save(
+            actor=user,
+            update_fields={
+                "registration_completed",
+            },
+        )
+
+    def verify_identity(self, user):
+        """
+        Mark the patient's identity as verified.
+        """
+
+        self.identity_verified = True
+        self.save(
+            actor=user,
+            update_fields={
+                "identity_verified",
+            },
+        )
+
+    def mark_arrived(self, user):
+        """
+        Mark the patient as arrived and checked in.
+        """
+
+        self.status = self.EncounterStatus.ARRIVED
+        self.save(
+            actor=user,
+            update_fields={
+                "status",
+            },
+        )
+
+    def mark_triaged(self, user):
+        """
+        Mark triage as complete.
+
+        Laboratory-only, imaging-only, and pharmacy-only encounters do
+        not normally require this method.
+        """
+
+        if not self.requires_triage:
+            raise ValidationError(
+                {
+                    "status": (
+                        "This encounter type does not require formal triage."
+                    )
+                }
+            )
+
+        self.status = self.EncounterStatus.TRIAGED
+        self.save(
+            actor=user,
+            update_fields={
+                "status",
+            },
+        )
+
+    def begin_clinical_care(self, user):
+        """
+        Begin direct clinical care.
+        """
+
+        self.status = self.EncounterStatus.IN_PROGRESS
+        self.save(
+            actor=user,
+            update_fields={
+                "status",
+            },
+        )
+
+    def place_on_hold(self, user, reason=""):
+        """
+        Place an active encounter on hold.
+        """
+
+        self.status = self.EncounterStatus.ON_HOLD
+
+        if reason:
+            self.status_reason = reason
+
+        self.save(
+            actor=user,
+            update_fields={
+                "status",
+                "status_reason",
+            },
+        )
+
+    def resume_clinical_care(self, user):
+        """
+        Resume an encounter that was placed on hold.
+        """
+
+        self.status = self.EncounterStatus.IN_PROGRESS
+        self.status_reason = ""
+
+        self.save(
+            actor=user,
+            update_fields={
+                "status",
+                "status_reason",
+            },
+        )
+
+    def complete(self, user):
+        """
+        Complete and close the encounter.
+        """
+
+        self.status = self.EncounterStatus.COMPLETED
+        self.save(
+            actor=user,
+            update_fields={
+                "status",
+            },
+        )
+
+    def cancel(self, user, reason):
+        """
+        Cancel the encounter and record the reason.
+        """
+
+        if not reason or not reason.strip():
+            raise ValidationError(
+                {
+                    "status_reason": (
+                        "A cancellation reason is required."
+                    )
+                }
+            )
+
+        self.status = self.EncounterStatus.CANCELLED
+        self.status_reason = reason.strip()
+
+        self.save(
+            actor=user,
+            update_fields={
+                "status",
+                "status_reason",
+            },
+        )
+
+    def mark_entered_in_error(self, user, reason):
+        """
+        Mark the encounter as entered in error.
+        """
+
+        if not reason or not reason.strip():
+            raise ValidationError(
+                {
+                    "status_reason": (
+                        "A reason is required when marking an encounter "
+                        "as entered in error."
+                    )
+                }
+            )
+
+        self.status = self.EncounterStatus.ENTERED_IN_ERROR
+        self.status_reason = reason.strip()
+
+        self.save(
+            actor=user,
+            update_fields={
+                "status",
+                "status_reason",
+            },
+        )
 
     # =================================================================
     # WORKFLOW PROPERTIES
@@ -644,19 +1281,26 @@ class Encounter(models.Model):
     @property
     def is_ready_for_triage(self):
         """
-        Return True when the patient has arrived and can be triaged.
+        Return True when the patient has arrived and triage is required.
         """
 
         return (
-            self.status == self.EncounterStatus.ARRIVED
+            self.requires_triage
+            and self.status == self.EncounterStatus.ARRIVED
             and self.arrived_at is not None
         )
 
     @property
     def is_ready_for_clinician(self):
         """
-        Return True when triage is complete and clinical care may begin.
+        Return True when the encounter may begin clinical care.
         """
+
+        if not self.requires_triage:
+            return (
+                self.status == self.EncounterStatus.ARRIVED
+                and self.arrived_at is not None
+            )
 
         return (
             self.status == self.EncounterStatus.TRIAGED
@@ -675,12 +1319,15 @@ class Encounter(models.Model):
         if self.registration_completed:
             return "Registration complete; identity verification pending"
 
+        if self.identity_verified:
+            return "Identity verified; registration incomplete"
+
         return "Registration incomplete"
 
     @property
     def duration(self):
         """
-        Return total administrative encounter duration.
+        Return the total administrative encounter duration.
         """
 
         if not self.start_datetime:
@@ -721,7 +1368,7 @@ class Encounter(models.Model):
     @property
     def waiting_time_to_clinician(self):
         """
-        Return the time between arrival and the beginning of clinical care.
+        Return the time between arrival and direct clinical care.
         """
 
         if not self.arrived_at or not self.clinical_start_at:

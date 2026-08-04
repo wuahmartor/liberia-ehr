@@ -1,139 +1,194 @@
 {% extends "base.html" %}
 
+{% comment %}
+============================================================
+EHR APPLICATION SHELL
+
+File:
+templates/layouts/app_shell.html
+
+Purpose:
+- Render the primary and secondary navigation.
+- Maintain one fixed-width contextual sidebar.
+- Keep the workspace beside the sidebar.
+- Render exactly one sidebar through the dispatcher.
+- Prevent conflicting Tailwind component rules from collapsing
+  the shell layout.
+
+Expected context:
+- active_primary_nav
+- active_clinical_module
+- selected_patient
+- active_encounter
+============================================================
+{% endcomment %}
+
+
 {% block body %}
+
+<style>
+    /*
+    ============================================================
+    APPLICATION SHELL
+
+    These structural rules are intentionally kept in the shell.
+    They guarantee that the sidebar and workspace remain in a
+    two-column layout even while Tailwind component CSS is being
+    reorganized.
+    ============================================================
+    */
+
+    #ehr-application-shell {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100vh;
+        min-height: 0;
+        overflow: hidden;
+        background: #f8fafc;
+    }
+
+    #ehr-primary-navigation {
+        position: relative;
+        z-index: 50;
+        flex: 0 0 auto;
+        min-width: 0;
+    }
+
+    #secondary-navigation {
+        position: relative;
+        z-index: 40;
+        flex: 0 0 auto;
+        min-width: 0;
+        background: #ffffff;
+    }
+
+    #ehr-application-body {
+        display: flex;
+        flex: 1 1 auto;
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    #context-sidebar {
+        display: block;
+        flex: 0 0 15rem;
+        width: 15rem;
+        max-width: 15rem;
+        min-width: 15rem;
+        min-height: 0;
+        overflow: hidden;
+        border-right: 1px solid #e2e8f0;
+        background: #ffffff;
+        color: #0f172a;
+    }
+
+    #context-sidebar-content {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    #workspace {
+        display: block;
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 0;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        background: #f8fafc;
+    }
+
+    #workspace-content {
+        width: 100%;
+        min-width: 0;
+        min-height: 100%;
+        padding: 1rem;
+        box-sizing: border-box;
+    }
+
+    /*
+    ============================================================
+    MOBILE LAYOUT
+    ============================================================
+    */
+
+    @media (max-width: 1023px) {
+        #context-sidebar {
+            display: none;
+        }
+
+        #workspace-content {
+            padding: 0.75rem;
+        }
+    }
+</style>
+
+
 <div
+    id="ehr-application-shell"
     x-data="ehrShell"
-    class="grid h-screen grid-rows-[auto_auto_minmax(0,1fr)]"
 >
     <!-- =========================================================
          PRIMARY NAVIGATION
+
+         primary_nav.html already contains its own header element,
+         so another header wrapper is not required.
     ========================================================== -->
-    {% include "components/primary_nav.html" %}
+    <div id="ehr-primary-navigation">
+        {% include "components/primary_nav.html" %}
+    </div>
+
 
     <!-- =========================================================
          SECONDARY NAVIGATION
     ========================================================== -->
-    <div
-        id="secondary-navigation"
-        class="min-w-0"
-    >
+    <div id="secondary-navigation">
         {% include "components/secondary_nav.html" %}
     </div>
+
 
     <!-- =========================================================
          APPLICATION BODY
     ========================================================== -->
-    <div
-        class="
-            grid min-h-0 grid-cols-1
+    <div id="ehr-application-body">
 
-            {% if active_primary_nav == 'clinical' and active_clinical_module == 'patients' and selected_patient %}
-                lg:grid-cols-[14rem_minmax(0,1fr)]
-
-            {% elif active_primary_nav == 'clinical' and active_clinical_module and active_clinical_module != 'patients' %}
-                lg:grid-cols-[14rem_minmax(0,1fr)]
-
-            {% elif active_primary_nav == 'analytics' %}
-                lg:grid-cols-[14rem_minmax(0,1fr)]
-
-            {% elif active_primary_nav == 'ai-cds' %}
-                lg:grid-cols-[14rem_minmax(0,1fr)]
-
-            {% elif active_primary_nav == 'administration' %}
-                lg:grid-cols-[14rem_minmax(0,1fr)]
-            {% endif %}
-        "
-    >
         <!-- =====================================================
              CONTEXTUAL SIDEBAR
         ====================================================== -->
-        {% if active_primary_nav == "clinical" and active_clinical_module == "patients" and selected_patient %}
-            <aside
-                id="context-sidebar"
-                class="
-                    hidden min-h-0 overflow-y-auto
-                    border-r border-slate-200
-                    bg-white text-slate-900
-                    lg:block
-                "
-                aria-label="Patient record navigation"
-            >
-                {% include "components/sidebars/clinical_sidebar.html" %}
-            </aside>
+        <aside
+            id="context-sidebar"
+            aria-label="Application navigation"
+        >
+            <div id="context-sidebar-content">
+                {% include "components/sidebars/sidebar_dispatcher.html" %}
+            </div>
+        </aside>
 
-        {% elif active_primary_nav == "clinical" and active_clinical_module and active_clinical_module != "patients" %}
-            <aside
-                id="context-sidebar"
-                class="
-                    hidden min-h-0 overflow-y-auto
-                    border-r border-slate-200
-                    bg-white text-slate-900
-                    lg:block
-                "
-                aria-label="Clinical workflow navigation"
-            >
-                {% include "components/sidebars/clinical_sidebar.html" %}
-            </aside>
-
-        {% elif active_primary_nav == "analytics" %}
-            <aside
-                id="context-sidebar"
-                class="
-                    hidden min-h-0 overflow-y-auto
-                    border-r border-slate-200
-                    bg-white text-slate-900
-                    lg:block
-                "
-                aria-label="Analytics navigation"
-            >
-                {% include "components/sidebars/analytics_sidebar.html" %}
-            </aside>
-
-        {% elif active_primary_nav == "ai-cds" %}
-            <aside
-                id="context-sidebar"
-                class="
-                    hidden min-h-0 overflow-y-auto
-                    border-r border-slate-200
-                    bg-white text-slate-900
-                    lg:block
-                "
-                aria-label="AI clinical decision support navigation"
-            >
-                {% include "components/sidebars/ai_cds_sidebar.html" %}
-            </aside>
-
-        {% elif active_primary_nav == "administration" %}
-            <aside
-                id="context-sidebar"
-                class="
-                    hidden min-h-0 overflow-y-auto
-                    border-r border-slate-200
-                    bg-white text-slate-900
-                    lg:block
-                "
-                aria-label="Administration navigation"
-            >
-                {% include "components/sidebars/administration_sidebar.html" %}
-            </aside>
-        {% endif %}
 
         <!-- =====================================================
              MAIN WORKSPACE
         ====================================================== -->
-                <main
-            id="workspace"
-            class="
-                min-h-0 min-w-0 overflow-y-auto
-                bg-slate-50 p-3 md:p-4
-            "
-        >
-            {% block workspace %}{% endblock %}
+        <main id="workspace">
+            <div id="workspace-content">
+                {% block workspace %}
+                {% endblock workspace %}
+            </div>
         </main>
     </div>
 </div>
 
+
+<!-- =============================================================
+     SELECTED PATIENT DEMOGRAPHICS MODAL
+============================================================= -->
 {% if selected_patient %}
     {% include "components/patient_demographics_modal.html" %}
 {% endif %}
-{% endblock %}
+
+{% endblock body %}

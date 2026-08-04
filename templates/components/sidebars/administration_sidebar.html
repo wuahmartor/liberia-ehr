@@ -1,0 +1,159 @@
+
+
+
+{% comment %}
+============================================================
+ADMINISTRATION SIDEBAR
+
+File:
+templates/components/sidebars/administration_sidebar.html
+
+Purpose:
+- Provide system, facility, user, security, and configuration
+  navigation.
+- Display only administrative components permitted for the user.
+============================================================
+{% endcomment %}
+
+
+<div
+    class="
+        h-full overflow-y-auto
+        bg-white px-3 py-3
+    "
+    aria-label="Administration sidebar"
+>
+    <section>
+        <p class="admin-sidebar-heading">
+            Administration
+        </p>
+
+        <nav class="space-y-1">
+            <a
+                href="#"
+                class="
+                    admin-sidebar-link
+                    {% if active_admin_module == 'dashboard' %}
+                        admin-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">▦</span>
+                <span>Administration Dashboard</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    admin-sidebar-link
+                    {% if active_admin_module == 'users' %}
+                        admin-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">♙</span>
+                <span>Users</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    admin-sidebar-link
+                    {% if active_admin_module == 'roles' %}
+                        admin-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">⚿</span>
+                <span>Roles and Permissions</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    admin-sidebar-link
+                    {% if active_admin_module == 'facilities' %}
+                        admin-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">▥</span>
+                <span>Facilities</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    admin-sidebar-link
+                    {% if active_admin_module == 'departments' %}
+                        admin-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">▤</span>
+                <span>Departments and Units</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    admin-sidebar-link
+                    {% if active_admin_module == 'rooms' %}
+                        admin-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">▱</span>
+                <span>Rooms and Beds</span>
+            </a>
+        </nav>
+    </section>
+
+
+    <section class="mt-4">
+        <p class="admin-sidebar-heading">
+            System Configuration
+        </p>
+
+        <nav class="space-y-1">
+            <a href="#" class="admin-sidebar-link">
+                <span aria-hidden="true">⚙</span>
+                <span>System Settings</span>
+            </a>
+
+            <a href="#" class="admin-sidebar-link">
+                <span aria-hidden="true">▤</span>
+                <span>Clinical Dictionaries</span>
+            </a>
+
+            <a href="#" class="admin-sidebar-link">
+                <span aria-hidden="true">⇄</span>
+                <span>Integrations</span>
+            </a>
+
+            <a href="#" class="admin-sidebar-link">
+                <span aria-hidden="true">▰</span>
+                <span>Audit Logs</span>
+            </a>
+
+            <a href="#" class="admin-sidebar-link">
+                <span aria-hidden="true">!</span>
+                <span>System Health</span>
+            </a>
+        </nav>
+    </section>
+
+
+    {% if request.user.is_staff %}
+        <section class="mt-4 border-t border-slate-200 pt-4">
+            <a
+                href="{% url 'admin:index' %}"
+                hx-boost="false"
+                class="admin-sidebar-link"
+            >
+                <span aria-hidden="true">⚙</span>
+                <span>Django Administration</span>
+            </a>
+        </section>
+    {% endif %}
+</div>

@@ -142,26 +142,32 @@ def active_encounter_queryset():
 
 
 def get_patient_active_encounter(
-    patient: Patient,
-) -> Encounter | None:
+    patient,
+):
     """
-    Return the patient's most recent active clinical encounter.
+    Return the patient's most recent active, open encounter.
+    """
 
-    Encounter-specific actions such as triage, vitals, diagnoses,
-    orders, medications, notes, and flowsheets should only be
-    enabled when this function returns an encounter.
-    """
+    open_statuses = {
+        Encounter.EncounterStatus.PLANNED,
+        Encounter.EncounterStatus.SCHEDULED,
+        Encounter.EncounterStatus.ARRIVED,
+        Encounter.EncounterStatus.TRIAGED,
+        Encounter.EncounterStatus.IN_PROGRESS,
+        Encounter.EncounterStatus.ON_HOLD,
+    }
 
     return (
-        active_encounter_queryset()
-        .filter(patient=patient)
+        Encounter.objects
+        .filter(
+            patient=patient,
+            is_active=True,
+            status__in=open_statuses,
+        )
         .select_related(
             "patient",
             "attending_provider",
             "created_by",
-            "registered_by",
-            "check_in_user",
-            "triaged_by",
         )
         .order_by(
             "-start_datetime",
@@ -170,32 +176,32 @@ def get_patient_active_encounter(
         .first()
     )
 
+from apps.encounters.models import Encounter
+
 
 def patient_recent_encounters(
-    patient: Patient,
-    *,
-    limit: int = RECENT_ENCOUNTER_LIMIT,
+    patient,
+    limit: int = 10,
 ):
     """
-    Return the patient's recent encounter history.
+    Return the patient's most recent encounter records.
     """
 
     return (
         Encounter.objects
-        .filter(patient=patient)
+        .filter(
+            patient=patient,
+        )
         .select_related(
+            "patient",
             "attending_provider",
             "created_by",
-            "registered_by",
-            "check_in_user",
-            "triaged_by",
         )
         .order_by(
             "-start_datetime",
             "-created_at",
         )[:limit]
     )
-
 
 def patient_navigation_context(
     *,
@@ -390,6 +396,7 @@ def patient_search(
 
 
 # ============================================================
+# ============================================================
 # PATIENT DETAIL AND SIDEBAR
 # ============================================================
 
@@ -476,9 +483,13 @@ def patient_detail(
             active_encounter=active_encounter,
         ),
 
+        "patient": patient,
+        "selected_patient": patient,
+
         "active_flags": active_flags,
         "allergies": allergies,
 
+        "active_encounter": active_encounter,
         "recent_encounters": recent_encounters,
 
         "physicians": [],
@@ -488,12 +499,26 @@ def patient_detail(
         "clinical_records": [],
     }
 
+    # ========================================================
+    # HTMX RESPONSE
+    # ========================================================
+
+    if request.headers.get("HX-Request") == "true":
+        return render(
+            request,
+            "patients/partials/detail_content.html",
+            context,
+        )
+
+    # ========================================================
+    # FULL PAGE RESPONSE
+    # ========================================================
+
     return render(
         request,
         "patients/patient_detail.html",
         context,
     )
-
 
 @login_required
 def patient_sidebar(

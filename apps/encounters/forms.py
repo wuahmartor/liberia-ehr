@@ -6,14 +6,28 @@ apps/encounters/forms.py
 
 Purpose:
 - Create and update encounter records.
+- Display only fields staff should complete manually.
+- Load existing patients for encounter selection.
 - Apply Tailwind CSS styling.
-- Validate registration, arrival, triage, clinical-care,
-  completion, and cancellation workflow.
+- Leave encounter numbers, recorder fields, timestamps, and active-state
+  management to the Encounter model.
+
+Important:
+- Encounter uses a UUID primary key.
+- A UUID may exist before the encounter has been saved.
+- The form must therefore receive an explicit form_mode from the view:
+
+      form_mode="create"
+
+  or:
+
+      form_mode="update"
 """
 
 from django import forms
 from django.contrib.auth import get_user_model
-from django.utils import timezone
+
+from apps.patients.models import Patient
 
 from .models import Encounter
 
@@ -21,27 +35,15 @@ from .models import Encounter
 User = get_user_model()
 
 
-class DateTimeLocalInput(forms.DateTimeInput):
-    """
-    HTML datetime-local input widget.
-    """
-
-    input_type = "datetime-local"
-
-
 class EncounterForm(forms.ModelForm):
     """
-    Form used to create and update encounters.
+    Form used to create and update encounter records.
 
-    The form supports:
-    - New and existing patients
-    - Registration completion
-    - Identity verification
-    - Arrival and check-in
-    - Triage
-    - Clinical start
-    - Encounter completion
-    - Staff assignment
+    Automatically managed fields are excluded from this form.
+
+    The encounter view must save the model with:
+
+        encounter.save(actor=request.user)
     """
 
     class Meta:
@@ -53,26 +55,10 @@ class EncounterForm(forms.ModelForm):
             "status",
             "priority",
             "reason_for_visit",
-
             "registration_completed",
             "identity_verified",
-            "registered_at",
-            "registered_by",
-
-            "arrived_at",
-            "check_in_user",
-
-            "triaged_at",
-            "triaged_by",
-
-            "start_datetime",
-            "clinical_start_at",
-            "completed_at",
-            "end_datetime",
-
             "attending_provider",
             "notes",
-            "is_active",
         ]
 
         widgets = {
@@ -90,6 +76,7 @@ class EncounterForm(forms.ModelForm):
                         "Enter the chief complaint or reason for visit"
                     ),
                     "maxlength": "500",
+                    "autocomplete": "off",
                 }
             ),
 
@@ -97,133 +84,129 @@ class EncounterForm(forms.ModelForm):
 
             "identity_verified": forms.CheckboxInput(),
 
-            "registered_at": DateTimeLocalInput(
-                format="%Y-%m-%dT%H:%M",
-            ),
-
-            "registered_by": forms.Select(),
-
-            "arrived_at": DateTimeLocalInput(
-                format="%Y-%m-%dT%H:%M",
-            ),
-
-            "check_in_user": forms.Select(),
-
-            "triaged_at": DateTimeLocalInput(
-                format="%Y-%m-%dT%H:%M",
-            ),
-
-            "triaged_by": forms.Select(),
-
-            "start_datetime": DateTimeLocalInput(
-                format="%Y-%m-%dT%H:%M",
-            ),
-
-            "clinical_start_at": DateTimeLocalInput(
-                format="%Y-%m-%dT%H:%M",
-            ),
-
-            "completed_at": DateTimeLocalInput(
-                format="%Y-%m-%dT%H:%M",
-            ),
-
-            "end_datetime": DateTimeLocalInput(
-                format="%Y-%m-%dT%H:%M",
-            ),
-
             "attending_provider": forms.Select(),
 
             "notes": forms.Textarea(
                 attrs={
                     "rows": 4,
+                    "maxlength": "5000",
                     "placeholder": (
                         "Enter relevant clinical or administrative notes"
                     ),
                 }
             ),
+        }
 
-            "is_active": forms.CheckboxInput(),
+        labels = {
+            "patient": "Patient",
+            "encounter_type": "Encounter type",
+            "status": "Encounter status",
+            "priority": "Priority",
+            "reason_for_visit": "Reason for visit",
+            "registration_completed": "Registration completed",
+            "identity_verified": "Patient identity verified",
+            "attending_provider": "Attending provider",
+            "notes": "Encounter notes",
         }
 
         help_texts = {
             "patient": (
-                "Select an existing patient or register a new patient first."
+                "Select the patient receiving care during this encounter."
             ),
             "encounter_type": (
-                "Select the type of care being provided."
+                "Select the type or setting of care being provided."
             ),
             "status": (
-                "Use Arrived after check-in, Triaged after nursing triage, "
-                "In progress when clinical care begins, and Completed when "
-                "the visit is finished."
+                "Select the current stage of the encounter workflow."
             ),
             "priority": (
                 "Select the urgency of the encounter."
             ),
             "reason_for_visit": (
-                "Enter the patient's chief complaint or primary reason "
-                "for seeking care."
+                "Enter the chief complaint or primary reason for care."
             ),
             "registration_completed": (
-                "Indicates that minimum registration requirements have "
-                "been completed for this encounter."
+                "The responsible user, date, and time are recorded "
+                "automatically."
             ),
             "identity_verified": (
-                "Confirm that the patient's identity was verified using "
-                "the required identifiers."
-            ),
-            "registered_at": (
-                "The time registration was completed."
-            ),
-            "registered_by": (
-                "The staff member who completed registration."
-            ),
-            "arrived_at": (
-                "The time the patient arrived or checked in."
-            ),
-            "check_in_user": (
-                "The staff member who checked the patient in."
-            ),
-            "triaged_at": (
-                "The time nursing or clinical triage was completed."
-            ),
-            "triaged_by": (
-                "The nurse or clinician who completed triage."
-            ),
-            "start_datetime": (
-                "The administrative or planned start of the encounter."
-            ),
-            "clinical_start_at": (
-                "The time direct clinical care began."
-            ),
-            "completed_at": (
-                "The time clinical care was completed."
-            ),
-            "end_datetime": (
-                "The administrative end time of the encounter."
+                "The responsible user, date, and time are recorded "
+                "automatically."
             ),
             "attending_provider": (
-                "The primary provider responsible for this encounter."
+                "Select the primary provider responsible for this encounter."
             ),
-            "is_active": (
-                "Inactive encounters are normally cancelled or entered "
-                "in error."
+            "notes": (
+                "Enter optional clinical or administrative notes."
             ),
         }
 
     def __init__(self, *args, **kwargs):
         """
-        Configure field querysets, date formats, defaults,
-        optional fields, labels, and Tailwind CSS classes.
+        Configure form mode, patient choices, provider choices,
+        workflow defaults, and Tailwind CSS classes.
         """
 
-        self.current_user = kwargs.pop("current_user", None)
+        self.current_user = kwargs.pop(
+            "current_user",
+            None,
+        )
+
+        self.form_mode = kwargs.pop(
+            "form_mode",
+            "create",
+        )
 
         super().__init__(*args, **kwargs)
 
-        # =========================================================
-        # ACTIVE USER QUERYSET
-        # =========================================================
+        # =============================================================
+        # CREATE OR UPDATE MODE
+        # =============================================================
+
+        valid_modes = {
+            "create",
+            "update",
+        }
+
+        if self.form_mode not in valid_modes:
+            self.form_mode = "create"
+
+        self.is_create = self.form_mode == "create"
+        self.is_update = self.form_mode == "update"
+
+        # =============================================================
+        # PATIENT QUERYSET
+        # =============================================================
+
+        patient_queryset = Patient.objects.all().order_by(
+            "last_name",
+            "first_name",
+            "middle_name",
+        )
+
+        self.fields["patient"].queryset = patient_queryset
+        self.fields["patient"].required = True
+        self.fields["patient"].empty_label = "Select a patient"
+
+        if self.is_update:
+            self.fields["patient"].disabled = True
+
+            self.fields["patient"].help_text = (
+                "The patient cannot be changed after the encounter "
+                "has been created."
+            )
+
+        else:
+            self.fields["patient"].disabled = False
+
+            self.fields["patient"].help_text = (
+                "Select the patient receiving care during this encounter."
+            )
+
+        # =============================================================
+        # ATTENDING PROVIDER QUERYSET
+        # =============================================================
+
         active_users = User.objects.filter(
             is_active=True,
         ).order_by(
@@ -232,124 +215,114 @@ class EncounterForm(forms.ModelForm):
             "username",
         )
 
-        user_field_names = [
-            "attending_provider",
-            "registered_by",
-            "check_in_user",
-            "triaged_by",
+        self.fields["attending_provider"].queryset = active_users
+        self.fields["attending_provider"].required = False
+        self.fields["attending_provider"].empty_label = (
+            "Select attending provider"
+        )
+
+        # =============================================================
+        # STATUS CHOICES
+        # =============================================================
+
+        editable_statuses = {
+            Encounter.EncounterStatus.PLANNED,
+            Encounter.EncounterStatus.SCHEDULED,
+            Encounter.EncounterStatus.ARRIVED,
+            Encounter.EncounterStatus.TRIAGED,
+            Encounter.EncounterStatus.IN_PROGRESS,
+            Encounter.EncounterStatus.ON_HOLD,
+        }
+
+        terminal_statuses = {
+            Encounter.EncounterStatus.COMPLETED,
+            Encounter.EncounterStatus.CANCELLED,
+            Encounter.EncounterStatus.ENTERED_IN_ERROR,
+        }
+
+        self.fields["status"].choices = [
+            choice
+            for choice in Encounter.EncounterStatus.choices
+            if choice[0] in editable_statuses
         ]
 
-        for field_name in user_field_names:
-            self.fields[field_name].queryset = active_users
-            self.fields[field_name].required = False
-            self.fields[field_name].empty_label = "Not assigned"
+        if (
+            self.is_update
+            and self.instance.status in terminal_statuses
+        ):
+            current_status_choice = next(
+                (
+                    choice
+                    for choice in Encounter.EncounterStatus.choices
+                    if choice[0] == self.instance.status
+                ),
+                None,
+            )
 
-        # =========================================================
-        # DATETIME FIELD CONFIGURATION
-        # =========================================================
-        datetime_field_names = [
-            "registered_at",
-            "arrived_at",
-            "triaged_at",
-            "start_datetime",
-            "clinical_start_at",
-            "completed_at",
-            "end_datetime",
-        ]
+            if current_status_choice:
+                self.fields["status"].choices = [
+                    current_status_choice,
+                ]
 
-        for field_name in datetime_field_names:
-            self.fields[field_name].input_formats = [
-                "%Y-%m-%dT%H:%M",
-                "%Y-%m-%dT%H:%M:%S",
-            ]
+            self.fields["status"].disabled = True
 
-        optional_datetime_fields = [
-            "registered_at",
-            "arrived_at",
-            "triaged_at",
-            "clinical_start_at",
-            "completed_at",
-            "end_datetime",
-        ]
+            self.fields["status"].help_text = (
+                "This encounter has a final status and cannot be reopened "
+                "through the update form."
+            )
 
-        for field_name in optional_datetime_fields:
-            self.fields[field_name].required = False
+        else:
+            self.fields["status"].disabled = False
 
-        # =========================================================
+        # =============================================================
         # DEFAULT VALUES FOR NEW ENCOUNTERS
-        # =========================================================
-        if not self.is_bound and not self.instance.pk:
-            current_time = (
-                timezone.localtime()
-                .replace(second=0, microsecond=0)
+        # =============================================================
+
+        if not self.is_bound and self.is_create:
+            self.initial.setdefault(
+                "encounter_type",
+                Encounter.EncounterType.OUTPATIENT,
             )
 
-            self.initial["start_datetime"] = current_time.strftime(
-                "%Y-%m-%dT%H:%M"
+            self.initial.setdefault(
+                "status",
+                Encounter.EncounterStatus.ARRIVED,
             )
 
-            self.initial["status"] = Encounter.EncounterStatus.ARRIVED
-            self.initial["registration_completed"] = True
-            self.initial["identity_verified"] = False
-            self.initial["arrived_at"] = current_time.strftime(
-                "%Y-%m-%dT%H:%M"
+            self.initial.setdefault(
+                "priority",
+                Encounter.Priority.ROUTINE,
             )
-            self.initial["is_active"] = True
 
-            if self.current_user and self.current_user.is_authenticated:
-                self.initial["registered_by"] = self.current_user
-                self.initial["check_in_user"] = self.current_user
+            self.initial.setdefault(
+                "registration_completed",
+                True,
+            )
 
-        # =========================================================
-        # DISPLAY LABELS
-        # =========================================================
-        self.fields["registration_completed"].label = (
-            "Registration completed"
-        )
+            self.initial.setdefault(
+                "identity_verified",
+                False,
+            )
 
-        self.fields["identity_verified"].label = (
-            "Patient identity verified"
-        )
+        # =============================================================
+        # FIELD REQUIREMENTS
+        # =============================================================
 
-        self.fields["registered_at"].label = (
-            "Registration completed at"
-        )
+        self.fields["patient"].required = True
+        self.fields["encounter_type"].required = True
+        self.fields["status"].required = True
+        self.fields["priority"].required = True
 
-        self.fields["registered_by"].label = (
-            "Registered by"
-        )
+        self.fields["reason_for_visit"].required = False
+        self.fields["registration_completed"].required = False
+        self.fields["identity_verified"].required = False
+        self.fields["attending_provider"].required = False
+        self.fields["notes"].required = False
 
-        self.fields["arrived_at"].label = (
-            "Arrival / check-in time"
-        )
-
-        self.fields["check_in_user"].label = (
-            "Checked in by"
-        )
-
-        self.fields["triaged_at"].label = (
-            "Triage completed at"
-        )
-
-        self.fields["triaged_by"].label = (
-            "Triaged by"
-        )
-
-        self.fields["clinical_start_at"].label = (
-            "Clinical care started at"
-        )
-
-        self.fields["completed_at"].label = (
-            "Clinical care completed at"
-        )
-
-        self.fields["end_datetime"].label = (
-            "Encounter ended at"
-        )
-
-        # =========================================================
+        # =============================================================
         # TAILWIND CSS CLASSES
-        # =========================================================
+        # =============================================================
+
         standard_field_classes = (
             "block w-full rounded-lg "
             "border border-slate-300 "
@@ -360,6 +333,7 @@ class EncounterForm(forms.ModelForm):
             "focus:border-ehr-500 "
             "focus:ring-2 focus:ring-ehr-500/20 "
             "disabled:cursor-not-allowed "
+            "disabled:border-slate-200 "
             "disabled:bg-slate-100 "
             "disabled:text-slate-500"
         )
@@ -373,18 +347,27 @@ class EncounterForm(forms.ModelForm):
         )
 
         for field in self.fields.values():
-            if isinstance(field.widget, forms.CheckboxInput):
+            if isinstance(
+                field.widget,
+                forms.CheckboxInput,
+            ):
                 field.widget.attrs["class"] = checkbox_classes
-            else:
-                existing_classes = field.widget.attrs.get("class", "")
 
-                field.widget.attrs["class"] = (
-                    f"{existing_classes} {standard_field_classes}".strip()
+            else:
+                existing_classes = field.widget.attrs.get(
+                    "class",
+                    "",
                 )
 
-        # =========================================================
+                field.widget.attrs["class"] = (
+                    f"{existing_classes} "
+                    f"{standard_field_classes}"
+                ).strip()
+
+        # =============================================================
         # FIELD-SPECIFIC ATTRIBUTES
-        # =========================================================
+        # =============================================================
+
         self.fields["patient"].widget.attrs.update(
             {
                 "autocomplete": "off",
@@ -397,276 +380,160 @@ class EncounterForm(forms.ModelForm):
             }
         )
 
-        self.fields["notes"].widget.attrs.update(
-            {
-                "maxlength": "5000",
-            }
-        )
+    def clean_patient(self):
+        """
+        Prevent an existing encounter from being reassigned to another
+        patient.
+        """
+
+        patient = self.cleaned_data.get("patient")
+
+        if (
+            self.is_update
+            and self.instance.patient_id
+            and patient
+            and patient.pk != self.instance.patient_id
+        ):
+            raise forms.ValidationError(
+                "The patient assigned to an existing encounter cannot "
+                "be changed."
+            )
+
+        return patient
+
+    def clean_status(self):
+        """
+        Prevent terminal statuses from being selected through the normal
+        create or update form.
+        """
+
+        status = self.cleaned_data.get("status")
+
+        terminal_statuses = {
+            Encounter.EncounterStatus.COMPLETED,
+            Encounter.EncounterStatus.CANCELLED,
+            Encounter.EncounterStatus.ENTERED_IN_ERROR,
+        }
+
+        if self.is_create and status in terminal_statuses:
+            raise forms.ValidationError(
+                "A new encounter cannot begin with a final status."
+            )
+
+        if (
+            self.is_update
+            and self.instance.status in terminal_statuses
+            and status != self.instance.status
+        ):
+            raise forms.ValidationError(
+                "A completed, cancelled, or erroneous encounter cannot "
+                "be reopened through this form."
+            )
+
+        return status
 
     def clean(self):
         """
-        Validate the full encounter workflow.
+        Validate manually entered encounter information.
+
+        Automatically generated workflow timestamps and recorder fields
+        are handled by the Encounter model.
         """
 
         cleaned_data = super().clean()
 
-        status = cleaned_data.get("status")
+        encounter_type = cleaned_data.get(
+            "encounter_type"
+        )
+
+        status = cleaned_data.get(
+            "status"
+        )
 
         registration_completed = cleaned_data.get(
             "registration_completed"
         )
+
         identity_verified = cleaned_data.get(
             "identity_verified"
         )
 
-        registered_at = cleaned_data.get("registered_at")
-        registered_by = cleaned_data.get("registered_by")
+        attending_provider = cleaned_data.get(
+            "attending_provider"
+        )
 
-        arrived_at = cleaned_data.get("arrived_at")
-        check_in_user = cleaned_data.get("check_in_user")
+        # =============================================================
+        # IDENTITY VERIFICATION
+        # =============================================================
 
-        triaged_at = cleaned_data.get("triaged_at")
-        triaged_by = cleaned_data.get("triaged_by")
-
-        start_datetime = cleaned_data.get("start_datetime")
-        clinical_start_at = cleaned_data.get("clinical_start_at")
-        completed_at = cleaned_data.get("completed_at")
-        end_datetime = cleaned_data.get("end_datetime")
-
-        current_time = timezone.now()
-
-        # =========================================================
-        # REGISTRATION WORKFLOW
-        # =========================================================
-        if registration_completed and not registered_at:
-            cleaned_data["registered_at"] = current_time
-            registered_at = current_time
-
-        if registration_completed and not registered_by:
-            if self.current_user and self.current_user.is_authenticated:
-                cleaned_data["registered_by"] = self.current_user
-                registered_by = self.current_user
-
-        if registered_at and not registration_completed:
-            self.add_error(
-                "registration_completed",
-                (
-                    "Mark registration as completed when a registration "
-                    "completion time has been entered."
-                ),
-            )
-
-        if identity_verified and not registration_completed:
+        if (
+            identity_verified
+            and not registration_completed
+            and encounter_type
+            != Encounter.EncounterType.EMERGENCY
+        ):
             self.add_error(
                 "identity_verified",
                 (
-                    "Registration must be completed before identity "
-                    "verification can be confirmed."
+                    "Complete registration before confirming identity "
+                    "verification."
                 ),
             )
 
-        # =========================================================
-        # ARRIVAL AND CHECK-IN WORKFLOW
-        # =========================================================
-        statuses_requiring_arrival = {
-            Encounter.EncounterStatus.ARRIVED,
-            Encounter.EncounterStatus.TRIAGED,
-            Encounter.EncounterStatus.IN_PROGRESS,
-            Encounter.EncounterStatus.ON_HOLD,
-            Encounter.EncounterStatus.COMPLETED,
-        }
+        # =============================================================
+        # TRIAGE
+        # =============================================================
 
-        if status in statuses_requiring_arrival and not arrived_at:
-            cleaned_data["arrived_at"] = current_time
-            arrived_at = current_time
-
-        if (
-            status in statuses_requiring_arrival
-            and not check_in_user
-            and self.current_user
-            and self.current_user.is_authenticated
-        ):
-            cleaned_data["check_in_user"] = self.current_user
-            check_in_user = self.current_user
-
-        # =========================================================
-        # TRIAGE WORKFLOW
-        # =========================================================
-        statuses_requiring_triage = {
-            Encounter.EncounterStatus.TRIAGED,
-            Encounter.EncounterStatus.IN_PROGRESS,
-            Encounter.EncounterStatus.ON_HOLD,
-            Encounter.EncounterStatus.COMPLETED,
-        }
-
-        if status in statuses_requiring_triage and not triaged_at:
-            cleaned_data["triaged_at"] = current_time
-            triaged_at = current_time
-
-        if (
-            status in statuses_requiring_triage
-            and not triaged_by
-            and self.current_user
-            and self.current_user.is_authenticated
-        ):
-            cleaned_data["triaged_by"] = self.current_user
-            triaged_by = self.current_user
-
-        if arrived_at and triaged_at and triaged_at < arrived_at:
-            self.add_error(
-                "triaged_at",
-                "Triage cannot be completed before patient arrival.",
-            )
-
-        # =========================================================
-        # CLINICAL CARE WORKFLOW
-        # =========================================================
-        statuses_requiring_clinical_start = {
-            Encounter.EncounterStatus.IN_PROGRESS,
-            Encounter.EncounterStatus.ON_HOLD,
-            Encounter.EncounterStatus.COMPLETED,
+        encounters_without_formal_triage = {
+            Encounter.EncounterType.LABORATORY,
+            Encounter.EncounterType.IMAGING,
+            Encounter.EncounterType.PHARMACY,
         }
 
         if (
-            status in statuses_requiring_clinical_start
-            and not clinical_start_at
-        ):
-            cleaned_data["clinical_start_at"] = current_time
-            clinical_start_at = current_time
-
-        if (
-            arrived_at
-            and clinical_start_at
-            and clinical_start_at < arrived_at
+            encounter_type in encounters_without_formal_triage
+            and status == Encounter.EncounterStatus.TRIAGED
         ):
             self.add_error(
-                "clinical_start_at",
-                "Clinical care cannot begin before patient arrival.",
-            )
-
-        # =========================================================
-        # COMPLETION WORKFLOW
-        # =========================================================
-        if status == Encounter.EncounterStatus.COMPLETED:
-            if not completed_at:
-                cleaned_data["completed_at"] = current_time
-                completed_at = current_time
-
-            if not end_datetime:
-                cleaned_data["end_datetime"] = completed_at
-                end_datetime = completed_at
-
-        if (
-            clinical_start_at
-            and completed_at
-            and completed_at < clinical_start_at
-        ):
-            self.add_error(
-                "completed_at",
+                "status",
                 (
-                    "Clinical completion cannot occur before clinical "
-                    "care begins."
+                    "This encounter type does not normally require "
+                    "formal triage."
                 ),
             )
 
-        # =========================================================
-        # GENERAL DATE VALIDATION
-        # =========================================================
-        if (
-            start_datetime
-            and registered_at
-            and registered_at < start_datetime
-        ):
-            self.add_error(
-                "registered_at",
-                (
-                    "Registration completion cannot be earlier than "
-                    "the encounter start."
-                ),
-            )
+        # =============================================================
+        # ATTENDING PROVIDER
+        # =============================================================
 
-        if (
-            start_datetime
-            and arrived_at
-            and arrived_at < start_datetime
-        ):
-            self.add_error(
-                "arrived_at",
-                (
-                    "Patient arrival cannot be earlier than the "
-                    "encounter start."
-                ),
-            )
-
-        if (
-            start_datetime
-            and end_datetime
-            and end_datetime < start_datetime
-        ):
-            self.add_error(
-                "end_datetime",
-                "The encounter end time cannot be before the start time.",
-            )
-
-        if (
-            completed_at
-            and end_datetime
-            and end_datetime < completed_at
-        ):
-            self.add_error(
-                "end_datetime",
-                (
-                    "The encounter end time cannot be before the "
-                    "clinical completion time."
-                ),
-            )
-
-        # =========================================================
-        # OPEN ENCOUNTER VALIDATION
-        # =========================================================
-        open_statuses = {
-            Encounter.EncounterStatus.PLANNED,
-            Encounter.EncounterStatus.SCHEDULED,
-            Encounter.EncounterStatus.ARRIVED,
-            Encounter.EncounterStatus.TRIAGED,
+        provider_required_statuses = {
             Encounter.EncounterStatus.IN_PROGRESS,
             Encounter.EncounterStatus.ON_HOLD,
         }
 
-        if status in open_statuses and completed_at:
+        provider_required_types = {
+            Encounter.EncounterType.OUTPATIENT,
+            Encounter.EncounterType.INPATIENT,
+            Encounter.EncounterType.EMERGENCY,
+            Encounter.EncounterType.OBSERVATION,
+            Encounter.EncounterType.TELEHEALTH,
+            Encounter.EncounterType.HOME_VISIT,
+            Encounter.EncounterType.COMMUNITY,
+            Encounter.EncounterType.MATERNITY,
+            Encounter.EncounterType.SURGICAL,
+        }
+
+        if (
+            status in provider_required_statuses
+            and encounter_type in provider_required_types
+            and not attending_provider
+        ):
             self.add_error(
-                "completed_at",
+                "attending_provider",
                 (
-                    "Remove the completion time while the encounter "
-                    "remains open."
+                    "Select an attending provider before placing the "
+                    "encounter in progress or on hold."
                 ),
             )
-
-        if status in open_statuses and end_datetime:
-            self.add_error(
-                "end_datetime",
-                (
-                    "Remove the end time while the encounter remains "
-                    "open, or change the status to Completed."
-                ),
-            )
-
-        # =========================================================
-        # CANCELLED OR ERROR WORKFLOW
-        # =========================================================
-        if status in {
-            Encounter.EncounterStatus.CANCELLED,
-            Encounter.EncounterStatus.ENTERED_IN_ERROR,
-        }:
-            cleaned_data["is_active"] = False
-
-            if completed_at:
-                self.add_error(
-                    "completed_at",
-                    (
-                        "A cancelled or erroneous encounter cannot have "
-                        "a clinical completion time."
-                    ),
-                )
 
         return cleaned_data

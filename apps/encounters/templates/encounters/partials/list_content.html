@@ -1,7 +1,530 @@
-{# HTMX list partial for encounters #}
+{% comment %}
+============================================================
+ENCOUNTER LIST CONTENT
 
-<div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-    <p class="text-slate-500">
-        No records available.
-    </p>
-</div>
+File:
+apps/encounters/templates/encounters/partials/list_content.html
+
+Purpose:
+- Display encounter summary counts.
+- Display filtered encounter records.
+- Preserve patient filtering.
+- Support pagination.
+============================================================
+{% endcomment %}
+
+<section class="space-y-4">
+
+    <!-- =========================================================
+         PAGE HEADER
+    ========================================================== -->
+    <header
+        class="
+            flex flex-col gap-3
+            sm:flex-row sm:items-start sm:justify-between
+        "
+    >
+        <div>
+            <h1 class="text-xl font-semibold text-slate-900">
+                {% if selected_patient %}
+                    Encounter History
+                {% else %}
+                    Encounters
+                {% endif %}
+            </h1>
+
+            <p class="mt-1 text-sm text-slate-500">
+                {% if selected_patient %}
+                    Visits and episodes of care for
+                    <span class="font-semibold text-slate-700">
+                        {{ selected_patient }}
+                    </span>.
+                {% else %}
+                    Review and manage patient encounters.
+                {% endif %}
+            </p>
+        </div>
+
+        <a
+            href="
+                {% url 'encounters:create' %}
+                {% if selected_patient %}
+                    ?patient={{ selected_patient.pk }}
+                {% endif %}
+            "
+            hx-boost="false"
+            class="
+                inline-flex min-h-10 items-center justify-center
+                rounded-lg border border-emerald-800
+                bg-emerald-700 px-4 py-2
+                text-sm font-semibold text-white
+                shadow-sm transition
+                hover:bg-emerald-800
+            "
+            style="background-color: #047857; color: #ffffff;"
+        >
+            Start Encounter
+        </a>
+    </header>
+
+
+    <!-- =========================================================
+         SUMMARY CARDS
+    ========================================================== -->
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <article
+            class="
+                rounded-lg border border-slate-200
+                bg-white p-3 shadow-sm
+            "
+        >
+            <p class="text-[10px] font-semibold uppercase text-slate-500">
+                Total
+            </p>
+
+            <p class="mt-1 text-xl font-semibold text-slate-900">
+                {{ total_encounters }}
+            </p>
+        </article>
+
+        <article
+            class="
+                rounded-lg border border-emerald-200
+                bg-emerald-50 p-3 shadow-sm
+            "
+        >
+            <p class="text-[10px] font-semibold uppercase text-emerald-700">
+                Open
+            </p>
+
+            <p class="mt-1 text-xl font-semibold text-emerald-900">
+                {{ open_encounters }}
+            </p>
+        </article>
+
+        <article
+            class="
+                rounded-lg border border-blue-200
+                bg-blue-50 p-3 shadow-sm
+            "
+        >
+            <p class="text-[10px] font-semibold uppercase text-blue-700">
+                Completed
+            </p>
+
+            <p class="mt-1 text-xl font-semibold text-blue-900">
+                {{ completed_encounters }}
+            </p>
+        </article>
+
+        <article
+            class="
+                rounded-lg border border-amber-200
+                bg-amber-50 p-3 shadow-sm
+            "
+        >
+            <p class="text-[10px] font-semibold uppercase text-amber-700">
+                Today
+            </p>
+
+            <p class="mt-1 text-xl font-semibold text-amber-900">
+                {{ today_encounters }}
+            </p>
+        </article>
+    </div>
+
+
+    <!-- =========================================================
+         FILTER FORM
+    ========================================================== -->
+    <form
+        method="get"
+        action="{% url 'encounters:list' %}"
+        class="
+            grid grid-cols-1 gap-3
+            rounded-xl border border-slate-200
+            bg-white p-4 shadow-sm
+            md:grid-cols-2 xl:grid-cols-5
+        "
+    >
+        {% if selected_patient %}
+            <input
+                type="hidden"
+                name="patient"
+                value="{{ selected_patient.pk }}"
+            >
+        {% endif %}
+
+        <div class="xl:col-span-2">
+            <label
+                for="encounter-search"
+                class="
+                    mb-1 block text-[10px]
+                    font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Search
+            </label>
+
+            <input
+                id="encounter-search"
+                type="search"
+                name="q"
+                value="{{ search_query }}"
+                placeholder="Number, patient, or reason"
+                class="
+                    block w-full rounded-lg
+                    border border-slate-300
+                    bg-white px-3 py-2
+                    text-sm text-slate-900
+                    shadow-sm outline-none
+                    focus:border-emerald-500
+                    focus:ring-2 focus:ring-emerald-500/20
+                "
+            >
+        </div>
+
+        <div>
+            <label
+                for="encounter-status"
+                class="
+                    mb-1 block text-[10px]
+                    font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Status
+            </label>
+
+            <select
+                id="encounter-status"
+                name="status"
+                class="
+                    block w-full rounded-lg
+                    border border-slate-300
+                    bg-white px-3 py-2
+                    text-sm text-slate-900
+                "
+            >
+                <option value="">All statuses</option>
+
+                {% for value, label in encounter_status_choices %}
+                    <option
+                        value="{{ value }}"
+                        {% if selected_status == value %}selected{% endif %}
+                    >
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label
+                for="encounter-type"
+                class="
+                    mb-1 block text-[10px]
+                    font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Type
+            </label>
+
+            <select
+                id="encounter-type"
+                name="encounter_type"
+                class="
+                    block w-full rounded-lg
+                    border border-slate-300
+                    bg-white px-3 py-2
+                    text-sm text-slate-900
+                "
+            >
+                <option value="">All types</option>
+
+                {% for value, label in encounter_type_choices %}
+                    <option
+                        value="{{ value }}"
+                        {% if selected_encounter_type == value %}selected{% endif %}
+                    >
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="flex items-end gap-2">
+            <button
+                type="submit"
+                class="
+                    inline-flex min-h-10 flex-1
+                    items-center justify-center
+                    rounded-lg bg-slate-800
+                    px-4 py-2
+                    text-sm font-semibold text-white
+                    hover:bg-slate-900
+                "
+            >
+                Apply
+            </button>
+
+            <a
+                href="
+                    {% url 'encounters:list' %}
+                    {% if selected_patient %}
+                        ?patient={{ selected_patient.pk }}
+                    {% endif %}
+                "
+                hx-boost="false"
+                class="
+                    inline-flex min-h-10
+                    items-center justify-center
+                    rounded-lg border border-slate-300
+                    bg-white px-3 py-2
+                    text-sm font-semibold text-slate-700
+                    hover:bg-slate-100
+                "
+            >
+                Clear
+            </a>
+        </div>
+    </form>
+
+
+    <!-- =========================================================
+         ENCOUNTER TABLE
+    ========================================================== -->
+    <div
+        class="
+            overflow-hidden rounded-xl
+            border border-slate-200
+            bg-white shadow-sm
+        "
+    >
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th
+                            class="
+                                px-4 py-2 text-left
+                                text-[10px] font-semibold uppercase
+                                tracking-wide text-slate-500
+                            "
+                        >
+                            Encounter
+                        </th>
+
+                        <th
+                            class="
+                                px-4 py-2 text-left
+                                text-[10px] font-semibold uppercase
+                                tracking-wide text-slate-500
+                            "
+                        >
+                            Patient
+                        </th>
+
+                        <th
+                            class="
+                                px-4 py-2 text-left
+                                text-[10px] font-semibold uppercase
+                                tracking-wide text-slate-500
+                            "
+                        >
+                            Type
+                        </th>
+
+                        <th
+                            class="
+                                px-4 py-2 text-left
+                                text-[10px] font-semibold uppercase
+                                tracking-wide text-slate-500
+                            "
+                        >
+                            Status
+                        </th>
+
+                        <th
+                            class="
+                                px-4 py-2 text-left
+                                text-[10px] font-semibold uppercase
+                                tracking-wide text-slate-500
+                            "
+                        >
+                            Started
+                        </th>
+
+                        <th
+                            class="
+                                px-4 py-2 text-right
+                                text-[10px] font-semibold uppercase
+                                tracking-wide text-slate-500
+                            "
+                        >
+                            Action
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    {% for encounter in encounters %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-3">
+                                <a
+                                    href="{% url 'encounters:detail' encounter.pk %}"
+                                    hx-boost="false"
+                                    class="
+                                        text-xs font-semibold
+                                        text-emerald-700
+                                        hover:text-emerald-900
+                                    "
+                                >
+                                    {{ encounter.encounter_number }}
+                                </a>
+
+                                {% if encounter.reason_for_visit %}
+                                    <p
+                                        class="
+                                            mt-0.5 max-w-xs truncate
+                                            text-[10px] text-slate-500
+                                        "
+                                    >
+                                        {{ encounter.reason_for_visit }}
+                                    </p>
+                                {% endif %}
+                            </td>
+
+                            <td class="px-4 py-3">
+                                <p class="text-xs font-medium text-slate-900">
+                                    {{ encounter.patient }}
+                                </p>
+                            </td>
+
+                            <td class="px-4 py-3 text-xs text-slate-700">
+                                {{ encounter.get_encounter_type_display }}
+                            </td>
+
+                            <td class="px-4 py-3">
+                                <span
+                                    class="
+                                        inline-flex rounded-full
+                                        px-2 py-0.5
+                                        text-[10px] font-semibold
+
+                                        {% if encounter.status == 'COMPLETED' %}
+                                            bg-blue-100 text-blue-700
+                                        {% elif encounter.status == 'CANCELLED' or encounter.status == 'ENTERED_IN_ERROR' %}
+                                            bg-red-100 text-red-700
+                                        {% elif encounter.status == 'IN_PROGRESS' %}
+                                            bg-emerald-100 text-emerald-700
+                                        {% else %}
+                                            bg-amber-100 text-amber-700
+                                        {% endif %}
+                                    "
+                                >
+                                    {{ encounter.get_status_display }}
+                                </span>
+                            </td>
+
+                            <td class="px-4 py-3">
+                                <p class="text-xs text-slate-700">
+                                    {{ encounter.start_datetime|date:"M j, Y" }}
+                                </p>
+
+                                <p class="text-[10px] text-slate-500">
+                                    {{ encounter.start_datetime|time:"g:i A" }}
+                                </p>
+                            </td>
+
+                            <td class="px-4 py-3 text-right">
+                                <a
+                                    href="{% url 'encounters:detail' encounter.pk %}"
+                                    hx-boost="false"
+                                    class="
+                                        inline-flex items-center justify-center
+                                        rounded-lg border border-slate-300
+                                        bg-white px-3 py-1.5
+                                        text-[11px] font-semibold
+                                        text-slate-700
+                                        hover:bg-slate-100
+                                    "
+                                >
+                                    Open
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td
+                                colspan="6"
+                                class="px-4 py-10 text-center"
+                            >
+                                <p class="text-sm font-medium text-slate-700">
+                                    No encounters found.
+                                </p>
+
+                                <p class="mt-1 text-xs text-slate-500">
+                                    Create an encounter or remove the
+                                    current filters.
+                                </p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+
+        <!-- =====================================================
+             PAGINATION
+        ====================================================== -->
+        {% if is_paginated %}
+            <nav
+                class="
+                    flex items-center justify-between
+                    border-t border-slate-200
+                    bg-slate-50 px-4 py-3
+                "
+                aria-label="Encounter pagination"
+            >
+                <p class="text-xs text-slate-500">
+                    Page {{ page_obj.number }}
+                    of {{ page_obj.paginator.num_pages }}
+                </p>
+
+                <div class="flex items-center gap-2">
+                    {% if page_obj.has_previous %}
+                        <a
+                            href="?page={{ page_obj.previous_page_number }}{% if selected_patient %}&patient={{ selected_patient.pk }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_encounter_type %}&encounter_type={{ selected_encounter_type }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}"
+                            class="
+                                rounded-lg border border-slate-300
+                                bg-white px-3 py-1.5
+                                text-xs font-semibold text-slate-700
+                                hover:bg-slate-100
+                            "
+                        >
+                            Previous
+                        </a>
+                    {% endif %}
+
+                    {% if page_obj.has_next %}
+                        <a
+                            href="?page={{ page_obj.next_page_number }}{% if selected_patient %}&patient={{ selected_patient.pk }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_encounter_type %}&encounter_type={{ selected_encounter_type }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}"
+                            class="
+                                rounded-lg border border-slate-300
+                                bg-white px-3 py-1.5
+                                text-xs font-semibold text-slate-700
+                                hover:bg-slate-100
+                            "
+                        >
+                            Next
+                        </a>
+                    {% endif %}
+                </div>
+            </nav>
+        {% endif %}
+    </div>
+</section>

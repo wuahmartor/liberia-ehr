@@ -1,7 +1,14 @@
-{# HTMX detail partial for patients #}
+{% comment %}
+============================================================
+PATIENT DETAIL HTMX PARTIAL
 
-<div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-    <p class="text-slate-500">
-        Record details will appear here.
-    </p>
-</div>
+File:
+apps/patients/templates/patients/partials/detail_content.html
+
+Purpose:
+- Render the complete patient clinical overview for HTMX requests.
+- Use the same patient detail content as the full patient page.
+============================================================
+{% endcomment %}
+
+{% include "patients/partials/patient_details.html" %}

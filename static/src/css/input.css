@@ -2,13 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+
+/* ============================================================
+   BASE
+============================================================ */
+
 @layer base {
+    :root {
+        color-scheme: light;
+    }
+
     html {
+        min-height: 100%;
         font-size: 14px;
+        scroll-behavior: smooth;
     }
 
     body {
-        @apply antialiased;
+        @apply min-h-screen bg-slate-50
+               font-sans text-slate-900 antialiased;
     }
 
     input,
@@ -17,234 +29,642 @@
     button {
         @apply text-sm;
     }
+
+    button,
+    a {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    :focus-visible {
+        @apply outline-none ring-2
+               ring-ehr-500/40 ring-offset-1;
+    }
+
+    ::selection {
+        @apply bg-ehr-100 text-ehr-950;
+    }
 }
+
+
+/* ============================================================
+   COMPONENTS
+============================================================ */
 
 @layer components {
 
+    /* ========================================================
+       APPLICATION SHELL
+    ======================================================== */
+
+    .ehr-app-shell {
+        @apply flex h-screen min-h-0
+               w-full flex-col
+               overflow-hidden bg-slate-50;
+    }
+
+    .ehr-shell-primary-nav {
+        @apply relative z-50
+               min-w-0 shrink-0;
+    }
+
+    .ehr-shell-secondary-nav {
+        @apply relative z-40
+               min-w-0 shrink-0
+               border-b border-slate-200
+               bg-white;
+    }
+
+    .ehr-shell-body {
+        @apply flex min-h-0 min-w-0
+               flex-1 overflow-hidden;
+    }
+
+    .ehr-shell-sidebar {
+        @apply hidden h-full min-h-0
+               w-60 shrink-0
+               overflow-hidden
+               border-r border-slate-200
+               bg-white text-slate-900
+               lg:block;
+    }
+
+    .ehr-shell-workspace {
+        @apply min-h-0 min-w-0
+               flex-1 overflow-x-hidden
+               overflow-y-auto bg-slate-50;
+    }
+
+    .ehr-shell-workspace-inner {
+        @apply min-h-full min-w-0
+               p-3 md:p-4;
+    }
+
+
+    /* ========================================================
+       GENERAL PANELS
+    ======================================================== */
+
     .panel {
-        @apply rounded-lg border border-slate-200 bg-white shadow-sm;
+        @apply overflow-hidden rounded-xl
+               border border-slate-200
+               bg-white shadow-sm;
     }
 
-        .primary-nav-link {
-        display: inline-flex;
-        height: 2.25rem;
-        flex-shrink: 0;
-        align-items: center;
-        justify-content: center;
-        gap: 0.2rem;
-        border-radius: 0.375rem;
-        padding: 0 0.5rem;
-        color: rgb(255 255 255 / 0.85);
-        font-size: 0.75rem;
-        line-height: 1rem;
-        font-weight: 500;
-        white-space: nowrap;
-        transition:
-            color 150ms ease,
-            background-color 150ms ease;
+    .workspace-panel {
+        @apply rounded-xl border border-slate-200
+               bg-white p-4 shadow-sm;
     }
 
-    .primary-nav-link:hover {
-        color: #ffffff;
-        background-color: rgb(255 255 255 / 0.1);
+
+    /* ========================================================
+       SIDEBAR SURFACE
+    ======================================================== */
+
+    .sidebar-surface {
+        @apply h-full min-h-0
+               overflow-x-hidden overflow-y-auto
+               bg-white px-2.5 py-3;
     }
 
-    .primary-nav-link:focus {
-        outline: 2px solid rgb(255 255 255 / 0.4);
-        outline-offset: 1px;
+
+    /* ========================================================
+       SIDEBAR SECTIONS
+    ======================================================== */
+
+    .sidebar-section {
+        @apply border-b border-slate-200/80
+               pb-3.5 last:border-b-0
+               last:pb-0;
+    }
+
+    .sidebar-section + .sidebar-section {
+        @apply mt-3.5;
+    }
+
+    .sidebar-section-header {
+        @apply mb-1.5 flex min-h-6
+               items-center justify-between
+               gap-2 px-1.5;
+    }
+
+    .sidebar-section-description {
+        @apply mt-0.5 px-1.5
+               text-[10px] leading-4
+               text-slate-400;
+    }
+
+
+    /* ========================================================
+       SIDEBAR HEADINGS
+    ======================================================== */
+
+    .clinical-sidebar-heading,
+    .analytics-sidebar-heading,
+    .ai-sidebar-heading,
+    .admin-sidebar-heading {
+        @apply m-0 min-w-0
+               text-[9px] font-bold uppercase
+               tracking-[0.1em] text-slate-500;
+    }
+
+
+    /* ========================================================
+       SHARED SIDEBAR LINKS
+    ======================================================== */
+
+    .clinical-sidebar-link,
+    .analytics-sidebar-link,
+    .ai-sidebar-link,
+    .admin-sidebar-link,
+    .patient-nav-link {
+        @apply group grid w-full
+               min-h-9
+               grid-cols-[1.6rem_minmax(0,1fr)]
+               items-center gap-2
+               rounded-lg border border-transparent
+               px-1.5 py-1
+               text-left text-[11px]
+               font-medium leading-4
+               text-slate-700 no-underline
+               transition duration-150 ease-out;
+    }
+
+    .clinical-sidebar-link:hover,
+    .patient-nav-link:hover {
+        @apply border-emerald-100
+               bg-emerald-50/80
+               text-emerald-950;
+    }
+
+    .analytics-sidebar-link:hover {
+        @apply border-blue-100
+               bg-blue-50/80
+               text-blue-950;
+    }
+
+    .ai-sidebar-link:hover {
+        @apply border-violet-100
+               bg-violet-50/80
+               text-violet-950;
+    }
+
+    .admin-sidebar-link:hover {
+        @apply border-amber-100
+               bg-amber-50/80
+               text-amber-950;
+    }
+
+
+    /* ========================================================
+       SIDEBAR ICONS AND LABELS
+    ======================================================== */
+
+    .sidebar-link-icon {
+        @apply grid h-6 w-6 shrink-0
+               place-items-center rounded-md
+               bg-slate-100
+               text-[11px] leading-none
+               text-slate-500
+               transition duration-150;
+    }
+
+    .sidebar-link-icon svg {
+        @apply h-3.5 w-3.5;
+    }
+
+    .sidebar-link-label {
+        @apply block min-w-0 truncate;
+    }
+
+    .sidebar-link-meta {
+        @apply ml-auto shrink-0
+               text-[9px] font-semibold
+               text-slate-400;
+    }
+
+    .clinical-sidebar-link:hover .sidebar-link-icon,
+    .patient-nav-link:hover .sidebar-link-icon {
+        @apply bg-emerald-100
+               text-emerald-700;
+    }
+
+    .analytics-sidebar-link:hover .sidebar-link-icon {
+        @apply bg-blue-100
+               text-blue-700;
+    }
+
+    .ai-sidebar-link:hover .sidebar-link-icon {
+        @apply bg-violet-100
+               text-violet-700;
+    }
+
+    .admin-sidebar-link:hover .sidebar-link-icon {
+        @apply bg-amber-100
+               text-amber-700;
+    }
+
+
+    /* ========================================================
+       ACTIVE SIDEBAR LINKS
+    ======================================================== */
+
+    .clinical-sidebar-link-active,
+    .patient-nav-link-active {
+        @apply border-emerald-200
+               bg-emerald-50
+               font-semibold text-emerald-900
+               shadow-sm
+               ring-1 ring-inset
+               ring-emerald-100;
+    }
+
+    .clinical-sidebar-link-active .sidebar-link-icon,
+    .patient-nav-link-active .sidebar-link-icon {
+        @apply bg-emerald-700
+               text-white shadow-sm;
+    }
+
+    .analytics-sidebar-link-active {
+        @apply border-blue-200
+               bg-blue-50
+               font-semibold text-blue-900
+               shadow-sm
+               ring-1 ring-inset
+               ring-blue-100;
+    }
+
+    .analytics-sidebar-link-active .sidebar-link-icon {
+        @apply bg-blue-700
+               text-white shadow-sm;
+    }
+
+    .ai-sidebar-link-active {
+        @apply border-violet-200
+               bg-violet-50
+               font-semibold text-violet-900
+               shadow-sm
+               ring-1 ring-inset
+               ring-violet-100;
+    }
+
+    .ai-sidebar-link-active .sidebar-link-icon {
+        @apply bg-violet-700
+               text-white shadow-sm;
+    }
+
+    .admin-sidebar-link-active {
+        @apply border-amber-200
+               bg-amber-50
+               font-semibold text-amber-900
+               shadow-sm
+               ring-1 ring-inset
+               ring-amber-100;
+    }
+
+    .admin-sidebar-link-active .sidebar-link-icon {
+        @apply bg-amber-700
+               text-white shadow-sm;
+    }
+
+
+    /* ========================================================
+       DISABLED SIDEBAR LINKS
+    ======================================================== */
+
+    .sidebar-link-disabled {
+        @apply grid w-full min-h-9
+               cursor-not-allowed
+               grid-cols-[1.6rem_minmax(0,1fr)_auto]
+               items-center gap-2
+               rounded-lg px-1.5 py-1
+               text-[11px] font-medium
+               text-slate-400 opacity-70;
+    }
+
+    .sidebar-link-disabled .sidebar-link-icon {
+        @apply bg-slate-100 text-slate-400;
+    }
+
+
+    /* ========================================================
+       PATIENT IDENTITY
+    ======================================================== */
+
+    .patient-sidebar-identity {
+        @apply border-b border-slate-200
+               px-0.5 pb-3;
+    }
+
+    .patient-sidebar-avatar {
+        @apply grid h-10 w-10 shrink-0
+               place-items-center rounded-full
+               border border-emerald-200
+               bg-gradient-to-br
+               from-emerald-50 to-emerald-100
+               text-[11px] font-bold
+               tracking-wide text-emerald-900
+               shadow-sm;
+    }
+
+    .patient-sidebar-name {
+        @apply truncate text-[13px]
+               font-bold text-slate-900;
+    }
+
+    .patient-sidebar-demographics {
+        @apply mt-1 space-y-0.5;
+    }
+
+    .patient-sidebar-demographic-row {
+        @apply flex min-w-0
+               items-center gap-1
+               text-[9px] leading-4;
+    }
+
+    .patient-sidebar-demographic-label {
+        @apply shrink-0 font-semibold
+               uppercase tracking-wide
+               text-slate-500;
+    }
+
+    .patient-sidebar-demographic-value {
+        @apply min-w-0 truncate
+               font-medium text-slate-700;
+    }
+
+
+    /* ========================================================
+       SIDEBAR STATUS BADGES
+    ======================================================== */
+
+    .sidebar-status-badge {
+        @apply inline-flex shrink-0
+               items-center gap-1
+               rounded-full px-1.5 py-0.5
+               text-[8px] font-bold;
+    }
+
+    .sidebar-status-badge-success {
+        @apply bg-emerald-100
+               text-emerald-800;
+    }
+
+    .sidebar-status-badge-muted {
+        @apply bg-slate-100
+               text-slate-600;
+    }
+
+    .sidebar-status-badge-warning {
+        @apply bg-amber-100
+               text-amber-800;
+    }
+
+    .sidebar-status-dot {
+        @apply h-1.5 w-1.5 rounded-full;
+    }
+
+
+    /* ========================================================
+       SIDEBAR NOTICE
+    ======================================================== */
+
+    .sidebar-notice {
+        @apply rounded-lg border
+               px-2.5 py-2.5 shadow-sm;
+    }
+
+    .sidebar-notice-warning {
+        @apply border-amber-200
+               bg-gradient-to-br
+               from-amber-50 to-white;
+    }
+
+    .sidebar-notice-title {
+        @apply text-[11px] font-bold
+               text-slate-900;
+    }
+
+    .sidebar-notice-description {
+        @apply mt-1 text-[9px]
+               leading-4 text-slate-600;
+    }
+
+
+    /* ========================================================
+       PRIMARY NAVIGATION
+    ======================================================== */
+
+    .primary-nav-link {
+        @apply inline-flex h-9 shrink-0
+               items-center justify-center
+               gap-1 rounded-md px-2
+               text-xs font-medium
+               text-white/85 transition
+               hover:bg-white/10
+               hover:text-white
+               focus:outline-none
+               focus:ring-2
+               focus:ring-white/40;
     }
 
     .primary-nav-link-active {
-        color: #ffffff;
-        background-color: rgb(255 255 255 / 0.15);
+        @apply bg-white/15 text-white;
     }
 
     .primary-nav-link svg {
-        width: 0.875rem;
-        height: 0.875rem;
-        flex-shrink: 0;
+        @apply h-3.5 w-3.5 shrink-0;
     }
 
     .primary-dropdown-menu {
-        position: absolute;
-        top: calc(100% + 0.25rem);
-        z-index: 100;
-        width: 14rem;
-        overflow: hidden;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.5rem;
-        background-color: #ffffff;
-        color: #334155;
-        box-shadow:
-            0 20px 25px -5px rgb(15 23 42 / 0.1),
-            0 8px 10px -6px rgb(15 23 42 / 0.1);
-    }
-
-    .primary-dropdown-menu.left-0 {
-        left: 0;
-    }
-
-    .primary-dropdown-menu.right-0 {
-        right: 0;
+        @apply absolute top-[calc(100%+0.25rem)]
+               z-[100] w-56
+               overflow-hidden rounded-lg
+               border border-slate-200
+               bg-white text-slate-700
+               shadow-xl;
     }
 
     .primary-dropdown-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.125rem;
-        padding: 0.375rem;
+        @apply flex flex-col
+               gap-0.5 p-1.5;
     }
 
     .primary-dropdown-link {
-        display: grid;
-        grid-template-columns: 1.125rem minmax(0, 1fr);
-        align-items: center;
-        column-gap: 0.5rem;
-        width: 100%;
-        min-height: 1.875rem;
-        padding: 0.375rem 0.625rem;
-        border-radius: 0.375rem;
-        color: #334155 !important;
-        background-color: transparent;
-        font-size: 0.72rem;
-        line-height: 1rem;
-        font-weight: 500;
-        text-align: left;
-        text-decoration: none;
-        white-space: nowrap;
-        transition:
-            color 150ms ease,
-            background-color 150ms ease;
-    }
-
-    .primary-dropdown-link:hover,
-    .primary-dropdown-link:focus {
-        color: #064b47 !important;
-        background-color: #effcfb;
-        outline: none;
+        @apply grid min-h-8 w-full
+               grid-cols-[1.125rem_minmax(0,1fr)]
+               items-center gap-2
+               rounded-md px-2.5 py-1.5
+               text-left text-[11px]
+               font-medium text-slate-700
+               no-underline transition
+               hover:bg-emerald-50
+               hover:text-emerald-900
+               focus:bg-emerald-50
+               focus:text-emerald-900
+               focus:outline-none;
     }
 
     .primary-dropdown-icon {
-        display: inline-flex;
-        width: 1.125rem;
-        height: 1.125rem;
-        align-items: center;
-        justify-content: center;
-        color: #087368;
-        font-size: 0.75rem;
-        line-height: 1;
+        @apply inline-flex h-[1.125rem]
+               w-[1.125rem]
+               items-center justify-center
+               text-xs text-emerald-700;
     }
 
     .primary-dropdown-label {
-        display: block;
-        min-width: 0;
-        overflow: hidden;
-        color: inherit !important;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        @apply min-w-0 truncate;
     }
 
     .primary-dropdown-divider {
-        height: 1px;
-        margin: 0.25rem 0.375rem;
-        background-color: #e2e8f0;
+        @apply mx-1.5 my-1 h-px
+               bg-slate-200;
     }
 
+
+    /* ========================================================
+       MOBILE PRIMARY NAVIGATION
+    ======================================================== */
+
     .mobile-primary-nav-button {
-        @apply flex w-full items-center justify-between
-               rounded-md px-3 py-2.5
-               text-left text-sm font-semibold text-white
+        @apply flex w-full items-center
+               justify-between rounded-md
+               px-3 py-2.5
+               text-left text-sm
+               font-semibold text-white
                transition
                hover:bg-white/10
-               focus:outline-none focus:ring-2 focus:ring-white/40;
+               focus:outline-none
+               focus:ring-2
+               focus:ring-white/40;
     }
 
     .mobile-primary-nav-panel {
-        @apply ml-3 mt-1 space-y-0.5
+        @apply ml-3 mt-1
+               space-y-0.5
                border-l border-white/15
                py-1 pl-3;
     }
 
     .mobile-primary-nav-link {
-        @apply block rounded-md px-3 py-2
+        @apply block rounded-md
+               px-3 py-2
                text-sm text-white/75
                transition
-               hover:bg-white/10 hover:text-white
-               focus:outline-none focus:ring-2 focus:ring-white/40;
+               hover:bg-white/10
+               hover:text-white
+               focus:outline-none
+               focus:ring-2
+               focus:ring-white/40;
     }
+
+
+    /* ========================================================
+       SECONDARY NAVIGATION
+    ======================================================== */
 
     .secondary-nav-link {
-        @apply rounded-md px-2 py-1.5
-               text-xs font-medium text-slate-600
-               transition
-               hover:bg-ehr-50 hover:text-ehr-800;
+        @apply inline-flex min-h-9
+               items-center gap-1.5
+               rounded-lg px-2.5 py-1.5
+               text-xs font-medium
+               text-slate-600 transition
+               hover:bg-ehr-50
+               hover:text-ehr-800;
     }
 
-    .patient-nav-link {
-        @apply flex w-full items-center gap-2
-            rounded-md px-2.5 py-2
-            text-xs font-medium text-slate-700
-            transition-colors duration-150
-            hover:bg-white/80
-            hover:text-ehr-800;
+    .secondary-nav-link-active {
+        @apply bg-ehr-50
+               font-semibold text-ehr-800;
     }
 
-    .patient-nav-link-active {
-        @apply bg-white/90
-            font-semibold text-ehr-900
-            shadow-sm
-            ring-1 ring-slate-200/70
-            hover:bg-white
-            hover:text-ehr-900;
-    }
+
+    /* ========================================================
+       DASHBOARD CARDS
+    ======================================================== */
 
     .dashboard-card {
-        @apply rounded-lg border border-slate-200
-               bg-white p-3 shadow-sm;
+        @apply rounded-xl
+               border border-slate-200
+               bg-white p-3 shadow-sm
+               transition
+               hover:-translate-y-0.5
+               hover:shadow-md;
     }
 
     .dashboard-card-icon {
-        @apply grid h-8 w-8 shrink-0
-               place-items-center rounded-md
-               bg-ehr-50 text-base text-ehr-700;
+        @apply grid h-9 w-9 shrink-0
+               place-items-center rounded-lg
+               bg-ehr-50 text-base
+               text-ehr-700;
     }
 
     .dashboard-card-label {
-        @apply text-[11px] font-medium uppercase
-               tracking-wide text-slate-500;
+        @apply text-[10px] font-semibold
+               uppercase tracking-wide
+               text-slate-500;
     }
 
     .dashboard-card-value {
-        @apply mt-0.5 text-base font-semibold text-slate-900;
+        @apply mt-0.5 text-lg
+               font-bold text-slate-900;
     }
 
-    .workspace-panel {
-        @apply rounded-lg border border-slate-200
-               bg-white p-4 shadow-sm;
-    }
+
+    /* ========================================================
+       BUTTONS
+    ======================================================== */
 
     .btn-primary {
-        @apply inline-flex items-center justify-center
-               rounded-md bg-ehr-800
-               px-3 py-1.5
-               text-xs font-semibold text-white
-               transition hover:bg-ehr-900;
+        @apply inline-flex min-h-9
+               items-center justify-center
+               gap-1.5 rounded-lg
+               border border-ehr-900
+               bg-ehr-800 px-3 py-1.5
+               text-xs font-semibold
+               text-white shadow-sm
+               transition hover:bg-ehr-900
+               focus:outline-none
+               focus:ring-2
+               focus:ring-ehr-500/40;
     }
 
     .btn-secondary {
-        @apply inline-flex items-center justify-center
-               rounded-md border border-slate-300
+        @apply inline-flex min-h-9
+               items-center justify-center
+               gap-1.5 rounded-lg
+               border border-slate-300
                bg-white px-3 py-1.5
-               text-xs font-semibold text-slate-700
-               transition hover:bg-slate-50;
+               text-xs font-semibold
+               text-slate-700 shadow-sm
+               transition
+               hover:border-slate-400
+               hover:bg-slate-50
+               focus:outline-none
+               focus:ring-2
+               focus:ring-slate-300/60;
     }
 
+
+    /* ========================================================
+       FORMS
+    ======================================================== */
+
     .form-control-compact {
-        @apply rounded-md border-slate-300
-               px-2.5 py-1.5 text-xs
-               focus:border-ehr-500 focus:ring-ehr-500;
+        @apply min-h-9 rounded-lg
+               border-slate-300 bg-white
+               px-2.5 py-1.5
+               text-xs text-slate-900
+               shadow-sm
+               placeholder:text-slate-400
+               focus:border-ehr-500
+               focus:ring-ehr-500;
     }
 }
+
+
+/* ============================================================
+   HTMX
+============================================================ */
 
 .htmx-indicator {
     display: none;

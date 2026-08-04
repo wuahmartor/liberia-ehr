@@ -1,0 +1,148 @@
+
+
+
+
+{% comment %}
+============================================================
+ANALYTICS SIDEBAR
+
+File:
+templates/components/sidebars/analytics_sidebar.html
+
+Purpose:
+- Provide navigation for operational, clinical, quality,
+  financial, and population-health analytics.
+============================================================
+{% endcomment %}
+
+
+<div
+    class="
+        h-full overflow-y-auto
+        bg-white px-3 py-3
+    "
+    aria-label="Analytics sidebar"
+>
+    <section>
+        <p class="analytics-sidebar-heading">
+            Analytics
+        </p>
+
+        <nav class="space-y-1">
+            <a
+                href="#"
+                class="
+                    analytics-sidebar-link
+                    {% if active_analytics_module == 'dashboard' %}
+                        analytics-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">▦</span>
+                <span>Analytics Dashboard</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    analytics-sidebar-link
+                    {% if active_analytics_module == 'clinical' %}
+                        analytics-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">⌁</span>
+                <span>Clinical Analytics</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    analytics-sidebar-link
+                    {% if active_analytics_module == 'nursing' %}
+                        analytics-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">♡</span>
+                <span>Nursing Analytics</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    analytics-sidebar-link
+                    {% if active_analytics_module == 'quality' %}
+                        analytics-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">✓</span>
+                <span>Quality Measures</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    analytics-sidebar-link
+                    {% if active_analytics_module == 'population' %}
+                        analytics-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">◎</span>
+                <span>Population Health</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    analytics-sidebar-link
+                    {% if active_analytics_module == 'operations' %}
+                        analytics-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">⇅</span>
+                <span>Operational Analytics</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    analytics-sidebar-link
+                    {% if active_analytics_module == 'reports' %}
+                        analytics-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">▤</span>
+                <span>Reports</span>
+            </a>
+        </nav>
+    </section>
+
+
+    <section class="mt-4">
+        <p class="analytics-sidebar-heading">
+            Data Management
+        </p>
+
+        <nav class="space-y-1">
+            <a href="#" class="analytics-sidebar-link">
+                <span aria-hidden="true">⇧</span>
+                <span>Data Exports</span>
+            </a>
+
+            <a href="#" class="analytics-sidebar-link">
+                <span aria-hidden="true">▥</span>
+                <span>Saved Queries</span>
+            </a>
+
+            <a href="#" class="analytics-sidebar-link">
+                <span aria-hidden="true">⚙</span>
+                <span>Measure Definitions</span>
+            </a>
+        </nav>
+    </section>
+</div>

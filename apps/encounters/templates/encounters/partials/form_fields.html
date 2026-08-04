@@ -1,9 +1,24 @@
 {% comment %}
 ============================================================
 ENCOUNTER FORM FIELDS
+
+File:
+apps/encounters/templates/encounters/partials/form_fields.html
+
+Purpose:
+- Display user-entered encounter fields.
+- Separate encounter details, workflow confirmation, and notes.
+- Display field and non-field validation errors.
+- Exclude automatically generated recorder and timestamp fields.
 ============================================================
 {% endcomment %}
 
+
+{% comment %}
+============================================================
+NON-FIELD ERRORS
+============================================================
+{% endcomment %}
 
 {% if form.non_field_errors %}
     <div
@@ -11,70 +26,146 @@ ENCOUNTER FORM FIELDS
             border-b border-red-200
             bg-red-50 px-4 py-3
         "
+        role="alert"
     >
-        {% for error in form.non_field_errors %}
-            <p class="text-sm text-red-700">
-                {{ error }}
-            </p>
-        {% endfor %}
+        <p class="text-xs font-semibold text-red-800">
+            Please correct the following:
+        </p>
+
+        <ul class="mt-1 space-y-1">
+            {% for error in form.non_field_errors %}
+                <li class="text-xs text-red-700">
+                    {{ error }}
+                </li>
+            {% endfor %}
+        </ul>
     </div>
 {% endif %}
 
 
-<div
-    class="
-        grid grid-cols-1 gap-4 p-4
-        md:grid-cols-2
-    "
->
-    {% for field in form %}
+<div class="space-y-6 p-4 sm:p-5">
+
+    {% comment %}
+    ============================================================
+    ENCOUNTER DETAILS
+    ============================================================
+    {% endcomment %}
+
+    <section>
         <div
             class="
-                {% if field.name == 'reason_for_visit' or field.name == 'notes' %}
-                    md:col-span-2
-                {% endif %}
+                mb-3 border-b border-slate-200
+                pb-2
             "
         >
-            {% if field.name == "is_active" %}
-                <label
-                    for="{{ field.id_for_label }}"
-                    class="
-                        flex items-center gap-2
-                        text-sm font-medium text-slate-700
-                    "
-                >
-                    {{ field }}
-                    <span>{{ field.label }}</span>
-                </label>
-            {% else %}
-                <label
-                    for="{{ field.id_for_label }}"
-                    class="
-                        mb-1 block text-xs font-medium
-                        text-slate-700
-                    "
-                >
-                    {{ field.label }}
+            <h2
+                class="
+                    text-sm font-semibold
+                    text-slate-900
+                "
+            >
+                Encounter details
+            </h2>
 
-                    {% if field.field.required %}
-                        <span class="text-red-600">*</span>
-                    {% endif %}
-                </label>
-
-                {{ field }}
-            {% endif %}
-
-            {% if field.help_text %}
-                <p class="mt-1 text-xs text-slate-500">
-                    {{ field.help_text }}
-                </p>
-            {% endif %}
-
-            {% for error in field.errors %}
-                <p class="mt-1 text-xs font-medium text-red-600">
-                    {{ error }}
-                </p>
-            {% endfor %}
+            <p class="mt-0.5 text-xs text-slate-500">
+                Select the patient, encounter type, status, priority,
+                and provider.
+            </p>
         </div>
-    {% endfor %}
+
+        <div
+            class="
+                grid grid-cols-1 gap-4
+                md:grid-cols-2
+            "
+        >
+            {% include "encounters/partials/form_field.html" with field=form.patient %}
+
+            {% include "encounters/partials/form_field.html" with field=form.encounter_type %}
+
+            {% include "encounters/partials/form_field.html" with field=form.status %}
+
+            {% include "encounters/partials/form_field.html" with field=form.priority %}
+
+            <div class="md:col-span-2">
+                {% include "encounters/partials/form_field.html" with field=form.reason_for_visit %}
+            </div>
+
+            <div class="md:col-span-2">
+                {% include "encounters/partials/form_field.html" with field=form.attending_provider %}
+            </div>
+        </div>
+    </section>
+
+
+    {% comment %}
+    ============================================================
+    REGISTRATION AND IDENTITY
+    ============================================================
+    {% endcomment %}
+
+    <section>
+        <div
+            class="
+                mb-3 border-b border-slate-200
+                pb-2
+            "
+        >
+            <h2
+                class="
+                    text-sm font-semibold
+                    text-slate-900
+                "
+            >
+                Registration and identity
+            </h2>
+
+            <p class="mt-0.5 text-xs text-slate-500">
+                Select the completed steps. The system records the staff
+                member, date, and time automatically.
+            </p>
+        </div>
+
+        <div
+            class="
+                grid grid-cols-1 gap-3
+                md:grid-cols-2
+            "
+        >
+            {% include "encounters/partials/checkbox_field.html" with field=form.registration_completed %}
+
+            {% include "encounters/partials/checkbox_field.html" with field=form.identity_verified %}
+        </div>
+    </section>
+
+
+    {% comment %}
+    ============================================================
+    NOTES
+    ============================================================
+    {% endcomment %}
+
+    <section>
+        <div
+            class="
+                mb-3 border-b border-slate-200
+                pb-2
+            "
+        >
+            <h2
+                class="
+                    text-sm font-semibold
+                    text-slate-900
+                "
+            >
+                Additional notes
+            </h2>
+
+            <p class="mt-0.5 text-xs text-slate-500">
+                Record relevant administrative or clinical information.
+            </p>
+        </div>
+
+        {% include "encounters/partials/form_field.html" with field=form.notes %}
+    </section>
 </div>

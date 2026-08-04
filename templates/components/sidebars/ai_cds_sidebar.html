@@ -1,0 +1,158 @@
+
+
+
+{% comment %}
+============================================================
+AI AND CLINICAL DECISION SUPPORT SIDEBAR
+
+File:
+templates/components/sidebars/ai_cds_sidebar.html
+
+Purpose:
+- Provide AI assistant and clinical decision-support navigation.
+- Keep AI tools separate from standard clinical documentation.
+============================================================
+{% endcomment %}
+
+
+<div
+    class="
+        h-full overflow-y-auto
+        bg-white px-3 py-3
+    "
+    aria-label="AI and clinical decision support sidebar"
+>
+    <section>
+        <p class="ai-sidebar-heading">
+            AI Assistant
+        </p>
+
+        <nav class="space-y-1">
+            <a
+                href="#"
+                class="
+                    ai-sidebar-link
+                    {% if active_ai_module == 'assistant' %}
+                        ai-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">✦</span>
+                <span>Clinical Assistant</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    ai-sidebar-link
+                    {% if active_ai_module == 'summaries' %}
+                        ai-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">▤</span>
+                <span>Patient Summaries</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    ai-sidebar-link
+                    {% if active_ai_module == 'documentation' %}
+                        ai-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">✎</span>
+                <span>Documentation Assistant</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    ai-sidebar-link
+                    {% if active_ai_module == 'chart-review' %}
+                        ai-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">⌕</span>
+                <span>Chart Review</span>
+            </a>
+        </nav>
+    </section>
+
+
+    <section class="mt-4">
+        <p class="ai-sidebar-heading">
+            Clinical Decision Support
+        </p>
+
+        <nav class="space-y-1">
+            <a
+                href="#"
+                class="
+                    ai-sidebar-link
+                    {% if active_ai_module == 'alerts' %}
+                        ai-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">!</span>
+                <span>Clinical Alerts</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    ai-sidebar-link
+                    {% if active_ai_module == 'recommendations' %}
+                        ai-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">◎</span>
+                <span>Recommendations</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    ai-sidebar-link
+                    {% if active_ai_module == 'drug-safety' %}
+                        ai-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">◇</span>
+                <span>Medication Safety</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    ai-sidebar-link
+                    {% if active_ai_module == 'risk' %}
+                        ai-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">△</span>
+                <span>Risk Stratification</span>
+            </a>
+
+            <a
+                href="#"
+                class="
+                    ai-sidebar-link
+                    {% if active_ai_module == 'rules' %}
+                        ai-sidebar-link-active
+                    {% endif %}
+                "
+            >
+                <span aria-hidden="true">⚙</span>
+                <span>Decision Rules</span>
+            </a>
+        </nav>
+    </section>
+</div>
