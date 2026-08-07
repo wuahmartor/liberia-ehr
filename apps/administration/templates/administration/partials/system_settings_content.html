@@ -1,0 +1,88 @@
+
+
+<section
+    id="system-settings-content"
+    class="space-y-4"
+>
+    {% include "administration/partials/workspace_header.html" %}
+
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <h2 class="text-sm font-semibold text-slate-900">
+                Organization Identity
+            </h2>
+
+            <p class="mt-1 text-xs leading-5 text-slate-500">
+                Configure system name, organization identity, logo,
+                and contact information.
+            </p>
+
+            <button
+                type="button"
+                class="
+                    mt-4 text-xs font-semibold
+                    text-ehr-700 hover:text-ehr-900
+                "
+            >
+                Configure identity
+            </button>
+        </article>
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <h2 class="text-sm font-semibold text-slate-900">
+                Localization
+            </h2>
+
+            <p class="mt-1 text-xs leading-5 text-slate-500">
+                Configure timezone, date format, language, country,
+                and measurement preferences.
+            </p>
+
+            <button
+                type="button"
+                class="
+                    mt-4 text-xs font-semibold
+                    text-ehr-700 hover:text-ehr-900
+                "
+            >
+                Configure localization
+            </button>
+        </article>
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <h2 class="text-sm font-semibold text-slate-900">
+                Application Defaults
+            </h2>
+
+            <p class="mt-1 text-xs leading-5 text-slate-500">
+                Manage default facility, encounter settings,
+                documentation behavior, and workflow preferences.
+            </p>
+
+            <button
+                type="button"
+                class="
+                    mt-4 text-xs font-semibold
+                    text-ehr-700 hover:text-ehr-900
+                "
+            >
+                Manage defaults
+            </button>
+        </article>
+    </div>
+</section>

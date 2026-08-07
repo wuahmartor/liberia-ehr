@@ -1,0 +1,45 @@
+
+
+apps/analytics/
+├── migrations/
+├── templates/
+│   └── analytics/
+│       ├── index.html
+│       ├── clinical_dashboard.html
+│       ├── nursing_dashboard.html
+│       ├── operations_dashboard.html
+│       ├── quality_dashboard.html
+│       ├── patient_outcomes.html
+│       ├── surveillance_dashboard.html
+│       ├── components/
+│       │   ├── filter_bar.html
+│       │   ├── metric_card.html
+│       │   └── loading_indicator.html
+│       └── partials/
+│           ├── dashboard_content.html
+        
+            ├── clinical_content.html
+
+            ├── nursing_content.html
+
+            ├── operations_content.html
+
+            ├── quality_content.html
+
+            ├── surveillance_content.html
+
+            ├── outcomes_content.html
+
+            ├── encounter_trend.html
+
+            ├── encounter_status_breakdown.html
+
+            └── recent_encounters_table.html
+├── __init__.py
+├── admin.py
+├── apps.py
+├── models.py
+├── selectors.py
+├── services.py
+├── urls.py
+└── views.py

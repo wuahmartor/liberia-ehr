@@ -1,0 +1,16 @@
+
+
+{% extends "layouts/app_shell.html" %}
+
+{% block title %}
+    {{ page_title }} | Liberia EHR
+{% endblock %}
+
+{% block workspace %}
+<div
+    id="scheduling-form-workspace"
+    class="min-h-full"
+>
+    {% include "administration/scheduling/partials/form_content.html" %}
+</div>
+{% endblock %}

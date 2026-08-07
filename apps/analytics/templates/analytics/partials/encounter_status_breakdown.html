@@ -1,0 +1,73 @@
+
+
+{% comment %}
+============================================================
+ENCOUNTER STATUS BREAKDOWN
+
+File:
+apps/analytics/templates/analytics/partials/encounter_status_breakdown.html
+
+Expected context:
+- encounter_status_breakdown
+============================================================
+{% endcomment %}
+
+
+<article
+    class="
+        overflow-hidden rounded-xl
+        border border-slate-200
+        bg-white shadow-sm
+    "
+>
+    <header class="border-b border-slate-200 px-4 py-3">
+        <h2 class="text-sm font-semibold text-slate-900">
+            Status Breakdown
+        </h2>
+
+        <p class="mt-0.5 text-[11px] text-slate-500">
+            Encounter distribution by status.
+        </p>
+    </header>
+
+    <div class="space-y-2 p-4">
+        {% for row in encounter_status_breakdown %}
+            <div
+                class="
+                    flex items-center justify-between gap-3
+                    rounded-lg border border-slate-100
+                    bg-slate-50 px-3 py-2
+                "
+            >
+                <div class="flex min-w-0 items-center gap-2">
+                    <span
+                        class="
+                            h-2 w-2 shrink-0
+                            rounded-full bg-ehr-500
+                        "
+                        aria-hidden="true"
+                    ></span>
+
+                    <span class="truncate text-xs text-slate-700">
+                        {{ row.status|title }}
+                    </span>
+                </div>
+
+                <span
+                    class="
+                        shrink-0 rounded-full
+                        bg-white px-2 py-0.5
+                        text-xs font-semibold text-slate-900
+                        ring-1 ring-inset ring-slate-200
+                    "
+                >
+                    {{ row.total }}
+                </span>
+            </div>
+        {% empty %}
+            <p class="py-8 text-center text-xs text-slate-500">
+                No encounter status data is available.
+            </p>
+        {% endfor %}
+    </div>
+</article>

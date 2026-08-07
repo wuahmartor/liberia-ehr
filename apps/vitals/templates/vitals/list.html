@@ -1,17 +1,36 @@
 {% extends "layouts/app_shell.html" %}
 
+{% comment %}
+============================================================
+VITAL SIGNS LIST PAGE
+
+File:
+apps/vitals/templates/vitals/list.html
+
+Purpose:
+- Display the Vitals workspace.
+- Support general vital-sign review.
+- Support patient-specific vital history.
+- Support encounter-specific vital observations.
+- Render inside the standard Liberia EHR application shell.
+
+Expected context:
+- page_title
+- page_description
+- selected_patient
+- active_encounter
+- vital_observations
+============================================================
+{% endcomment %}
+
+
 {% block title %}
-    vitals List | Liberia EHR
+    {{ page_title|default:"Vital Signs" }} | Liberia EHR
 {% endblock %}
 
-{% block workspace %}
-<section>
-    <h1 class="text-2xl font-bold capitalize">
-        vitals List
-    </h1>
 
-    <div id="vitals-list" class="mt-5">
+{% block workspace %}
+    <div class="min-h-0 w-full">
         {% include "vitals/partials/list_content.html" %}
     </div>
-</section>
 {% endblock %}

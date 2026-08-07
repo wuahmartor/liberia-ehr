@@ -1,0 +1,191 @@
+{% comment %}
+============================================================
+ADMINISTRATION DASHBOARD CONTENT
+
+Loaded:
+- Directly within dashboard.html.
+- Into #administration-workspace through HTMX.
+============================================================
+{% endcomment %}
+
+
+<section
+    id="administration-dashboard-content"
+    class="space-y-4"
+>
+    {% include "administration/partials/workspace_header.html" %}
+
+    <!-- SUMMARY CARDS -->
+    <div
+        class="
+            grid grid-cols-1 gap-3
+            sm:grid-cols-2
+            xl:grid-cols-4
+        "
+    >
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p class="text-xs font-medium text-slate-500">
+                Active Users
+            </p>
+
+            <p class="mt-2 text-2xl font-semibold text-slate-950">
+                —
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Authorized EHR accounts
+            </p>
+        </article>
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p class="text-xs font-medium text-slate-500">
+                Facilities
+            </p>
+
+            <p class="mt-2 text-2xl font-semibold text-slate-950">
+                —
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Configured care locations
+            </p>
+        </article>
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p class="text-xs font-medium text-slate-500">
+                Open Alerts
+            </p>
+
+            <p class="mt-2 text-2xl font-semibold text-slate-950">
+                —
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Administrative issues requiring review
+            </p>
+        </article>
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p class="text-xs font-medium text-slate-500">
+                System Status
+            </p>
+
+            <div class="mt-2 flex items-center gap-2">
+                <span
+                    class="
+                        h-2.5 w-2.5
+                        rounded-full bg-emerald-500
+                    "
+                ></span>
+
+                <p class="text-sm font-semibold text-slate-950">
+                    Operational
+                </p>
+            </div>
+
+            <p class="mt-2 text-xs text-slate-500">
+                Core application services
+            </p>
+        </article>
+    </div>
+
+
+    <!-- QUICK MANAGEMENT LINKS -->
+    <section
+        class="
+            rounded-xl border border-slate-200
+            bg-white p-4 shadow-sm
+        "
+    >
+        <div>
+            <h2 class="text-sm font-semibold text-slate-900">
+                Administrative Workspaces
+            </h2>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Open frequently used administration modules.
+            </p>
+        </div>
+
+        <div
+            class="
+                mt-4 grid grid-cols-1 gap-3
+                md:grid-cols-2 xl:grid-cols-3
+            "
+        >
+            <a
+                href="{% url 'administration:users' %}"
+                hx-get="{% url 'administration:users' %}"
+                hx-target="#administration-workspace"
+                hx-swap="innerHTML show:top"
+                hx-push-url="true"
+                class="
+                    rounded-lg border border-slate-200
+                    p-3 text-sm font-medium text-slate-700
+                    transition
+                    hover:border-ehr-200
+                    hover:bg-ehr-50
+                    hover:text-ehr-800
+                "
+            >
+                Manage User Accounts
+            </a>
+
+            <a
+                href="{% url 'administration:facilities' %}"
+                hx-get="{% url 'administration:facilities' %}"
+                hx-target="#administration-workspace"
+                hx-swap="innerHTML show:top"
+                hx-push-url="true"
+                class="
+                    rounded-lg border border-slate-200
+                    p-3 text-sm font-medium text-slate-700
+                    transition
+                    hover:border-ehr-200
+                    hover:bg-ehr-50
+                    hover:text-ehr-800
+                "
+            >
+                Manage Facilities
+            </a>
+
+            <a
+                href="{% url 'administration:system_health' %}"
+                hx-get="{% url 'administration:system_health' %}"
+                hx-target="#administration-workspace"
+                hx-swap="innerHTML show:top"
+                hx-push-url="true"
+                class="
+                    rounded-lg border border-slate-200
+                    p-3 text-sm font-medium text-slate-700
+                    transition
+                    hover:border-ehr-200
+                    hover:bg-ehr-50
+                    hover:text-ehr-800
+                "
+            >
+                Review System Health
+            </a>
+        </div>
+    </section>
+</section>

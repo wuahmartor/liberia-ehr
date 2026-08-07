@@ -34,7 +34,7 @@ urlpatterns = [
         include("apps.encounters.urls"),
 
     ),
-    
+
     # Django password reset URLs
     path(
         "accounts/",
@@ -47,8 +47,19 @@ urlpatterns = [
     path("administration/", include("apps.administration.urls"),
          ),
 
-      path(
+    path(
             "",
             include("apps.core.urls"),
         ),
+
+    path(
+        "analytics/", include("apps.analytics.urls")
+    ),
+      path(
+
+        "vitals/",
+
+        include("apps.vitals.urls"),)
+
+    
 ]

@@ -1,5 +1,44 @@
 {% load static %}
 
+
+
+{% load static %}
+
+{% comment %}
+============================================================
+SAFE ADMINISTRATION URL RESOLUTION
+
+Purpose:
+- Resolve available Administration routes without raising
+  NoReverseMatch for modules that are still under development.
+- Empty URL variables produce disabled menu items.
+============================================================
+{% endcomment %}
+
+{% url 'administration:dashboard' as administration_dashboard_url %}
+
+{% url 'administration:scheduling' as administration_scheduling_url %}
+
+{% url 'administration:users' as administration_users_url %}
+{% url 'administration:roles' as administration_roles_url %}
+
+{% url 'facilities:list' as facilities_list_url %}
+{% url 'administration:departments' as administration_departments_url %}
+{% url 'administration:clinical_units' as administration_units_url %}
+{% url 'administration:rooms' as administration_rooms_url %}
+{% url 'administration:beds' as administration_beds_url %}
+
+{% url 'administration:audit_logs' as administration_audit_logs_url %}
+{% url 'administration:system_settings' as administration_settings_url %}
+{% url 'administration:integrations' as administration_integrations_url %}
+{% url 'administration:data_management' as administration_data_url %}
+
+{% url 'admin:auth_user_changelist' as django_users_url %}
+{% url 'admin:auth_group_changelist' as django_groups_url %}
+{% url 'admin:index' as django_admin_url %}
+
+
+
 {% comment %}
 ============================================================
 PRIMARY NAVIGATION COMPONENT
@@ -376,7 +415,6 @@ Important navigation behavior:
                     </div>
                 </div>
 
-
                 <!-- =========================================
                      DESKTOP ANALYTICS MENU
                 ========================================== -->
@@ -392,6 +430,7 @@ Important navigation behavior:
                         type="button"
                         class="
                             primary-nav-link
+
                             {% if active == 'analytics' %}
                                 primary-nav-link-active
                             {% endif %}
@@ -404,7 +443,10 @@ Important navigation behavior:
 
                         <svg
                             class="h-3.5 w-3.5 transition-transform"
-                            :class="{ 'rotate-180': openMenu === 'analytics' }"
+                            :class="{
+                                'rotate-180':
+                                    openMenu === 'analytics'
+                            }"
                             viewBox="0 0 20 20"
                             fill="currentColor"
                             aria-hidden="true"
@@ -432,12 +474,23 @@ Important navigation behavior:
                     >
                         <div class="primary-dropdown-list">
 
-                            <!-- Analytics dashboard -->
+                            <!-- =================================
+                                 ANALYTICS DASHBOARD
+                            ================================== -->
                             <a
-                                href="{% url 'core:analytics_dashboard' %}"
+                                href="{% url 'analytics:dashboard' %}"
                                 hx-boost="false"
-                                class="primary-dropdown-link"
+                                class="
+                                    primary-dropdown-link
+
+                                    {% if active_analytics_module == 'dashboard' %}
+                                        primary-dropdown-link-active
+                                    {% endif %}
+                                "
                                 role="menuitem"
+                                {% if active_analytics_module == "dashboard" %}
+                                    aria-current="page"
+                                {% endif %}
                                 @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
@@ -449,11 +502,24 @@ Important navigation behavior:
                                 </span>
                             </a>
 
-                            <!-- Clinical analytics -->
+                            <!-- =================================
+                                 CLINICAL ANALYTICS
+                            ================================== -->
                             <a
-                                href="#"
-                                class="primary-dropdown-link"
+                                href="{% url 'analytics:clinical' %}"
+                                hx-boost="false"
+                                class="
+                                    primary-dropdown-link
+
+                                    {% if active_analytics_module == 'clinical' %}
+                                        primary-dropdown-link-active
+                                    {% endif %}
+                                "
                                 role="menuitem"
+                                {% if active_analytics_module == "clinical" %}
+                                    aria-current="page"
+                                {% endif %}
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
                                     ✚
@@ -464,11 +530,24 @@ Important navigation behavior:
                                 </span>
                             </a>
 
-                            <!-- Nursing analytics -->
+                            <!-- =================================
+                                 NURSING ANALYTICS
+                            ================================== -->
                             <a
-                                href="#"
-                                class="primary-dropdown-link"
+                                href="{% url 'analytics:nursing' %}"
+                                hx-boost="false"
+                                class="
+                                    primary-dropdown-link
+
+                                    {% if active_analytics_module == 'nursing' %}
+                                        primary-dropdown-link-active
+                                    {% endif %}
+                                "
                                 role="menuitem"
+                                {% if active_analytics_module == "nursing" %}
+                                    aria-current="page"
+                                {% endif %}
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
                                     ♡
@@ -479,69 +558,120 @@ Important navigation behavior:
                                 </span>
                             </a>
 
-                            <!-- Operations analytics -->
+                            <!-- =================================
+                                 OPERATIONAL ANALYTICS
+                            ================================== -->
                             <a
-                                href="#"
-                                class="primary-dropdown-link"
+                                href="{% url 'analytics:operations' %}"
+                                hx-boost="false"
+                                class="
+                                    primary-dropdown-link
+
+                                    {% if active_analytics_module == 'operations' %}
+                                        primary-dropdown-link-active
+                                    {% endif %}
+                                "
                                 role="menuitem"
+                                {% if active_analytics_module == "operations" %}
+                                    aria-current="page"
+                                {% endif %}
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
-                                    ⌂
+                                    ⇅
                                 </span>
 
                                 <span class="primary-dropdown-label">
-                                    Operations
+                                    Operational Analytics
                                 </span>
                             </a>
 
-                            <!-- Quality analytics -->
+                            <!-- =================================
+                                 QUALITY ANALYTICS
+                            ================================== -->
                             <a
-                                href="#"
-                                class="primary-dropdown-link"
+                                href="{% url 'analytics:quality' %}"
+                                hx-boost="false"
+                                class="
+                                    primary-dropdown-link
+
+                                    {% if active_analytics_module == 'quality' %}
+                                        primary-dropdown-link-active
+                                    {% endif %}
+                                "
                                 role="menuitem"
+                                {% if active_analytics_module == "quality" %}
+                                    aria-current="page"
+                                {% endif %}
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
                                     ✓
                                 </span>
 
                                 <span class="primary-dropdown-label">
-                                    Quality
+                                    Quality Measures
                                 </span>
                             </a>
 
-                            <!-- Public health analytics -->
+                            <!-- =================================
+                                 POPULATION HEALTH
+                            ================================== -->
                             <a
-                                href="#"
-                                class="primary-dropdown-link"
+                                href="{% url 'analytics:population' %}"
+                                hx-boost="false"
+                                class="
+                                    primary-dropdown-link
+
+                                    {% if active_analytics_module == 'population' %}
+                                        primary-dropdown-link-active
+                                    {% endif %}
+                                "
                                 role="menuitem"
+                                {% if active_analytics_module == "population" %}
+                                    aria-current="page"
+                                {% endif %}
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
                                     ◎
                                 </span>
 
                                 <span class="primary-dropdown-label">
-                                    Public Health
+                                    Population Health
                                 </span>
                             </a>
 
-                            <!-- Reports -->
+                            <!-- =================================
+                                 PATIENT OUTCOMES
+                            ================================== -->
                             <a
-                                href="#"
-                                class="primary-dropdown-link"
+                                href="{% url 'analytics:patient_outcomes' %}"
+                                hx-boost="false"
+                                class="
+                                    primary-dropdown-link
+
+                                    {% if active_analytics_module == 'patient-outcomes' %}
+                                        primary-dropdown-link-active
+                                    {% endif %}
+                                "
                                 role="menuitem"
+                                {% if active_analytics_module == "patient-outcomes" %}
+                                    aria-current="page"
+                                {% endif %}
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
-                                    ⇩
+                                    ↗
                                 </span>
 
                                 <span class="primary-dropdown-label">
-                                    Reports
+                                    Patient Outcomes
                                 </span>
                             </a>
                         </div>
                     </div>
                 </div>
-
 
                 <!-- =========================================
                      DESKTOP AI / CDS MENU
@@ -710,235 +840,297 @@ Important navigation behavior:
                     </div>
                 </div>
 
-
-                <!-- =========================================
+                               <!-- =========================================
                      DESKTOP ADMINISTRATION MENU
+
+                     Only major Administration sections appear
+                     in the primary-navigation dropdown.
+
+                     Detailed Administration pages remain in:
+                     templates/components/sidebars/
+                     administration_sidebar.html
                 ========================================== -->
-                <div
-                    class="relative"
-                    @click.outside="
-                        if (openMenu === 'administration') {
-                            openMenu = null;
-                        }
-                    "
-                >
-                    <button
-                        type="button"
-                        class="
-                            primary-nav-link
-                            {% if active == 'administration' %}
-                                primary-nav-link-active
-                            {% endif %}
-                        "
-                        @click="toggleMenu('administration')"
-                        :aria-expanded="(openMenu === 'administration').toString()"
-                        aria-haspopup="menu"
-                    >
-                        <span>Administration</span>
-
-                        <svg
-                            class="h-3.5 w-3.5 transition-transform"
-                            :class="{
-                                'rotate-180':
-                                    openMenu === 'administration'
-                            }"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            aria-hidden="true"
-                        >
-                            <path
-                                fill-rule="evenodd"
-                                d="
-                                    M5.23 7.21a.75.75 0 011.06.02
-                                    L10 11.17l3.71-3.94
-                                    a.75.75 0 111.08 1.04
-                                    l-4.25 4.5a.75.75 0 01-1.08 0
-                                    l-4.25-4.5a.75.75 0 01.02-1.06z
-                                "
-                                clip-rule="evenodd"
-                            />
-                        </svg>
-                    </button>
-
+                {% if request.user.is_staff or request.user.is_superuser %}
                     <div
-                        x-cloak
-                        x-show="openMenu === 'administration'"
-                        x-transition.origin.top.right
-                        class="primary-dropdown-menu right-0"
-                        role="menu"
+                        class="relative"
+                        @click.outside="
+                            if (openMenu === 'administration') {
+                                openMenu = null;
+                            }
+                        "
                     >
-                        <div class="primary-dropdown-list">
+                        <!-- Administration menu button -->
+                        <button
+                            type="button"
+                            class="
+                                primary-nav-link
 
-                            <!-- Administration dashboard -->
-                            <a
-                                href="{% url 'administration:dashboard' %}"
-                                hx-boost="false"
-                                class="primary-dropdown-link"
-                                role="menuitem"
-                                @click="openMenu = null"
+                                {% if active == 'administration' %}
+                                    primary-nav-link-active
+                                {% endif %}
+                            "
+                            @click="toggleMenu('administration')"
+                            :aria-expanded="
+                                (openMenu === 'administration').toString()
+                            "
+                            aria-haspopup="menu"
+                        >
+                            <span>Administration</span>
+
+                            <svg
+                                class="h-3.5 w-3.5 transition-transform"
+                                :class="{
+                                    'rotate-180':
+                                        openMenu === 'administration'
+                                }"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                aria-hidden="true"
                             >
-                                <span class="primary-dropdown-icon">
-                                    ▦
-                                </span>
+                                <path
+                                    fill-rule="evenodd"
+                                    d="
+                                        M5.23 7.21a.75.75 0 011.06.02
+                                        L10 11.17l3.71-3.94
+                                        a.75.75 0 111.08 1.04
+                                        l-4.25 4.5a.75.75 0 01-1.08 0
+                                        l-4.25-4.5a.75.75 0 01.02-1.06z
+                                    "
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                        </button>
 
-                                <span class="primary-dropdown-label">
-                                    Administration Dashboard
-                                </span>
-                            </a>
+                        <!-- Administration section dropdown -->
+                        <div
+                            x-cloak
+                            x-show="openMenu === 'administration'"
+                            x-transition.origin.top.right
+                            class="
+                                primary-dropdown-menu
+                                right-0 w-72
+                            "
+                            role="menu"
+                            aria-label="Administration sections"
+                        >
+                            <div class="primary-dropdown-list">
 
-                            <div class="primary-dropdown-divider"></div>
-
-                            <!-- Scheduling -->
-                            <a
-                                href="#"
-                                class="primary-dropdown-link"
-                                role="menuitem"
-                            >
-                                <span class="primary-dropdown-icon">
-                                    □
-                                </span>
-
-                                <span class="primary-dropdown-label">
-                                    Scheduling
-                                </span>
-                            </a>
-
-                            <!-- Users and staff -->
-                            {% if request.user.is_staff %}
+                                <!-- =================================
+                                     ADMINISTRATION OVERVIEW
+                                ================================== -->
                                 <a
-                                    href="{% url 'admin:auth_user_changelist' %}"
-                                    hx-boost="false"
-                                    class="primary-dropdown-link"
+                                    {% if administration_dashboard_url %}
+                                        href="{{ administration_dashboard_url }}"
+                                        hx-boost="false"
+                                    {% else %}
+                                        aria-disabled="true"
+                                    {% endif %}
+                                    class="
+                                        primary-dropdown-link
+
+                                        {% if active_administration_module == 'dashboard' or active_admin_module == 'dashboard' %}
+                                            primary-dropdown-link-active
+                                        {% endif %}
+
+                                        {% if not administration_dashboard_url %}
+                                            cursor-not-allowed opacity-50
+                                        {% endif %}
+                                    "
                                     role="menuitem"
-                                    @click="openMenu = null"
+                                    {% if active_administration_module == "dashboard" or active_admin_module == "dashboard" %}
+                                        aria-current="page"
+                                    {% endif %}
+                                    {% if administration_dashboard_url %}
+                                        @click="openMenu = null"
+                                    {% endif %}
                                 >
                                     <span class="primary-dropdown-icon">
-                                        ♙
+                                        ▦
                                     </span>
 
                                     <span class="primary-dropdown-label">
-                                        Users and Staff
+                                        Administration Overview
                                     </span>
                                 </a>
-                            {% else %}
-                                <a
-                                    href="#"
-                                    class="primary-dropdown-link"
-                                    role="menuitem"
-                                >
-                                    <span class="primary-dropdown-icon">
-                                        ♙
-                                    </span>
 
-                                    <span class="primary-dropdown-label">
-                                        Users and Staff
-                                    </span>
-                                </a>
-                            {% endif %}
 
-                            <!-- Roles and permissions -->
-                            {% if request.user.is_staff %}
+                                <!-- =================================
+                                     ACCESS AND SECURITY
+                                ================================== -->
                                 <a
-                                    href="{% url 'admin:auth_group_changelist' %}"
-                                    hx-boost="false"
-                                    class="primary-dropdown-link"
+                                    {% if administration_users_url %}
+                                        href="{{ administration_users_url }}"
+                                        hx-boost="false"
+                                    {% elif django_users_url %}
+                                        href="{{ django_users_url }}"
+                                        hx-boost="false"
+                                    {% else %}
+                                        aria-disabled="true"
+                                    {% endif %}
+                                    class="
+                                        primary-dropdown-link
+
+                                        {% if active_administration_module == 'users' or active_administration_module == 'roles' or active_admin_module == 'users' or active_admin_module == 'roles' %}
+                                            primary-dropdown-link-active
+                                        {% endif %}
+
+                                        {% if not administration_users_url and not django_users_url %}
+                                            cursor-not-allowed opacity-50
+                                        {% endif %}
+                                    "
                                     role="menuitem"
-                                    @click="openMenu = null"
+                                    {% if administration_users_url or django_users_url %}
+                                        @click="openMenu = null"
+                                    {% endif %}
                                 >
                                     <span class="primary-dropdown-icon">
                                         ◇
                                     </span>
 
                                     <span class="primary-dropdown-label">
-                                        Roles and Permissions
+                                        Access and Security
                                     </span>
                                 </a>
-                            {% else %}
+
+
+                                <!-- =================================
+                                     ORGANIZATION AND FACILITIES
+                                ================================== -->
                                 <a
-                                    href="#"
-                                    class="primary-dropdown-link"
+                                    {% if facilities_list_url %}
+                                        href="{{ facilities_list_url }}"
+                                        hx-boost="false"
+                                    {% else %}
+                                        aria-disabled="true"
+                                    {% endif %}
+                                    class="
+                                        primary-dropdown-link
+
+                                        {% if active_administration_module == 'facilities' or active_administration_module == 'departments' or active_administration_module == 'clinical-units' or active_administration_module == 'rooms' or active_administration_module == 'beds' or active_admin_module == 'facilities' or active_admin_module == 'departments' or active_admin_module == 'rooms' %}
+                                            primary-dropdown-link-active
+                                        {% endif %}
+
+                                        {% if not facilities_list_url %}
+                                            cursor-not-allowed opacity-50
+                                        {% endif %}
+                                    "
                                     role="menuitem"
+                                    {% if facilities_list_url %}
+                                        @click="openMenu = null"
+                                    {% endif %}
                                 >
                                     <span class="primary-dropdown-icon">
-                                        ◇
+                                        ⌂
                                     </span>
 
                                     <span class="primary-dropdown-label">
-                                        Roles and Permissions
+                                        Organization and Facilities
                                     </span>
                                 </a>
-                            {% endif %}
 
-                            <!-- Facilities -->
-                            <a
-                                href="#"
-                                class="primary-dropdown-link"
-                                role="menuitem"
-                            >
-                                <span class="primary-dropdown-icon">
-                                    ⌂
-                                </span>
 
-                                <span class="primary-dropdown-label">
-                                    Facilities
-                                </span>
-                            </a>
-
-                            <!-- Audit logs -->
-                            <a
-                                href="#"
-                                class="primary-dropdown-link"
-                                role="menuitem"
-                            >
-                                <span class="primary-dropdown-icon">
-                                    ▤
-                                </span>
-
-                                <span class="primary-dropdown-label">
-                                    Audit Logs
-                                </span>
-                            </a>
-
-                            <!-- System settings -->
-                            <a
-                                href="#"
-                                class="primary-dropdown-link"
-                                role="menuitem"
-                            >
-                                <span class="primary-dropdown-icon">
-                                    ⚙
-                                </span>
-
-                                <span class="primary-dropdown-label">
-                                    System Settings
-                                </span>
-                            </a>
-
-                            <!-- Django administration -->
-                            {% if request.user.is_staff %}
-                                <div class="primary-dropdown-divider"></div>
-
+                                <!-- =================================
+                                     SYSTEM CONFIGURATION
+                                ================================== -->
                                 <a
-                                    href="{% url 'admin:index' %}"
-                                    hx-boost="false"
-                                    class="primary-dropdown-link"
+                                    {% if administration_settings_url %}
+                                        href="{{ administration_settings_url }}"
+                                        hx-boost="false"
+                                    {% else %}
+                                        aria-disabled="true"
+                                    {% endif %}
+                                    class="
+                                        primary-dropdown-link
+
+                                        {% if active_administration_module == 'settings' or active_administration_module == 'system_settings' or active_administration_module == 'clinical_dictionaries' or active_administration_module == 'integrations' or active_administration_module == 'data-management' or active_admin_module == 'system_settings' or active_admin_module == 'clinical_dictionaries' or active_admin_module == 'integrations' %}
+                                            primary-dropdown-link-active
+                                        {% endif %}
+
+                                        {% if not administration_settings_url %}
+                                            cursor-not-allowed opacity-50
+                                        {% endif %}
+                                    "
                                     role="menuitem"
-                                    @click="openMenu = null"
+                                    {% if administration_settings_url %}
+                                        @click="openMenu = null"
+                                    {% endif %}
                                 >
                                     <span class="primary-dropdown-icon">
                                         ⚙
                                     </span>
 
                                     <span class="primary-dropdown-label">
-                                        Django Admin
+                                        System Configuration
                                     </span>
                                 </a>
-                            {% endif %}
+
+
+                                <!-- =================================
+                                     MONITORING AND COMPLIANCE
+                                ================================== -->
+                                <a
+                                    {% if administration_audit_logs_url %}
+                                        href="{{ administration_audit_logs_url }}"
+                                        hx-boost="false"
+                                    {% else %}
+                                        aria-disabled="true"
+                                    {% endif %}
+                                    class="
+                                        primary-dropdown-link
+
+                                        {% if active_administration_module == 'audit-logs' or active_administration_module == 'audit_logs' or active_administration_module == 'system-health' or active_administration_module == 'system_health' or active_admin_module == 'audit_logs' or active_admin_module == 'system_health' %}
+                                            primary-dropdown-link-active
+                                        {% endif %}
+
+                                        {% if not administration_audit_logs_url %}
+                                            cursor-not-allowed opacity-50
+                                        {% endif %}
+                                    "
+                                    role="menuitem"
+                                    {% if administration_audit_logs_url %}
+                                        @click="openMenu = null"
+                                    {% endif %}
+                                >
+                                    <span class="primary-dropdown-icon">
+                                        ≣
+                                    </span>
+
+                                    <span class="primary-dropdown-label">
+                                        Monitoring and Compliance
+                                    </span>
+                                </a>
+
+
+                                <!-- =================================
+                                     DEVELOPER TOOLS
+                                ================================== -->
+                                {% if django_admin_url %}
+                                    <div class="primary-dropdown-divider"></div>
+
+                                    <a
+                                        href="{{ django_admin_url }}"
+                                        hx-boost="false"
+                                        class="primary-dropdown-link"
+                                        role="menuitem"
+                                        @click="openMenu = null"
+                                    >
+                                        <span class="primary-dropdown-icon">
+                                            ⚒
+                                        </span>
+
+                                        <span class="primary-dropdown-label">
+                                            Developer Tools
+                                        </span>
+                                    </a>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
-                </div>
+                {% endif %}
+
 
             {% endwith %}
+
         </nav>
 
 
@@ -1452,7 +1644,7 @@ Important navigation behavior:
             </div>
 
 
-            <!-- =============================================
+                        <!-- =============================================
                  MOBILE ANALYTICS MENU
             ============================================== -->
             <div
@@ -1465,6 +1657,7 @@ Important navigation behavior:
                     type="button"
                     class="
                         mobile-primary-nav-button
+
                         {% if active_primary_nav == 'analytics' %}
                             mobile-primary-nav-button-active
                         {% endif %}
@@ -1487,55 +1680,137 @@ Important navigation behavior:
                     x-show="expanded"
                     class="mobile-primary-nav-panel"
                 >
+                    <!-- Analytics dashboard -->
                     <a
-                        href="{% url 'core:analytics_dashboard' %}"
+                        href="{% url 'analytics:dashboard' %}"
                         hx-boost="false"
-                        class="mobile-primary-nav-link"
+                        class="
+                            mobile-primary-nav-link
+
+                            {% if active_analytics_module == 'dashboard' %}
+                                mobile-primary-nav-link-active
+                            {% endif %}
+                        "
+                        {% if active_analytics_module == "dashboard" %}
+                            aria-current="page"
+                        {% endif %}
                         @click="mobileMenuOpen = false"
                     >
                         Analytics Dashboard
                     </a>
 
+                    <!-- Clinical analytics -->
                     <a
-                        href="#"
-                        class="mobile-primary-nav-link"
+                        href="{% url 'analytics:clinical' %}"
+                        hx-boost="false"
+                        class="
+                            mobile-primary-nav-link
+
+                            {% if active_analytics_module == 'clinical' %}
+                                mobile-primary-nav-link-active
+                            {% endif %}
+                        "
+                        {% if active_analytics_module == "clinical" %}
+                            aria-current="page"
+                        {% endif %}
+                        @click="mobileMenuOpen = false"
                     >
                         Clinical Analytics
                     </a>
 
+                    <!-- Nursing analytics -->
                     <a
-                        href="#"
-                        class="mobile-primary-nav-link"
+                        href="{% url 'analytics:nursing' %}"
+                        hx-boost="false"
+                        class="
+                            mobile-primary-nav-link
+
+                            {% if active_analytics_module == 'nursing' %}
+                                mobile-primary-nav-link-active
+                            {% endif %}
+                        "
+                        {% if active_analytics_module == "nursing" %}
+                            aria-current="page"
+                        {% endif %}
+                        @click="mobileMenuOpen = false"
                     >
                         Nursing Analytics
                     </a>
 
+                    <!-- Operational analytics -->
                     <a
-                        href="#"
-                        class="mobile-primary-nav-link"
+                        href="{% url 'analytics:operations' %}"
+                        hx-boost="false"
+                        class="
+                            mobile-primary-nav-link
+
+                            {% if active_analytics_module == 'operations' %}
+                                mobile-primary-nav-link-active
+                            {% endif %}
+                        "
+                        {% if active_analytics_module == "operations" %}
+                            aria-current="page"
+                        {% endif %}
+                        @click="mobileMenuOpen = false"
                     >
-                        Operations
+                        Operational Analytics
                     </a>
 
+                    <!-- Quality measures -->
                     <a
-                        href="#"
-                        class="mobile-primary-nav-link"
+                        href="{% url 'analytics:quality' %}"
+                        hx-boost="false"
+                        class="
+                            mobile-primary-nav-link
+
+                            {% if active_analytics_module == 'quality' %}
+                                mobile-primary-nav-link-active
+                            {% endif %}
+                        "
+                        {% if active_analytics_module == "quality" %}
+                            aria-current="page"
+                        {% endif %}
+                        @click="mobileMenuOpen = false"
                     >
-                        Quality
+                        Quality Measures
                     </a>
 
+                    <!-- Population health -->
                     <a
-                        href="#"
-                        class="mobile-primary-nav-link"
+                        href="{% url 'analytics:population' %}"
+                        hx-boost="false"
+                        class="
+                            mobile-primary-nav-link
+
+                            {% if active_analytics_module == 'population' %}
+                                mobile-primary-nav-link-active
+                            {% endif %}
+                        "
+                        {% if active_analytics_module == "population" %}
+                            aria-current="page"
+                        {% endif %}
+                        @click="mobileMenuOpen = false"
                     >
-                        Public Health
+                        Population Health
                     </a>
 
+                    <!-- Patient outcomes -->
                     <a
-                        href="#"
-                        class="mobile-primary-nav-link"
+                        href="{% url 'analytics:patient_outcomes' %}"
+                        hx-boost="false"
+                        class="
+                            mobile-primary-nav-link
+
+                            {% if active_analytics_module == 'patient-outcomes' %}
+                                mobile-primary-nav-link-active
+                            {% endif %}
+                        "
+                        {% if active_analytics_module == "patient-outcomes" %}
+                            aria-current="page"
+                        {% endif %}
+                        @click="mobileMenuOpen = false"
                     >
-                        Reports
+                        Patient Outcomes
                     </a>
                 </div>
             </div>
@@ -1554,6 +1829,7 @@ Important navigation behavior:
                     type="button"
                     class="
                         mobile-primary-nav-button
+
                         {% if active_primary_nav == 'ai-cds' %}
                             mobile-primary-nav-button-active
                         {% endif %}
@@ -1630,134 +1906,175 @@ Important navigation behavior:
             </div>
 
 
-            <!-- =============================================
+                        <!-- =============================================
                  MOBILE ADMINISTRATION MENU
+
+                 Only major Administration sections appear
+                 here. Detailed items remain in the sidebar.
             ============================================== -->
-            <div
-                x-data="{
-                    expanded:
-                        '{{ active_primary_nav }}' === 'administration'
-                }"
-            >
-                <button
-                    type="button"
-                    class="
-                        mobile-primary-nav-button
-                        {% if active_primary_nav == 'administration' %}
-                            mobile-primary-nav-button-active
-                        {% endif %}
-                    "
-                    @click="expanded = !expanded"
-                    :aria-expanded="expanded.toString()"
-                >
-                    <span>Administration</span>
-
-                    <span
-                        class="transition-transform"
-                        :class="{ 'rotate-180': expanded }"
-                    >
-                        ▾
-                    </span>
-                </button>
-
+            {% if request.user.is_staff or request.user.is_superuser %}
                 <div
-                    x-cloak
-                    x-show="expanded"
-                    class="mobile-primary-nav-panel"
+                    x-data="{
+                        expanded:
+                            '{{ active_primary_nav }}' ===
+                            'administration'
+                    }"
                 >
-                    <!-- Administration dashboard -->
-                    <a
-                        href="{% url 'administration:dashboard' %}"
-                        hx-boost="false"
-                        class="mobile-primary-nav-link"
-                        @click="mobileMenuOpen = false"
+                    <button
+                        type="button"
+                        class="
+                            mobile-primary-nav-button
+
+                            {% if active_primary_nav == 'administration' %}
+                                mobile-primary-nav-button-active
+                            {% endif %}
+                        "
+                        @click="expanded = !expanded"
+                        :aria-expanded="expanded.toString()"
                     >
-                        Administration Dashboard
-                    </a>
+                        <span>Administration</span>
 
-                    <!-- Scheduling -->
-                    <a
-                        href="#"
-                        class="mobile-primary-nav-link"
+                        <span
+                            class="transition-transform"
+                            :class="{ 'rotate-180': expanded }"
+                        >
+                            ▾
+                        </span>
+                    </button>
+
+                    <div
+                        x-cloak
+                        x-show="expanded"
+                        class="mobile-primary-nav-panel"
                     >
-                        Scheduling
-                    </a>
+                        <!-- Administration overview -->
+                        {% if administration_dashboard_url %}
+                            <a
+                                href="{{ administration_dashboard_url }}"
+                                hx-boost="false"
+                                class="
+                                    mobile-primary-nav-link
 
-                    <!-- Users and staff -->
-                    {% if request.user.is_staff %}
-                        <a
-                            href="{% url 'admin:auth_user_changelist' %}"
-                            hx-boost="false"
-                            class="mobile-primary-nav-link"
-                            @click="mobileMenuOpen = false"
-                        >
-                            Users and Staff
-                        </a>
-                    {% else %}
-                        <a
-                            href="#"
-                            class="mobile-primary-nav-link"
-                        >
-                            Users and Staff
-                        </a>
-                    {% endif %}
+                                    {% if active_administration_module == 'dashboard' or active_admin_module == 'dashboard' %}
+                                        mobile-primary-nav-link-active
+                                    {% endif %}
+                                "
+                                {% if active_administration_module == "dashboard" or active_admin_module == "dashboard" %}
+                                    aria-current="page"
+                                {% endif %}
+                                @click="mobileMenuOpen = false"
+                            >
+                                Administration Overview
+                            </a>
+                        {% endif %}
 
-                    <!-- Roles and permissions -->
-                    {% if request.user.is_staff %}
-                        <a
-                            href="{% url 'admin:auth_group_changelist' %}"
-                            hx-boost="false"
-                            class="mobile-primary-nav-link"
-                            @click="mobileMenuOpen = false"
-                        >
-                            Roles and Permissions
-                        </a>
-                    {% else %}
-                        <a
-                            href="#"
-                            class="mobile-primary-nav-link"
-                        >
-                            Roles and Permissions
-                        </a>
-                    {% endif %}
 
-                    <!-- Facilities -->
-                    <a
-                        href="#"
-                        class="mobile-primary-nav-link"
-                    >
-                        Facilities
-                    </a>
+                        <!-- Access and security -->
+                        {% if administration_users_url %}
+                            <a
+                                href="{{ administration_users_url }}"
+                                hx-boost="false"
+                                class="
+                                    mobile-primary-nav-link
 
-                    <!-- Audit logs -->
-                    <a
-                        href="#"
-                        class="mobile-primary-nav-link"
-                    >
-                        Audit Logs
-                    </a>
+                                    {% if active_administration_module == 'users' or active_administration_module == 'roles' or active_admin_module == 'users' or active_admin_module == 'roles' %}
+                                        mobile-primary-nav-link-active
+                                    {% endif %}
+                                "
+                                @click="mobileMenuOpen = false"
+                            >
+                                Access and Security
+                            </a>
+                        {% elif django_users_url %}
+                            <a
+                                href="{{ django_users_url }}"
+                                hx-boost="false"
+                                class="mobile-primary-nav-link"
+                                @click="mobileMenuOpen = false"
+                            >
+                                Access and Security
+                            </a>
+                        {% endif %}
 
-                    <!-- System settings -->
-                    <a
-                        href="#"
-                        class="mobile-primary-nav-link"
-                    >
-                        System Settings
-                    </a>
 
-                    <!-- Django administration -->
-                    {% if request.user.is_staff %}
-                        <a
-                            href="{% url 'admin:index' %}"
-                            hx-boost="false"
-                            class="mobile-primary-nav-link"
-                            @click="mobileMenuOpen = false"
-                        >
-                            Django Admin
-                        </a>
-                    {% endif %}
+                        <!-- Organization and facilities -->
+                        {% if facilities_list_url %}
+                            <a
+                                href="{{ facilities_list_url }}"
+                                hx-boost="false"
+                                class="
+                                    mobile-primary-nav-link
+
+                                    {% if active_administration_module == 'facilities' or active_administration_module == 'departments' or active_administration_module == 'clinical-units' or active_administration_module == 'rooms' or active_administration_module == 'beds' or active_admin_module == 'facilities' or active_admin_module == 'departments' or active_admin_module == 'rooms' %}
+                                        mobile-primary-nav-link-active
+                                    {% endif %}
+                                "
+                                @click="mobileMenuOpen = false"
+                            >
+                                Organization and Facilities
+                            </a>
+                        {% endif %}
+
+
+                        <!-- System configuration -->
+                        {% if administration_settings_url %}
+                            <a
+                                href="{{ administration_settings_url }}"
+                                hx-boost="false"
+                                class="
+                                    mobile-primary-nav-link
+
+                                    {% if active_administration_module == 'settings' or active_administration_module == 'system_settings' or active_administration_module == 'clinical_dictionaries' or active_administration_module == 'integrations' or active_administration_module == 'data-management' or active_admin_module == 'system_settings' or active_admin_module == 'clinical_dictionaries' or active_admin_module == 'integrations' %}
+                                        mobile-primary-nav-link-active
+                                    {% endif %}
+                                "
+                                @click="mobileMenuOpen = false"
+                            >
+                                System Configuration
+                            </a>
+                        {% endif %}
+
+
+                        <!-- Monitoring and compliance -->
+                        {% if administration_audit_logs_url %}
+                            <a
+                                href="{{ administration_audit_logs_url }}"
+                                hx-boost="false"
+                                class="
+                                    mobile-primary-nav-link
+
+                                    {% if active_administration_module == 'audit-logs' or active_administration_module == 'audit_logs' or active_administration_module == 'system-health' or active_administration_module == 'system_health' or active_admin_module == 'audit_logs' or active_admin_module == 'system_health' %}
+                                        mobile-primary-nav-link-active
+                                    {% endif %}
+                                "
+                                @click="mobileMenuOpen = false"
+                            >
+                                Monitoring and Compliance
+                            </a>
+                        {% endif %}
+
+
+                        <!-- Developer tools -->
+                        {% if django_admin_url %}
+                            <div
+                                class="
+                                    mt-1 border-t
+                                    border-white/10 pt-1
+                                "
+                            >
+                                <a
+                                    href="{{ django_admin_url }}"
+                                    hx-boost="false"
+                                    class="mobile-primary-nav-link"
+                                    @click="mobileMenuOpen = false"
+                                >
+                                    Developer Tools
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
+            {% endif %}
         </nav>
 
 

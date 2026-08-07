@@ -1,0 +1,164 @@
+
+
+{% comment %}
+============================================================
+USER ACCOUNTS WORKSPACE
+============================================================
+{% endcomment %}
+
+
+<section
+    id="user-management-content"
+    class="space-y-4"
+>
+    <header
+        class="
+            flex flex-col gap-3
+            rounded-xl border border-slate-200
+            bg-white px-4 py-4 shadow-sm
+            sm:flex-row sm:items-center sm:justify-between
+        "
+    >
+        <div>
+            <p
+                class="
+                    text-[10px] font-semibold
+                    uppercase tracking-[0.14em]
+                    text-ehr-700
+                "
+            >
+                Access and Security
+            </p>
+
+            <h1 class="mt-1 text-lg font-semibold text-slate-950">
+                {{ page_title }}
+            </h1>
+
+            <p class="mt-1 text-xs text-slate-500">
+                {{ page_description }}
+            </p>
+        </div>
+
+        <button
+            type="button"
+            class="
+                inline-flex items-center justify-center
+                rounded-lg bg-ehr-700
+                px-3 py-2
+                text-xs font-semibold text-white
+                shadow-sm transition
+                hover:bg-ehr-800
+            "
+        >
+            Add User
+        </button>
+    </header>
+
+
+    <section
+        class="
+            overflow-hidden
+            rounded-xl border border-slate-200
+            bg-white shadow-sm
+        "
+    >
+        <div
+            class="
+                flex flex-col gap-3
+                border-b border-slate-200
+                px-4 py-3
+                sm:flex-row sm:items-center
+                sm:justify-between
+            "
+        >
+            <div>
+                <h2 class="text-sm font-semibold text-slate-900">
+                    User Directory
+                </h2>
+
+                <p class="mt-0.5 text-xs text-slate-500">
+                    Review active and inactive system accounts.
+                </p>
+            </div>
+
+            <form
+                method="get"
+                hx-get="{% url 'administration:users' %}"
+                hx-target="#user-management-results"
+                hx-swap="innerHTML"
+                hx-trigger="submit, input changed delay:400ms from:#user-search"
+                class="w-full sm:w-72"
+            >
+                <label for="user-search" class="sr-only">
+                    Search users
+                </label>
+
+                <input
+                    id="user-search"
+                    type="search"
+                    name="q"
+                    value="{{ request.GET.q }}"
+                    placeholder="Search users..."
+                    class="
+                        w-full rounded-lg
+                        border border-slate-300
+                        bg-white px-3 py-2
+                        text-sm text-slate-900
+                        outline-none
+                        transition
+                        placeholder:text-slate-400
+                        focus:border-ehr-500
+                        focus:ring-2 focus:ring-ehr-100
+                    "
+                >
+            </form>
+        </div>
+
+        <div id="user-management-results">
+            {% if users %}
+                <div class="divide-y divide-slate-200">
+                    {% for user_record in users %}
+                        <article
+                            class="
+                                flex items-center justify-between
+                                gap-3 px-4 py-3
+                            "
+                        >
+                            <div>
+                                <p class="text-sm font-medium text-slate-900">
+                                    {{ user_record.get_full_name|default:user_record.username }}
+                                </p>
+
+                                <p class="text-xs text-slate-500">
+                                    {{ user_record.email|default:"No email recorded" }}
+                                </p>
+                            </div>
+
+                            <span
+                                class="
+                                    rounded-full
+                                    bg-emerald-50
+                                    px-2 py-1
+                                    text-[10px] font-semibold
+                                    text-emerald-700
+                                "
+                            >
+                                Active
+                            </span>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="px-4 py-12 text-center">
+                    <h3 class="text-sm font-semibold text-slate-800">
+                        No users available
+                    </h3>
+
+                    <p class="mt-1 text-xs text-slate-500">
+                        User records will appear here after they are created.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+</section>

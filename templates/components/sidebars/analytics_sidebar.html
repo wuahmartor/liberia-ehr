@@ -1,7 +1,3 @@
-
-
-
-
 {% comment %}
 ============================================================
 ANALYTICS SIDEBAR
@@ -10,138 +6,713 @@ File:
 templates/components/sidebars/analytics_sidebar.html
 
 Purpose:
-- Provide navigation for operational, clinical, quality,
-  financial, and population-health analytics.
+- Provide organized Analytics navigation.
+- Separate dashboard modules from data-management tools.
+- Highlight the active Analytics module.
+- Keep each menu item on its own row.
+- Maintain a compact, readable sidebar layout.
+
+Expected context:
+- active_primary_nav
+- active_analytics_module
 ============================================================
 {% endcomment %}
 
 
 <div
     class="
-        h-full overflow-y-auto
+        h-full min-h-0 w-full
+        overflow-x-hidden overflow-y-auto
         bg-white px-3 py-3
     "
     aria-label="Analytics sidebar"
 >
+    <!-- =====================================================
+         ANALYTICS OVERVIEW
+    ====================================================== -->
     <section>
-        <p class="analytics-sidebar-heading">
-            Analytics
-        </p>
-
-        <nav class="space-y-1">
-            <a
-                href="#"
+        <div
+            class="
+                mb-2 flex items-center
+                justify-between px-2
+            "
+        >
+            <p
                 class="
-                    analytics-sidebar-link
+                    text-[10px] font-semibold uppercase
+                    tracking-[0.12em] text-slate-500
+                "
+            >
+                Analytics
+            </p>
+
+            <span
+                class="
+                    rounded-full bg-ehr-50
+                    px-2 py-0.5
+                    text-[9px] font-semibold
+                    uppercase tracking-wide
+                    text-ehr-700
+                "
+            >
+                Insights
+            </span>
+        </div>
+
+        <nav
+            class="space-y-1"
+            aria-label="Analytics dashboard navigation"
+        >
+            <!-- =================================================
+                 ANALYTICS DASHBOARD
+            ================================================== -->
+            <a
+                href="{% url 'analytics:dashboard' %}"
+                hx-boost="false"
+                class="
+                    group flex w-full items-center gap-3
+                    rounded-lg px-3 py-2
+                    text-xs font-medium
+                    transition duration-150
+
                     {% if active_analytics_module == 'dashboard' %}
-                        analytics-sidebar-link-active
+                        bg-ehr-50 text-ehr-900
+                        ring-1 ring-inset ring-ehr-200
+                    {% else %}
+                        text-slate-700
+                        hover:bg-slate-100
+                        hover:text-slate-950
                     {% endif %}
                 "
+                {% if active_analytics_module == "dashboard" %}
+                    aria-current="page"
+                {% endif %}
             >
-                <span aria-hidden="true">▦</span>
-                <span>Analytics Dashboard</span>
-            </a>
+                <span
+                    class="
+                        grid h-7 w-7 shrink-0
+                        place-items-center rounded-md
+                        text-sm
 
-            <a
-                href="#"
-                class="
-                    analytics-sidebar-link
-                    {% if active_analytics_module == 'clinical' %}
-                        analytics-sidebar-link-active
-                    {% endif %}
-                "
-            >
-                <span aria-hidden="true">⌁</span>
-                <span>Clinical Analytics</span>
-            </a>
+                        {% if active_analytics_module == 'dashboard' %}
+                            bg-ehr-100 text-ehr-800
+                        {% else %}
+                            bg-slate-100 text-slate-500
+                            group-hover:bg-white
+                            group-hover:text-slate-700
+                        {% endif %}
+                    "
+                    aria-hidden="true"
+                >
+                    ▦
+                </span>
 
-            <a
-                href="#"
-                class="
-                    analytics-sidebar-link
-                    {% if active_analytics_module == 'nursing' %}
-                        analytics-sidebar-link-active
-                    {% endif %}
-                "
-            >
-                <span aria-hidden="true">♡</span>
-                <span>Nursing Analytics</span>
-            </a>
+                <span class="min-w-0 flex-1">
+                    <span class="block truncate">
+                        Analytics Dashboard
+                    </span>
 
-            <a
-                href="#"
-                class="
-                    analytics-sidebar-link
-                    {% if active_analytics_module == 'quality' %}
-                        analytics-sidebar-link-active
-                    {% endif %}
-                "
-            >
-                <span aria-hidden="true">✓</span>
-                <span>Quality Measures</span>
-            </a>
+                    <span
+                        class="
+                            mt-0.5 block truncate
+                            text-[10px] font-normal
 
-            <a
-                href="#"
-                class="
-                    analytics-sidebar-link
-                    {% if active_analytics_module == 'population' %}
-                        analytics-sidebar-link-active
-                    {% endif %}
-                "
-            >
-                <span aria-hidden="true">◎</span>
-                <span>Population Health</span>
-            </a>
+                            {% if active_analytics_module == 'dashboard' %}
+                                text-ehr-700
+                            {% else %}
+                                text-slate-400
+                            {% endif %}
+                        "
+                    >
+                        System-wide overview
+                    </span>
+                </span>
 
-            <a
-                href="#"
-                class="
-                    analytics-sidebar-link
-                    {% if active_analytics_module == 'operations' %}
-                        analytics-sidebar-link-active
-                    {% endif %}
-                "
-            >
-                <span aria-hidden="true">⇅</span>
-                <span>Operational Analytics</span>
-            </a>
-
-            <a
-                href="#"
-                class="
-                    analytics-sidebar-link
-                    {% if active_analytics_module == 'reports' %}
-                        analytics-sidebar-link-active
-                    {% endif %}
-                "
-            >
-                <span aria-hidden="true">▤</span>
-                <span>Reports</span>
+                {% if active_analytics_module == "dashboard" %}
+                    <span
+                        class="
+                            h-1.5 w-1.5 shrink-0
+                            rounded-full bg-ehr-600
+                        "
+                        aria-hidden="true"
+                    ></span>
+                {% endif %}
             </a>
         </nav>
     </section>
 
 
+    <!-- =====================================================
+         CLINICAL AND QUALITY ANALYTICS
+    ====================================================== -->
     <section class="mt-4">
-        <p class="analytics-sidebar-heading">
+        <p
+            class="
+                mb-2 px-2
+                text-[10px] font-semibold uppercase
+                tracking-[0.12em] text-slate-500
+            "
+        >
+            Clinical & Quality
+        </p>
+
+        <nav
+            class="space-y-1"
+            aria-label="Clinical and quality analytics navigation"
+        >
+            <!-- =================================================
+                 CLINICAL ANALYTICS
+            ================================================== -->
+            <a
+                href="{% url 'analytics:clinical' %}"
+                hx-boost="false"
+                class="
+                    group flex w-full items-center gap-3
+                    rounded-lg px-3 py-2
+                    text-xs font-medium
+                    transition duration-150
+
+                    {% if active_analytics_module == 'clinical' %}
+                        bg-ehr-50 text-ehr-900
+                        ring-1 ring-inset ring-ehr-200
+                    {% else %}
+                        text-slate-700
+                        hover:bg-slate-100
+                        hover:text-slate-950
+                    {% endif %}
+                "
+                {% if active_analytics_module == "clinical" %}
+                    aria-current="page"
+                {% endif %}
+            >
+                <span
+                    class="
+                        grid h-7 w-7 shrink-0
+                        place-items-center rounded-md
+                        text-sm
+
+                        {% if active_analytics_module == 'clinical' %}
+                            bg-ehr-100 text-ehr-800
+                        {% else %}
+                            bg-slate-100 text-slate-500
+                            group-hover:bg-white
+                            group-hover:text-slate-700
+                        {% endif %}
+                    "
+                    aria-hidden="true"
+                >
+                    ⌁
+                </span>
+
+                <span class="min-w-0 flex-1 truncate">
+                    Clinical Analytics
+                </span>
+
+                {% if active_analytics_module == "clinical" %}
+                    <span
+                        class="
+                            h-1.5 w-1.5 shrink-0
+                            rounded-full bg-ehr-600
+                        "
+                        aria-hidden="true"
+                    ></span>
+                {% endif %}
+            </a>
+
+
+            <!-- =================================================
+                 NURSING ANALYTICS
+            ================================================== -->
+            <a
+                href="{% url 'analytics:nursing' %}"
+                hx-boost="false"
+                class="
+                    group flex w-full items-center gap-3
+                    rounded-lg px-3 py-2
+                    text-xs font-medium
+                    transition duration-150
+
+                    {% if active_analytics_module == 'nursing' %}
+                        bg-ehr-50 text-ehr-900
+                        ring-1 ring-inset ring-ehr-200
+                    {% else %}
+                        text-slate-700
+                        hover:bg-slate-100
+                        hover:text-slate-950
+                    {% endif %}
+                "
+                {% if active_analytics_module == "nursing" %}
+                    aria-current="page"
+                {% endif %}
+            >
+                <span
+                    class="
+                        grid h-7 w-7 shrink-0
+                        place-items-center rounded-md
+                        text-sm
+
+                        {% if active_analytics_module == 'nursing' %}
+                            bg-ehr-100 text-ehr-800
+                        {% else %}
+                            bg-slate-100 text-slate-500
+                            group-hover:bg-white
+                            group-hover:text-slate-700
+                        {% endif %}
+                    "
+                    aria-hidden="true"
+                >
+                    ♡
+                </span>
+
+                <span class="min-w-0 flex-1 truncate">
+                    Nursing Analytics
+                </span>
+
+                {% if active_analytics_module == "nursing" %}
+                    <span
+                        class="
+                            h-1.5 w-1.5 shrink-0
+                            rounded-full bg-ehr-600
+                        "
+                        aria-hidden="true"
+                    ></span>
+                {% endif %}
+            </a>
+
+
+            <!-- =================================================
+                 QUALITY MEASURES
+            ================================================== -->
+            <a
+                href="{% url 'analytics:quality' %}"
+                hx-boost="false"
+                class="
+                    group flex w-full items-center gap-3
+                    rounded-lg px-3 py-2
+                    text-xs font-medium
+                    transition duration-150
+
+                    {% if active_analytics_module == 'quality' %}
+                        bg-ehr-50 text-ehr-900
+                        ring-1 ring-inset ring-ehr-200
+                    {% else %}
+                        text-slate-700
+                        hover:bg-slate-100
+                        hover:text-slate-950
+                    {% endif %}
+                "
+                {% if active_analytics_module == "quality" %}
+                    aria-current="page"
+                {% endif %}
+            >
+                <span
+                    class="
+                        grid h-7 w-7 shrink-0
+                        place-items-center rounded-md
+                        text-sm
+
+                        {% if active_analytics_module == 'quality' %}
+                            bg-ehr-100 text-ehr-800
+                        {% else %}
+                            bg-slate-100 text-slate-500
+                            group-hover:bg-white
+                            group-hover:text-slate-700
+                        {% endif %}
+                    "
+                    aria-hidden="true"
+                >
+                    ✓
+                </span>
+
+                <span class="min-w-0 flex-1 truncate">
+                    Quality Measures
+                </span>
+
+                {% if active_analytics_module == "quality" %}
+                    <span
+                        class="
+                            h-1.5 w-1.5 shrink-0
+                            rounded-full bg-ehr-600
+                        "
+                        aria-hidden="true"
+                    ></span>
+                {% endif %}
+            </a>
+
+
+            <!-- =================================================
+                 PATIENT OUTCOMES
+            ================================================== -->
+            <a
+                href="{% url 'analytics:patient_outcomes' %}"
+                hx-boost="false"
+                class="
+                    group flex w-full items-center gap-3
+                    rounded-lg px-3 py-2
+                    text-xs font-medium
+                    transition duration-150
+
+                    {% if active_analytics_module == 'patient-outcomes' %}
+                        bg-ehr-50 text-ehr-900
+                        ring-1 ring-inset ring-ehr-200
+                    {% else %}
+                        text-slate-700
+                        hover:bg-slate-100
+                        hover:text-slate-950
+                    {% endif %}
+                "
+                {% if active_analytics_module == "patient-outcomes" %}
+                    aria-current="page"
+                {% endif %}
+            >
+                <span
+                    class="
+                        grid h-7 w-7 shrink-0
+                        place-items-center rounded-md
+                        text-sm
+
+                        {% if active_analytics_module == 'patient-outcomes' %}
+                            bg-ehr-100 text-ehr-800
+                        {% else %}
+                            bg-slate-100 text-slate-500
+                            group-hover:bg-white
+                            group-hover:text-slate-700
+                        {% endif %}
+                    "
+                    aria-hidden="true"
+                >
+                    ↗
+                </span>
+
+                <span class="min-w-0 flex-1 truncate">
+                    Patient Outcomes
+                </span>
+
+                {% if active_analytics_module == "patient-outcomes" %}
+                    <span
+                        class="
+                            h-1.5 w-1.5 shrink-0
+                            rounded-full bg-ehr-600
+                        "
+                        aria-hidden="true"
+                    ></span>
+                {% endif %}
+            </a>
+        </nav>
+    </section>
+
+
+    <!-- =====================================================
+         POPULATION AND OPERATIONS
+    ====================================================== -->
+    <section class="mt-4">
+        <p
+            class="
+                mb-2 px-2
+                text-[10px] font-semibold uppercase
+                tracking-[0.12em] text-slate-500
+            "
+        >
+            Population & Operations
+        </p>
+
+        <nav
+            class="space-y-1"
+            aria-label="Population and operations analytics navigation"
+        >
+            <!-- =================================================
+                 POPULATION HEALTH
+            ================================================== -->
+            <a
+                href="{% url 'analytics:population' %}"
+                hx-boost="false"
+                class="
+                    group flex w-full items-center gap-3
+                    rounded-lg px-3 py-2
+                    text-xs font-medium
+                    transition duration-150
+
+                    {% if active_analytics_module == 'population' %}
+                        bg-ehr-50 text-ehr-900
+                        ring-1 ring-inset ring-ehr-200
+                    {% else %}
+                        text-slate-700
+                        hover:bg-slate-100
+                        hover:text-slate-950
+                    {% endif %}
+                "
+                {% if active_analytics_module == "population" %}
+                    aria-current="page"
+                {% endif %}
+            >
+                <span
+                    class="
+                        grid h-7 w-7 shrink-0
+                        place-items-center rounded-md
+                        text-sm
+
+                        {% if active_analytics_module == 'population' %}
+                            bg-ehr-100 text-ehr-800
+                        {% else %}
+                            bg-slate-100 text-slate-500
+                            group-hover:bg-white
+                            group-hover:text-slate-700
+                        {% endif %}
+                    "
+                    aria-hidden="true"
+                >
+                    ◎
+                </span>
+
+                <span class="min-w-0 flex-1 truncate">
+                    Population Health
+                </span>
+
+                {% if active_analytics_module == "population" %}
+                    <span
+                        class="
+                            h-1.5 w-1.5 shrink-0
+                            rounded-full bg-ehr-600
+                        "
+                        aria-hidden="true"
+                    ></span>
+                {% endif %}
+            </a>
+
+
+            <!-- =================================================
+                 OPERATIONAL ANALYTICS
+            ================================================== -->
+            <a
+                href="{% url 'analytics:operations' %}"
+                hx-boost="false"
+                class="
+                    group flex w-full items-center gap-3
+                    rounded-lg px-3 py-2
+                    text-xs font-medium
+                    transition duration-150
+
+                    {% if active_analytics_module == 'operations' %}
+                        bg-ehr-50 text-ehr-900
+                        ring-1 ring-inset ring-ehr-200
+                    {% else %}
+                        text-slate-700
+                        hover:bg-slate-100
+                        hover:text-slate-950
+                    {% endif %}
+                "
+                {% if active_analytics_module == "operations" %}
+                    aria-current="page"
+                {% endif %}
+            >
+                <span
+                    class="
+                        grid h-7 w-7 shrink-0
+                        place-items-center rounded-md
+                        text-sm
+
+                        {% if active_analytics_module == 'operations' %}
+                            bg-ehr-100 text-ehr-800
+                        {% else %}
+                            bg-slate-100 text-slate-500
+                            group-hover:bg-white
+                            group-hover:text-slate-700
+                        {% endif %}
+                    "
+                    aria-hidden="true"
+                >
+                    ⇅
+                </span>
+
+                <span class="min-w-0 flex-1 truncate">
+                    Operational Analytics
+                </span>
+
+                {% if active_analytics_module == "operations" %}
+                    <span
+                        class="
+                            h-1.5 w-1.5 shrink-0
+                            rounded-full bg-ehr-600
+                        "
+                        aria-hidden="true"
+                    ></span>
+                {% endif %}
+            </a>
+        </nav>
+    </section>
+
+
+    <!-- =====================================================
+         DATA MANAGEMENT
+    ====================================================== -->
+    <section class="mt-4 border-t border-slate-200 pt-4">
+        <p
+            class="
+                mb-2 px-2
+                text-[10px] font-semibold uppercase
+                tracking-[0.12em] text-slate-500
+            "
+        >
             Data Management
         </p>
 
-        <nav class="space-y-1">
-            <a href="#" class="analytics-sidebar-link">
-                <span aria-hidden="true">⇧</span>
-                <span>Data Exports</span>
+        <nav
+            class="space-y-1"
+            aria-label="Analytics data management"
+        >
+            <!-- =================================================
+                 DATA EXPORTS
+            ================================================== -->
+            <a
+                href="#"
+                class="
+                    group flex w-full items-center gap-3
+                    rounded-lg px-3 py-2
+                    text-xs font-medium
+                    transition duration-150
+
+                    {% if active_analytics_module == 'exports' %}
+                        bg-ehr-50 text-ehr-900
+                        ring-1 ring-inset ring-ehr-200
+                    {% else %}
+                        text-slate-700
+                        hover:bg-slate-100
+                        hover:text-slate-950
+                    {% endif %}
+                "
+                {% if active_analytics_module == "exports" %}
+                    aria-current="page"
+                {% endif %}
+            >
+                <span
+                    class="
+                        grid h-7 w-7 shrink-0
+                        place-items-center rounded-md
+                        bg-slate-100 text-sm text-slate-500
+                        group-hover:bg-white
+                        group-hover:text-slate-700
+                    "
+                    aria-hidden="true"
+                >
+                    ⇧
+                </span>
+
+                <span class="min-w-0 flex-1 truncate">
+                    Data Exports
+                </span>
+
+                <span
+                    class="
+                        text-[10px] font-medium
+                        text-slate-400
+                    "
+                >
+                    Soon
+                </span>
             </a>
 
-            <a href="#" class="analytics-sidebar-link">
-                <span aria-hidden="true">▥</span>
-                <span>Saved Queries</span>
+
+            <!-- =================================================
+                 SAVED QUERIES
+            ================================================== -->
+            <a
+                href="#"
+                class="
+                    group flex w-full items-center gap-3
+                    rounded-lg px-3 py-2
+                    text-xs font-medium
+                    transition duration-150
+
+                    {% if active_analytics_module == 'saved-queries' %}
+                        bg-ehr-50 text-ehr-900
+                        ring-1 ring-inset ring-ehr-200
+                    {% else %}
+                        text-slate-700
+                        hover:bg-slate-100
+                        hover:text-slate-950
+                    {% endif %}
+                "
+                {% if active_analytics_module == "saved-queries" %}
+                    aria-current="page"
+                {% endif %}
+            >
+                <span
+                    class="
+                        grid h-7 w-7 shrink-0
+                        place-items-center rounded-md
+                        bg-slate-100 text-sm text-slate-500
+                        group-hover:bg-white
+                        group-hover:text-slate-700
+                    "
+                    aria-hidden="true"
+                >
+                    ▥
+                </span>
+
+                <span class="min-w-0 flex-1 truncate">
+                    Saved Queries
+                </span>
+
+                <span
+                    class="
+                        text-[10px] font-medium
+                        text-slate-400
+                    "
+                >
+                    Soon
+                </span>
             </a>
 
-            <a href="#" class="analytics-sidebar-link">
-                <span aria-hidden="true">⚙</span>
-                <span>Measure Definitions</span>
+
+            <!-- =================================================
+                 MEASURE DEFINITIONS
+            ================================================== -->
+            <a
+                href="#"
+                class="
+                    group flex w-full items-center gap-3
+                    rounded-lg px-3 py-2
+                    text-xs font-medium
+                    transition duration-150
+
+                    {% if active_analytics_module == 'measures' %}
+                        bg-ehr-50 text-ehr-900
+                        ring-1 ring-inset ring-ehr-200
+                    {% else %}
+                        text-slate-700
+                        hover:bg-slate-100
+                        hover:text-slate-950
+                    {% endif %}
+                "
+                {% if active_analytics_module == "measures" %}
+                    aria-current="page"
+                {% endif %}
+            >
+                <span
+                    class="
+                        grid h-7 w-7 shrink-0
+                        place-items-center rounded-md
+                        bg-slate-100 text-sm text-slate-500
+                        group-hover:bg-white
+                        group-hover:text-slate-700
+                    "
+                    aria-hidden="true"
+                >
+                    ⚙
+                </span>
+
+                <span class="min-w-0 flex-1 truncate">
+                    Measure Definitions
+                </span>
+
+                <span
+                    class="
+                        text-[10px] font-medium
+                        text-slate-400
+                    "
+                >
+                    Soon
+                </span>
             </a>
         </nav>
     </section>

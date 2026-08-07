@@ -35,7 +35,7 @@ LOCAL_APPS = [
     "apps.core",
     "apps.encounters",
     "apps.nursing",
-    "apps.vitals",
+    "apps.vitals.apps.VitalsConfig",
     "apps.diagnoses",
     "apps.medications",
     "apps.orders",

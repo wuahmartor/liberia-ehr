@@ -504,6 +504,14 @@
                focus:outline-none;
     }
 
+    .primary-dropdown-link-active {
+    @apply bg-ehr-50 font-semibold text-ehr-900;
+    }
+
+    .mobile-primary-nav-link-active {
+        @apply bg-white/15 font-semibold text-white;
+    }
+
     .primary-dropdown-icon {
         @apply inline-flex h-[1.125rem]
                w-[1.125rem]
@@ -673,4 +681,179 @@
 .htmx-request .htmx-indicator,
 .htmx-request.htmx-indicator {
     display: block;
+}
+
+
+/* ============================================================
+   APPOINTMENT DETAIL LAYOUT
+============================================================ */
+
+.appointment-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.appointment-detail-column {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+@media screen and (min-width: 760px) {
+    .appointment-detail-grid {
+        grid-template-columns:
+            minmax(0, 1fr)
+            minmax(0, 1fr);
+    }
+}
+
+
+/* ============================================================
+   APPOINTMENT PRINTING — HALF LETTER
+============================================================ */
+
+@page {
+    size: 5.5in 8.5in;
+    margin: 0.25in;
+}
+
+@media print {
+    html,
+    body {
+        width: 5.5in;
+        min-height: 8.5in;
+        margin: 0;
+        padding: 0;
+        background: white;
+        color: black;
+        font-size: 9px;
+    }
+
+    body * {
+        visibility: hidden;
+    }
+
+    #appointment-print-area,
+    #appointment-print-area * {
+        visibility: visible;
+    }
+
+    #appointment-print-area {
+        position: absolute;
+        inset: 0 auto auto 0;
+        width: 5in;
+        max-width: 5in;
+        margin: 0;
+        padding: 0;
+        background: white;
+    }
+
+    .no-print,
+    .appointment-screen-header {
+        display: none !important;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+
+    .appointment-detail-grid,
+    .appointment-print-grid {
+        display: grid !important;
+        grid-template-columns:
+            minmax(0, 1fr)
+            minmax(0, 1fr) !important;
+        gap: 6px !important;
+        align-items: start !important;
+    }
+
+    .appointment-detail-column,
+    .appointment-print-column {
+        display: flex !important;
+        min-width: 0 !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+    }
+
+    .appointment-print-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        overflow: hidden;
+        border: 1px solid #94a3b8 !important;
+        border-radius: 3px !important;
+        background: white !important;
+        box-shadow: none !important;
+    }
+
+    .appointment-print-card-header {
+        border-bottom: 1px solid #cbd5e1 !important;
+        background: #f1f5f9 !important;
+        padding: 3px 5px !important;
+    }
+
+    .appointment-print-card-header h2 {
+        margin: 0 !important;
+        color: #0f172a !important;
+        font-size: 8px !important;
+        font-weight: 700 !important;
+        line-height: 1.15 !important;
+        letter-spacing: 0.04em !important;
+        text-transform: uppercase !important;
+    }
+
+    .appointment-print-row {
+        border-bottom: 1px solid #e2e8f0 !important;
+        padding: 3px 5px !important;
+    }
+
+    .appointment-print-row:last-child {
+        border-bottom: 0 !important;
+    }
+
+    .appointment-print-two-fields {
+        display: grid !important;
+        grid-template-columns:
+            minmax(0, 1fr)
+            minmax(0, 1fr) !important;
+        gap: 6px !important;
+    }
+
+    .appointment-print-label {
+        margin: 0 !important;
+        color: #475569 !important;
+        font-size: 6.5px !important;
+        font-weight: 700 !important;
+        line-height: 1.1 !important;
+        letter-spacing: 0.03em !important;
+        text-transform: uppercase !important;
+    }
+
+    .appointment-print-value {
+        margin: 1px 0 0 !important;
+        color: #0f172a !important;
+        font-size: 8px !important;
+        line-height: 1.2 !important;
+    }
+
+    .appointment-print-value-strong {
+        font-weight: 700 !important;
+    }
+
+    .appointment-print-footer {
+        margin-top: 5px !important;
+        border-top: 1px solid #94a3b8 !important;
+        padding-top: 3px !important;
+        color: #475569 !important;
+        font-size: 6.5px !important;
+        line-height: 1.15 !important;
+    }
+}
+
+@media screen {
+    .print-only {
+        display: none;
+    }
 }

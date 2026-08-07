@@ -1,1 +1,465 @@
-{# Vitals HTMX partial: vital_form.html #}
+{% comment %}
+
+============================================================
+
+VITAL OBSERVATION FORM
+
+File:
+
+apps/vitals/templates/vitals/partials/vital_form.html
+
+Purpose:
+
+- Render compact clinical vital-sign intake.
+
+- Avoid duplicate patient demographic information.
+
+- Keep patient identity in the clinical sidebar.
+
+- Display encounter only as compact context.
+
+- Use automatic observation date/time.
+
+- Present measurements in a compact flowsheet.
+
+- Support HTMX create/update submission.
+
+Expected context:
+
+- form
+
+- page_title
+
+- page_description
+
+- submit_label
+
+- vital
+
+- selected_patient
+
+- active_encounter
+
+============================================================
+
+{% endcomment %}
+
+<div class="w-full p-2">
+
+    <form
+
+        method="post"
+
+        action="{{ request.get_full_path }}"
+
+        hx-post="{{ request.get_full_path }}"
+
+        hx-target="#vitals-form-workspace"
+
+        hx-swap="innerHTML"
+
+        hx-indicator="#vital-form-loading"
+
+        hx-disabled-elt="#vital-submit-button"
+
+        class="
+
+            overflow-hidden
+
+            rounded-lg
+
+            border border-slate-300
+
+            bg-white
+
+            shadow-sm
+
+        "
+
+    >
+
+        {% csrf_token %}
+
+        <!-- =====================================================
+
+             COMPACT CLINICAL HEADER
+
+        ====================================================== -->
+
+        <header
+
+            class="
+
+                flex min-h-12
+
+                items-center justify-between
+
+                gap-3
+
+                border-b border-slate-300
+
+                bg-slate-100
+
+                px-3 py-2
+
+            "
+
+        >
+
+            <div class="min-w-0">
+
+                <h1
+
+                    class="
+
+                        text-sm font-bold
+
+                        text-slate-900
+
+                    "
+
+                >
+
+                    {{ page_title|default:"Record Vital Signs" }}
+
+                </h1>
+
+                <p
+
+                    class="
+
+                        mt-0.5 text-[10px]
+
+                        text-slate-500
+
+                    "
+
+                >
+
+                    Clinical vital-sign intake
+
+                </p>
+
+            </div>
+
+            <div class="flex items-center gap-4">
+
+                {% if active_encounter %}
+
+                    <div class="text-right">
+
+                        <span
+
+                            class="
+
+                                text-[9px] font-bold
+
+                                uppercase tracking-wide
+
+                                text-slate-500
+
+                            "
+
+                        >
+
+                            Encounter
+
+                        </span>
+
+                        <span
+
+                            class="
+
+                                ml-1 text-[10px]
+
+                                font-semibold
+
+                                text-slate-800
+
+                            "
+
+                        >
+
+                            {{ active_encounter.encounter_number }}
+
+                        </span>
+
+                    </div>
+
+                {% endif %}
+
+                <div
+
+                    id="vital-form-loading"
+
+                    class="
+
+                        htmx-indicator
+
+                        text-[10px]
+
+                        font-semibold
+
+                        text-emerald-700
+
+                    "
+
+                >
+
+                    Saving…
+
+                </div>
+
+            </div>
+
+        </header>
+
+        <!-- =====================================================
+
+             VITAL FLOWSHEET
+
+        ====================================================== -->
+
+        <div
+
+            id="vitals-form-workspace"
+
+            class="
+
+                overflow-x-auto
+
+                bg-white
+
+                p-3
+
+            "
+
+        >
+
+            {% include "vitals/partials/form_fields.html" %}
+
+        </div>
+
+        <!-- =====================================================
+
+             ACTION BAR
+
+        ====================================================== -->
+
+        <footer
+
+            class="
+
+                flex items-center
+
+                justify-end gap-2
+
+                border-t border-slate-300
+
+                bg-slate-100
+
+                px-3 py-2
+
+            "
+
+        >
+
+            {% if vital %}
+
+                <a
+
+                    href="{% url 'vitals:detail' pk=vital.pk %}"
+
+                    hx-boost="false"
+
+                    class="
+
+                        inline-flex h-8
+
+                        items-center justify-center
+
+                        rounded-md
+
+                        border border-slate-300
+
+                        bg-white px-3
+
+                        text-[10px] font-semibold
+
+                        text-slate-700
+
+                        hover:bg-slate-50
+
+                    "
+
+                >
+
+                    Cancel
+
+                </a>
+
+            {% elif active_encounter %}
+
+                <a
+
+                    href="{% url 'vitals:encounter_list' encounter_id=active_encounter.pk %}"
+
+                    hx-boost="false"
+
+                    class="
+
+                        inline-flex h-8
+
+                        items-center justify-center
+
+                        rounded-md
+
+                        border border-slate-300
+
+                        bg-white px-3
+
+                        text-[10px] font-semibold
+
+                        text-slate-700
+
+                        hover:bg-slate-50
+
+                    "
+
+                >
+
+                    Cancel
+
+                </a>
+
+            {% elif selected_patient %}
+
+                <a
+
+                    href="{% url 'vitals:patient_history' patient_id=selected_patient.pk %}"
+
+                    hx-boost="false"
+
+                    class="
+
+                        inline-flex h-8
+
+                        items-center justify-center
+
+                        rounded-md
+
+                        border border-slate-300
+
+                        bg-white px-3
+
+                        text-[10px] font-semibold
+
+                        text-slate-700
+
+                        hover:bg-slate-50
+
+                    "
+
+                >
+
+                    Cancel
+
+                </a>
+
+            {% else %}
+
+                <a
+
+                    href="{% url 'vitals:list' %}"
+
+                    hx-boost="false"
+
+                    class="
+
+                        inline-flex h-8
+
+                        items-center justify-center
+
+                        rounded-md
+
+                        border border-slate-300
+
+                        bg-white px-3
+
+                        text-[10px] font-semibold
+
+                        text-slate-700
+
+                        hover:bg-slate-50
+
+                    "
+
+                >
+
+                    Cancel
+
+                </a>
+
+            {% endif %}
+
+            <button
+
+                id="vital-submit-button"
+
+                type="submit"
+
+                class="
+
+                    inline-flex h-8
+
+                    items-center justify-center
+
+                    rounded-md
+
+                    border border-emerald-800
+
+                    bg-emerald-700
+
+                    px-4
+
+                    text-[10px] font-bold
+
+                    text-white
+
+                    shadow-sm
+
+                    transition
+
+                    hover:bg-emerald-800
+
+                    focus:outline-none
+
+                    focus:ring-2
+
+                    focus:ring-emerald-500/30
+
+                    disabled:cursor-wait
+
+                    disabled:opacity-60
+
+                "
+
+                style="
+
+                    background-color:#047857;
+
+                    color:#ffffff;
+
+                "
+
+            >
+
+                {{ submit_label|default:"Save Vital Signs" }}
+
+            </button>
+
+        </footer>
+
+    </form>
+
+</div>

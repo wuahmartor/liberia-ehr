@@ -1,0 +1,1374 @@
+{% comment %}
+============================================================
+SCHEDULING APPOINTMENT DETAIL CONTENT
+
+File:
+apps/administration/templates/administration/scheduling/
+partials/detail_content.html
+
+Purpose:
+- Present appointment information in two compact screen columns.
+- Group patient and visit information together.
+- Group appointment timing and duration together.
+- Group provider and location assignment together.
+- Provide a dedicated print button.
+- Format printed appointment information for half-letter paper.
+- Exclude actions, internal notes, and audit details from printing.
+============================================================
+{% endcomment %}
+
+
+<style>
+    /* =========================================================
+       SCREEN LAYOUT
+    ========================================================== */
+
+    .appointment-detail-page {
+        width: 100%;
+        max-width: 96rem;
+        margin-right: auto;
+        margin-left: auto;
+        padding: 0.75rem;
+    }
+
+    .appointment-detail-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.75rem;
+        align-items: start;
+    }
+
+    .appointment-detail-column {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .appointment-detail-card {
+        min-width: 0;
+    }
+
+    @media screen and (min-width: 700px) {
+        .appointment-detail-grid {
+            grid-template-columns:
+                minmax(0, 1fr)
+                minmax(0, 1fr);
+        }
+    }
+
+
+    /* =========================================================
+       HALF-LETTER PRINT CONFIGURATION
+    ========================================================== */
+
+    @page {
+        size: 5.5in 8.5in;
+        margin: 0.25in;
+    }
+
+    @media print {
+        html,
+        body {
+            width: 5.5in !important;
+            min-height: 8.5in !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            font-size: 9px !important;
+        }
+
+        body * {
+            visibility: hidden !important;
+        }
+
+        #appointment-print-area,
+        #appointment-print-area * {
+            visibility: visible !important;
+        }
+
+        #appointment-print-area {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 5in !important;
+            max-width: 5in !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+        }
+
+        .no-print,
+        .appointment-screen-header {
+            display: none !important;
+        }
+
+        .print-only {
+            display: block !important;
+        }
+
+        .appointment-detail-grid,
+        .appointment-print-grid {
+            display: grid !important;
+            grid-template-columns:
+                minmax(0, 1fr)
+                minmax(0, 1fr) !important;
+            gap: 6px !important;
+            align-items: start !important;
+        }
+
+        .appointment-detail-column,
+        .appointment-print-column {
+            display: flex !important;
+            min-width: 0 !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+        }
+
+        .appointment-print-card {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+            overflow: hidden !important;
+            border: 1px solid #94a3b8 !important;
+            border-radius: 3px !important;
+            background: #ffffff !important;
+            box-shadow: none !important;
+        }
+
+        .appointment-print-card-header {
+            padding: 3px 5px !important;
+            border-bottom: 1px solid #cbd5e1 !important;
+            background: #f1f5f9 !important;
+        }
+
+        .appointment-print-card-header h2 {
+            margin: 0 !important;
+            color: #0f172a !important;
+            font-size: 8px !important;
+            font-weight: 700 !important;
+            line-height: 1.15 !important;
+            letter-spacing: 0.04em !important;
+            text-transform: uppercase !important;
+        }
+
+        .appointment-print-row {
+            padding: 3px 5px !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+
+        .appointment-print-row:last-child {
+            border-bottom: 0 !important;
+        }
+
+        .appointment-print-label {
+            margin: 0 !important;
+            color: #475569 !important;
+            font-size: 6.5px !important;
+            font-weight: 700 !important;
+            line-height: 1.1 !important;
+            letter-spacing: 0.03em !important;
+            text-transform: uppercase !important;
+        }
+
+        .appointment-print-value {
+            margin: 1px 0 0 !important;
+            color: #0f172a !important;
+            font-size: 8px !important;
+            line-height: 1.2 !important;
+        }
+
+        .appointment-print-value-strong {
+            font-weight: 700 !important;
+        }
+
+        .appointment-print-two-fields {
+            display: grid !important;
+            grid-template-columns:
+                minmax(0, 1fr)
+                minmax(0, 1fr) !important;
+            gap: 6px !important;
+        }
+
+        .appointment-print-footer {
+            margin-top: 5px !important;
+            padding-top: 3px !important;
+            border-top: 1px solid #94a3b8 !important;
+            color: #475569 !important;
+            font-size: 6.5px !important;
+            line-height: 1.15 !important;
+        }
+
+        .appointment-cancellation {
+            border-color: #fca5a5 !important;
+            background: #fff7f7 !important;
+        }
+    }
+
+    @media screen {
+        .print-only {
+            display: none;
+        }
+    }
+</style>
+
+
+<div
+    id="appointment-print-area"
+    class="appointment-detail-page space-y-3"
+>
+    <!-- =========================================================
+         PRINT-ONLY HEADER
+    ========================================================== -->
+    <header class="print-only">
+        <div
+            style="
+                margin-bottom: 6px;
+                padding-bottom: 5px;
+                border-bottom: 2px solid #0f172a;
+            "
+        >
+            <div
+                style="
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: space-between;
+                    gap: 8px;
+                "
+            >
+                <div>
+                    <h1
+                        style="
+                            margin: 0;
+                            color: #0f172a;
+                            font-size: 12px;
+                            font-weight: 700;
+                            line-height: 1.1;
+                        "
+                    >
+                        Appointment Information
+                    </h1>
+
+                    <p
+                        style="
+                            margin: 2px 0 0;
+                            color: #475569;
+                            font-size: 7px;
+                        "
+                    >
+                        Liberia Electronic Health Record
+                    </p>
+                </div>
+
+                <div style="text-align: right;">
+                    <p
+                        style="
+                            margin: 0;
+                            color: #0f172a;
+                            font-size: 8px;
+                            font-weight: 700;
+                        "
+                    >
+                        {{ appointment.appointment_number }}
+                    </p>
+
+                    <p
+                        style="
+                            margin: 2px 0 0;
+                            color: #475569;
+                            font-size: 7px;
+                        "
+                    >
+                        {{ appointment.get_status_display }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- =========================================================
+         SCREEN HEADER AND ACTIONS
+    ========================================================== -->
+    <header
+        class="
+            appointment-screen-header
+            flex flex-col gap-3
+            rounded-lg border border-slate-200
+            bg-white px-4 py-3 shadow-sm
+            lg:flex-row lg:items-center lg:justify-between
+        "
+    >
+        <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+                <h1 class="truncate text-base font-semibold text-slate-900">
+                    {{ appointment.appointment_number }}
+                </h1>
+
+                {% if appointment.status == "completed" %}
+                    <span
+                        class="
+                            inline-flex rounded-full
+                            bg-emerald-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-emerald-800
+                        "
+                    >
+                        {{ appointment.get_status_display }}
+                    </span>
+
+                {% elif appointment.status == "cancelled" %}
+                    <span
+                        class="
+                            inline-flex rounded-full
+                            bg-red-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-red-800
+                        "
+                    >
+                        {{ appointment.get_status_display }}
+                    </span>
+
+                {% elif appointment.status == "confirmed" %}
+                    <span
+                        class="
+                            inline-flex rounded-full
+                            bg-blue-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-blue-800
+                        "
+                    >
+                        {{ appointment.get_status_display }}
+                    </span>
+
+                {% elif appointment.status == "checked_in" %}
+                    <span
+                        class="
+                            inline-flex rounded-full
+                            bg-violet-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-violet-800
+                        "
+                    >
+                        {{ appointment.get_status_display }}
+                    </span>
+
+                {% else %}
+                    <span
+                        class="
+                            inline-flex rounded-full
+                            bg-amber-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-amber-800
+                        "
+                    >
+                        {{ appointment.get_status_display }}
+                    </span>
+                {% endif %}
+
+                {% if appointment.priority == "emergency" %}
+                    <span
+                        class="
+                            inline-flex rounded-full
+                            bg-red-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-red-800
+                        "
+                    >
+                        Emergency
+                    </span>
+
+                {% elif appointment.priority == "urgent" %}
+                    <span
+                        class="
+                            inline-flex rounded-full
+                            bg-orange-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-orange-800
+                        "
+                    >
+                        Urgent
+                    </span>
+                {% endif %}
+            </div>
+
+            <p class="mt-1 text-xs text-slate-500">
+                {{ appointment.patient }}
+
+                <span class="mx-1 text-slate-300">
+                    •
+                </span>
+
+                {{ appointment.get_appointment_type_display }}
+
+                <span class="mx-1 text-slate-300">
+                    •
+                </span>
+
+                {{ appointment.start_datetime|date:"M j, Y" }}
+            </p>
+        </div>
+
+
+        <!-- =====================================================
+             SCREEN ACTIONS
+        ====================================================== -->
+        <div class="no-print flex flex-wrap items-center gap-2">
+            <a
+                href="{% url 'administration:scheduling' %}"
+                hx-boost="false"
+                class="
+                    inline-flex items-center justify-center
+                    rounded-md border border-slate-300
+                    !bg-white px-3 py-2
+                    text-xs font-semibold
+                    !text-slate-700 shadow-sm
+                    transition hover:!bg-slate-100
+                "
+            >
+                Back
+            </a>
+
+            <button
+                type="button"
+                onclick="window.print()"
+                class="
+                    inline-flex items-center justify-center gap-1.5
+                    rounded-md border border-slate-700
+                    !bg-slate-700 px-3 py-2
+                    text-xs font-semibold
+                    !text-white shadow-sm
+                    transition hover:!bg-slate-800
+                    focus:outline-none
+                    focus:ring-2
+                    focus:ring-slate-500
+                    focus:ring-offset-2
+                "
+                aria-label="Print appointment information"
+            >
+                <svg
+                    class="h-3.5 w-3.5 shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="
+                            M6 9V3h12v6
+                            M6 18H4.5
+                            A1.5 1.5 0 0 1 3 16.5v-6
+                            A1.5 1.5 0 0 1 4.5 9h15
+                            A1.5 1.5 0 0 1 21 10.5v6
+                            A1.5 1.5 0 0 1 19.5 18H18
+                            M6 14h12v7H6v-7Z
+                        "
+                    />
+                </svg>
+
+                <span>
+                    Print Appointment
+                </span>
+            </button>
+
+            <a
+                href="{% url 'administration:scheduling_update' appointment_id=appointment.pk %}"
+                hx-boost="false"
+                class="
+                    inline-flex items-center justify-center gap-1.5
+                    rounded-md border border-emerald-800
+                    !bg-emerald-700 px-3 py-2
+                    text-xs font-semibold
+                    !text-white shadow-sm
+                    transition hover:!bg-emerald-800
+                    focus:outline-none
+                    focus:ring-2
+                    focus:ring-emerald-500
+                    focus:ring-offset-2
+                "
+            >
+                <svg
+                    class="h-3.5 w-3.5 shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="
+                            M16.862 4.487
+                            18.55 2.8
+                            a1.875 1.875 0 1 1
+                            2.652 2.652
+                            L10.582 16.073
+                            a4.5 4.5 0 0 1-1.897 1.13
+                            L6 18l.797-2.685
+                            a4.5 4.5 0 0 1 1.13-1.897
+                            L16.862 4.487Z
+                            M19.5 7.125V19.5
+                            A1.5 1.5 0 0 1 18 21H4.5
+                            A1.5 1.5 0 0 1 3 19.5V6
+                            A1.5 1.5 0 0 1 4.5 4.5
+                            h12.375
+                        "
+                    />
+                </svg>
+
+                <span>
+                    Edit
+                </span>
+            </a>
+
+            {% if appointment.can_be_cancelled %}
+                <a
+                    href="{% url 'administration:scheduling_cancel' appointment_id=appointment.pk %}"
+                    hx-boost="false"
+                    class="
+                        inline-flex items-center justify-center
+                        rounded-md border border-red-300
+                        !bg-white px-3 py-2
+                        text-xs font-semibold
+                        !text-red-700 shadow-sm
+                        transition hover:!bg-red-50
+                    "
+                >
+                    Cancel Appointment
+                </a>
+            {% endif %}
+
+            {% if appointment.can_be_restored %}
+                <form
+                    method="post"
+                    action="{% url 'administration:scheduling_restore' appointment_id=appointment.pk %}"
+                >
+                    {% csrf_token %}
+
+                    <button
+                        type="submit"
+                        class="
+                            inline-flex items-center justify-center
+                            rounded-md border border-emerald-300
+                            !bg-white px-3 py-2
+                            text-xs font-semibold
+                            !text-emerald-700 shadow-sm
+                            transition hover:!bg-emerald-50
+                        "
+                    >
+                        Restore
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </header>
+
+
+    <!-- =========================================================
+         TWO-COLUMN APPOINTMENT INFORMATION
+    ========================================================== -->
+    <section
+        class="
+            appointment-detail-grid
+            appointment-print-grid
+        "
+    >
+        <!-- =====================================================
+             LEFT COLUMN
+        ====================================================== -->
+        <div
+            class="
+                appointment-detail-column
+                appointment-print-column
+            "
+        >
+            <!-- =================================================
+                 PATIENT AND VISIT
+            ================================================== -->
+            <article
+                class="
+                    appointment-detail-card
+                    appointment-print-card
+                    overflow-hidden rounded-lg
+                    border border-slate-200
+                    bg-white shadow-sm
+                "
+            >
+                <header
+                    class="
+                        appointment-print-card-header
+                        border-b border-slate-200
+                        bg-slate-50 px-4 py-2
+                    "
+                >
+                    <h2 class="text-xs font-semibold text-slate-900">
+                        Patient and Visit
+                    </h2>
+                </header>
+
+                <dl class="divide-y divide-slate-100">
+                    <div class="appointment-print-row px-4 py-2">
+                        <dt
+                            class="
+                                appointment-print-label
+                                text-[10px] font-semibold
+                                uppercase tracking-wide
+                                text-slate-500
+                            "
+                        >
+                            Patient
+                        </dt>
+
+                        <dd
+                            class="
+                                appointment-print-value
+                                appointment-print-value-strong
+                                mt-0.5 text-sm font-semibold
+                                text-slate-900
+                            "
+                        >
+                            {{ appointment.patient }}
+                        </dd>
+                    </div>
+
+                    <div
+                        class="
+                            appointment-print-row
+                            appointment-print-two-fields
+                            grid gap-3 px-4 py-2
+                            sm:grid-cols-2
+                        "
+                    >
+                        <div>
+                            <dt
+                                class="
+                                    appointment-print-label
+                                    text-[10px] font-semibold
+                                    uppercase tracking-wide
+                                    text-slate-500
+                                "
+                            >
+                                Appointment Type
+                            </dt>
+
+                            <dd
+                                class="
+                                    appointment-print-value
+                                    mt-0.5 text-xs text-slate-900
+                                "
+                            >
+                                {{ appointment.get_appointment_type_display }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="
+                                    appointment-print-label
+                                    text-[10px] font-semibold
+                                    uppercase tracking-wide
+                                    text-slate-500
+                                "
+                            >
+                                Priority
+                            </dt>
+
+                            <dd
+                                class="
+                                    appointment-print-value
+                                    mt-0.5 text-xs text-slate-900
+                                "
+                            >
+                                {{ appointment.get_priority_display }}
+                            </dd>
+                        </div>
+                    </div>
+
+                    <div class="appointment-print-row px-4 py-2">
+                        <dt
+                            class="
+                                appointment-print-label
+                                text-[10px] font-semibold
+                                uppercase tracking-wide
+                                text-slate-500
+                            "
+                        >
+                            Reason for Appointment
+                        </dt>
+
+                        <dd
+                            class="
+                                appointment-print-value
+                                mt-0.5 whitespace-pre-line
+                                text-xs leading-4 text-slate-900
+                            "
+                        >
+                            {{ appointment.reason_for_visit }}
+                        </dd>
+                    </div>
+
+                    <div class="appointment-print-row px-4 py-2">
+                        <dt
+                            class="
+                                appointment-print-label
+                                text-[10px] font-semibold
+                                uppercase tracking-wide
+                                text-slate-500
+                            "
+                        >
+                            Insurance
+                        </dt>
+
+                        <dd
+                            class="
+                                appointment-print-value
+                                mt-0.5 text-xs text-slate-900
+                            "
+                        >
+                            {% if appointment.insurance %}
+                                {{ appointment.insurance }}
+
+                            {% elif appointment.patient.insurance %}
+                                {{ appointment.patient.insurance }}
+
+                            {% else %}
+                                <span class="text-slate-500">
+                                    Not recorded
+                                </span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
+            </article>
+
+
+            <!-- =================================================
+                 APPOINTMENT TIME
+            ================================================== -->
+            <article
+                class="
+                    appointment-detail-card
+                    appointment-print-card
+                    overflow-hidden rounded-lg
+                    border border-slate-200
+                    bg-white shadow-sm
+                "
+            >
+                <header
+                    class="
+                        appointment-print-card-header
+                        border-b border-slate-200
+                        bg-slate-50 px-4 py-2
+                    "
+                >
+                    <h2 class="text-xs font-semibold text-slate-900">
+                        Appointment Time
+                    </h2>
+                </header>
+
+                <dl class="divide-y divide-slate-100">
+                    <div class="appointment-print-row px-4 py-2">
+                        <dt
+                            class="
+                                appointment-print-label
+                                text-[10px] font-semibold
+                                uppercase tracking-wide
+                                text-slate-500
+                            "
+                        >
+                            Appointment Date
+                        </dt>
+
+                        <dd
+                            class="
+                                appointment-print-value
+                                appointment-print-value-strong
+                                mt-0.5 text-sm font-semibold
+                                text-slate-900
+                            "
+                        >
+                            {{ appointment.start_datetime|date:"l, M j, Y" }}
+                        </dd>
+                    </div>
+
+                    <div
+                        class="
+                            appointment-print-row
+                            appointment-print-two-fields
+                            grid gap-3 px-4 py-2
+                            sm:grid-cols-2
+                        "
+                    >
+                        <div>
+                            <dt
+                                class="
+                                    appointment-print-label
+                                    text-[10px] font-semibold
+                                    uppercase tracking-wide
+                                    text-slate-500
+                                "
+                            >
+                                Start Time
+                            </dt>
+
+                            <dd
+                                class="
+                                    appointment-print-value
+                                    appointment-print-value-strong
+                                    mt-0.5 text-sm font-semibold
+                                    text-slate-900
+                                "
+                            >
+                                {{ appointment.start_datetime|time:"g:i A" }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="
+                                    appointment-print-label
+                                    text-[10px] font-semibold
+                                    uppercase tracking-wide
+                                    text-slate-500
+                                "
+                            >
+                                End Time
+                            </dt>
+
+                            <dd
+                                class="
+                                    appointment-print-value
+                                    appointment-print-value-strong
+                                    mt-0.5 text-sm font-semibold
+                                    text-slate-900
+                                "
+                            >
+                                {{ appointment.end_datetime|time:"g:i A" }}
+                            </dd>
+                        </div>
+                    </div>
+
+                    <div
+                        class="
+                            appointment-print-row
+                            appointment-print-two-fields
+                            grid gap-3 px-4 py-2
+                            sm:grid-cols-2
+                        "
+                    >
+                        <div>
+                            <dt
+                                class="
+                                    appointment-print-label
+                                    text-[10px] font-semibold
+                                    uppercase tracking-wide
+                                    text-slate-500
+                                "
+                            >
+                                Duration
+                            </dt>
+
+                            <dd
+                                class="
+                                    appointment-print-value
+                                    appointment-print-value-strong
+                                    mt-0.5 text-sm font-semibold
+                                    text-slate-900
+                                "
+                            >
+                                {{ appointment.duration_minutes }}
+                                min{{ appointment.duration_minutes|pluralize }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="
+                                    appointment-print-label
+                                    text-[10px] font-semibold
+                                    uppercase tracking-wide
+                                    text-slate-500
+                                "
+                            >
+                                Status
+                            </dt>
+
+                            <dd
+                                class="
+                                    appointment-print-value
+                                    mt-0.5 text-xs text-slate-900
+                                "
+                            >
+                                {{ appointment.get_status_display }}
+                            </dd>
+                        </div>
+                    </div>
+                </dl>
+            </article>
+        </div>
+
+
+        <!-- =====================================================
+             RIGHT COLUMN
+        ====================================================== -->
+        <div
+            class="
+                appointment-detail-column
+                appointment-print-column
+            "
+        >
+            <!-- =================================================
+                 PROVIDER AND LOCATION
+            ================================================== -->
+            <article
+                class="
+                    appointment-detail-card
+                    appointment-print-card
+                    overflow-hidden rounded-lg
+                    border border-slate-200
+                    bg-white shadow-sm
+                "
+            >
+                <header
+                    class="
+                        appointment-print-card-header
+                        border-b border-slate-200
+                        bg-slate-50 px-4 py-2
+                    "
+                >
+                    <h2 class="text-xs font-semibold text-slate-900">
+                        Provider and Location
+                    </h2>
+                </header>
+
+                <dl class="divide-y divide-slate-100">
+                    <div class="appointment-print-row px-4 py-2">
+                        <dt
+                            class="
+                                appointment-print-label
+                                text-[10px] font-semibold
+                                uppercase tracking-wide
+                                text-slate-500
+                            "
+                        >
+                            Provider
+                        </dt>
+
+                        <dd
+                            class="
+                                appointment-print-value
+                                appointment-print-value-strong
+                                mt-0.5 text-sm font-semibold
+                                text-slate-900
+                            "
+                        >
+                            {% if appointment.provider %}
+                                {{ appointment.provider.get_full_name|default:appointment.provider.username }}
+
+                            {% else %}
+                                <span class="font-normal text-slate-500">
+                                    Not assigned
+                                </span>
+                            {% endif %}
+                        </dd>
+                    </div>
+
+                    <div
+                        class="
+                            appointment-print-row
+                            appointment-print-two-fields
+                            grid gap-3 px-4 py-2
+                            sm:grid-cols-2
+                        "
+                    >
+                        <div>
+                            <dt
+                                class="
+                                    appointment-print-label
+                                    text-[10px] font-semibold
+                                    uppercase tracking-wide
+                                    text-slate-500
+                                "
+                            >
+                                Facility
+                            </dt>
+
+                            <dd
+                                class="
+                                    appointment-print-value
+                                    mt-0.5 text-xs font-medium
+                                    text-slate-900
+                                "
+                            >
+                                {{ appointment.facility|default:"Not assigned" }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="
+                                    appointment-print-label
+                                    text-[10px] font-semibold
+                                    uppercase tracking-wide
+                                    text-slate-500
+                                "
+                            >
+                                Department
+                            </dt>
+
+                            <dd
+                                class="
+                                    appointment-print-value
+                                    mt-0.5 text-xs text-slate-900
+                                "
+                            >
+                                {{ appointment.department|default:"Not assigned" }}
+                            </dd>
+                        </div>
+                    </div>
+
+                    <div
+                        class="
+                            appointment-print-row
+                            appointment-print-two-fields
+                            grid gap-3 px-4 py-2
+                            sm:grid-cols-2
+                        "
+                    >
+                        <div>
+                            <dt
+                                class="
+                                    appointment-print-label
+                                    text-[10px] font-semibold
+                                    uppercase tracking-wide
+                                    text-slate-500
+                                "
+                            >
+                                Clinical Unit
+                            </dt>
+
+                            <dd
+                                class="
+                                    appointment-print-value
+                                    mt-0.5 text-xs text-slate-900
+                                "
+                            >
+                                {{ appointment.clinical_unit|default:"Not assigned" }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="
+                                    appointment-print-label
+                                    text-[10px] font-semibold
+                                    uppercase tracking-wide
+                                    text-slate-500
+                                "
+                            >
+                                Room
+                            </dt>
+
+                            <dd
+                                class="
+                                    appointment-print-value
+                                    mt-0.5 text-xs text-slate-900
+                                "
+                            >
+                                {{ appointment.room|default:"Not assigned" }}
+                            </dd>
+                        </div>
+                    </div>
+                </dl>
+            </article>
+
+
+            <!-- =================================================
+                 PATIENT INSTRUCTIONS
+            ================================================== -->
+            {% if appointment.patient_instructions %}
+                <article
+                    class="
+                        appointment-detail-card
+                        appointment-print-card
+                        overflow-hidden rounded-lg
+                        border border-slate-200
+                        bg-white shadow-sm
+                    "
+                >
+                    <header
+                        class="
+                            appointment-print-card-header
+                            border-b border-slate-200
+                            bg-slate-50 px-4 py-2
+                        "
+                    >
+                        <h2 class="text-xs font-semibold text-slate-900">
+                            Patient Instructions
+                        </h2>
+                    </header>
+
+                    <div class="appointment-print-row px-4 py-2">
+                        <p
+                            class="
+                                appointment-print-value
+                                whitespace-pre-line
+                                text-xs leading-4 text-slate-900
+                            "
+                        >
+                            {{ appointment.patient_instructions }}
+                        </p>
+                    </div>
+                </article>
+            {% endif %}
+
+
+            <!-- =================================================
+                 INTERNAL NOTES — SCREEN ONLY
+            ================================================== -->
+            {% if appointment.internal_notes %}
+                <article
+                    class="
+                        no-print
+                        appointment-detail-card
+                        overflow-hidden rounded-lg
+                        border border-slate-200
+                        bg-white shadow-sm
+                    "
+                >
+                    <header
+                        class="
+                            border-b border-slate-200
+                            bg-slate-50 px-4 py-2
+                        "
+                    >
+                        <h2 class="text-xs font-semibold text-slate-900">
+                            Internal Notes
+                        </h2>
+                    </header>
+
+                    <div class="px-4 py-2">
+                        <p
+                            class="
+                                whitespace-pre-line
+                                text-xs leading-4 text-slate-900
+                            "
+                        >
+                            {{ appointment.internal_notes }}
+                        </p>
+                    </div>
+                </article>
+            {% endif %}
+
+
+            <!-- =================================================
+                 CANCELLATION INFORMATION
+            ================================================== -->
+            {% if appointment.is_cancelled %}
+                <article
+                    class="
+                        appointment-detail-card
+                        appointment-print-card
+                        appointment-cancellation
+                        overflow-hidden rounded-lg
+                        border border-red-200
+                        bg-red-50
+                    "
+                >
+                    <header
+                        class="
+                            appointment-print-card-header
+                            border-b border-red-200
+                            px-4 py-2
+                        "
+                    >
+                        <h2 class="text-xs font-semibold text-red-900">
+                            Cancellation
+                        </h2>
+                    </header>
+
+                    <dl class="divide-y divide-red-100">
+                        <div class="appointment-print-row px-4 py-2">
+                            <dt
+                                class="
+                                    appointment-print-label
+                                    text-[10px] font-semibold
+                                    uppercase tracking-wide
+                                    text-red-700
+                                "
+                            >
+                                Reason
+                            </dt>
+
+                            <dd
+                                class="
+                                    appointment-print-value
+                                    mt-0.5 whitespace-pre-line
+                                    text-xs text-red-800
+                                "
+                            >
+                                {{ appointment.cancellation_reason }}
+                            </dd>
+                        </div>
+
+                        {% if appointment.cancelled_at %}
+                            <div class="appointment-print-row px-4 py-2">
+                                <dt
+                                    class="
+                                        appointment-print-label
+                                        text-[10px] font-semibold
+                                        uppercase tracking-wide
+                                        text-red-700
+                                    "
+                                >
+                                    Cancelled
+                                </dt>
+
+                                <dd
+                                    class="
+                                        appointment-print-value
+                                        mt-0.5 text-xs text-red-800
+                                    "
+                                >
+                                    {{ appointment.cancelled_at|date:"M j, Y g:i A" }}
+                                </dd>
+                            </div>
+                        {% endif %}
+                    </dl>
+                </article>
+            {% endif %}
+        </div>
+    </section>
+
+
+    <!-- =========================================================
+         SCREEN-ONLY RECORD INFORMATION
+    ========================================================== -->
+    <section
+        class="
+            no-print
+            overflow-hidden rounded-lg
+            border border-slate-200
+            bg-white shadow-sm
+        "
+    >
+        <header
+            class="
+                border-b border-slate-200
+                bg-slate-50 px-4 py-2
+            "
+        >
+            <h2 class="text-xs font-semibold text-slate-900">
+                Record Information
+            </h2>
+        </header>
+
+        <dl
+            class="
+                grid gap-x-5 gap-y-2 px-4 py-2.5
+                sm:grid-cols-2 xl:grid-cols-4
+            "
+        >
+            <div>
+                <dt
+                    class="
+                        text-[10px] font-semibold
+                        uppercase tracking-wide
+                        text-slate-500
+                    "
+                >
+                    Created By
+                </dt>
+
+                <dd class="mt-0.5 text-xs text-slate-900">
+                    {% if appointment.created_by %}
+                        {{ appointment.created_by.get_full_name|default:appointment.created_by.username }}
+
+                    {% else %}
+                        Not recorded
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div>
+                <dt
+                    class="
+                        text-[10px] font-semibold
+                        uppercase tracking-wide
+                        text-slate-500
+                    "
+                >
+                    Created
+                </dt>
+
+                <dd class="mt-0.5 text-xs text-slate-900">
+                    {{ appointment.created_at|date:"M j, Y g:i A" }}
+                </dd>
+            </div>
+
+            <div>
+                <dt
+                    class="
+                        text-[10px] font-semibold
+                        uppercase tracking-wide
+                        text-slate-500
+                    "
+                >
+                    Updated By
+                </dt>
+
+                <dd class="mt-0.5 text-xs text-slate-900">
+                    {% if appointment.updated_by %}
+                        {{ appointment.updated_by.get_full_name|default:appointment.updated_by.username }}
+
+                    {% else %}
+                        Not recorded
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div>
+                <dt
+                    class="
+                        text-[10px] font-semibold
+                        uppercase tracking-wide
+                        text-slate-500
+                    "
+                >
+                    Updated
+                </dt>
+
+                <dd class="mt-0.5 text-xs text-slate-900">
+                    {{ appointment.updated_at|date:"M j, Y g:i A" }}
+                </dd>
+            </div>
+        </dl>
+    </section>
+
+
+    <!-- =========================================================
+         PRINT-ONLY FOOTER
+    ========================================================== -->
+    <footer class="print-only appointment-print-footer">
+        <div
+            style="
+                display: flex;
+                justify-content: space-between;
+                gap: 8px;
+            "
+        >
+            <span>
+                Appointment:
+                {{ appointment.appointment_number }}
+            </span>
+
+            <span>
+                Printed {% now "M j, Y g:i A" %}
+            </span>
+        </div>
+    </footer>
+</div>

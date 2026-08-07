@@ -1,0 +1,218 @@
+
+
+
+{% comment %}
+============================================================
+POPULATION HEALTH AND SURVEILLANCE CONTENT
+
+File:
+apps/analytics/templates/analytics/partials/surveillance_content.html
+
+Purpose:
+- Display patient population and encounter activity.
+- Prepare for disease surveillance and public-health reporting.
+============================================================
+{% endcomment %}
+
+
+<div class="space-y-4 p-4">
+
+    {% include "analytics/components/loading_indicator.html" %}
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+    <header
+        class="
+            flex flex-col gap-2
+            sm:flex-row sm:items-center sm:justify-between
+        "
+    >
+        <div>
+            <h1 class="text-lg font-semibold text-slate-900">
+                Population Health
+            </h1>
+
+            <p class="mt-0.5 text-xs text-slate-500">
+                Population activity, service utilization, and surveillance.
+            </p>
+        </div>
+
+        <p class="text-xs font-medium text-slate-500">
+            {{ filters.start_date|date:"M j, Y" }}
+            –
+            {{ filters.end_date|date:"M j, Y" }}
+        </p>
+    </header>
+
+
+    {% include "analytics/components/filter_bar.html" %}
+
+
+    <!-- =====================================================
+         POPULATION METRICS
+    ====================================================== -->
+    <section
+        class="
+            grid gap-3
+            sm:grid-cols-2
+            xl:grid-cols-4
+        "
+    >
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Registered Patients
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-slate-900">
+                {{ patient_summary.total_patients|default:0 }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Total patient population
+            </p>
+        </article>
+
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Active Patients
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-emerald-700">
+                {{ patient_summary.active_patients|default:0 }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Active registry records
+            </p>
+        </article>
+
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Encounters
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-blue-700">
+                {{ encounter_summary.total_encounters|default:0 }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Healthcare utilization in this period
+            </p>
+        </article>
+
+
+        <article
+            class="
+                rounded-xl border border-dashed
+                border-slate-300 bg-slate-50
+                p-4
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Disease Surveillance
+            </p>
+
+            <p class="mt-2 text-sm font-semibold text-slate-700">
+                Diagnosis data pending
+            </p>
+
+            <p class="mt-1 text-xs leading-5 text-slate-500">
+                Disease incidence and outbreak indicators will appear
+                when diagnosis and laboratory models are connected.
+            </p>
+        </article>
+    </section>
+
+
+    <section class="grid gap-4 xl:grid-cols-3">
+        <div class="xl:col-span-2">
+            {% include "analytics/partials/encounter_trend.html" %}
+        </div>
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white shadow-sm
+            "
+        >
+            <header class="border-b border-slate-200 px-4 py-3">
+                <h2 class="text-sm font-semibold text-slate-900">
+                    Surveillance Areas
+                </h2>
+            </header>
+
+            <div class="space-y-2 p-4">
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Communicable diseases
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Maternal and child health
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Chronic disease burden
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Facility utilization
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Geographic distribution
+                    </p>
+                </div>
+            </div>
+        </article>
+    </section>
+
+
+    {% include "analytics/partials/recent_encounters_table.html" %}
+</div>

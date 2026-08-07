@@ -1,0 +1,92 @@
+
+
+
+<section
+    id="departments-units-content"
+    class="space-y-4"
+>
+    {% include "administration/partials/workspace_header.html" %}
+
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <section
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <h2 class="text-sm font-semibold text-slate-900">
+                Departments
+            </h2>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Administrative and clinical departments by facility.
+            </p>
+
+            <div class="mt-4 divide-y divide-slate-200">
+                {% for department in departments %}
+                    <div class="py-3 first:pt-0 last:pb-0">
+                        <p class="text-sm font-medium text-slate-800">
+                            {{ department.name }}
+                        </p>
+
+                        <p class="text-xs text-slate-500">
+                            {{ department.facility.name }}
+                        </p>
+                    </div>
+                {% empty %}
+                    <div
+                        class="
+                            rounded-lg border border-dashed
+                            border-slate-300 p-6 text-center
+                        "
+                    >
+                        <p class="text-xs text-slate-500">
+                            No departments configured.
+                        </p>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+
+        <section
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <h2 class="text-sm font-semibold text-slate-900">
+                Clinical Units
+            </h2>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Patient care units assigned to departments.
+            </p>
+
+            <div class="mt-4 divide-y divide-slate-200">
+                {% for unit in clinical_units %}
+                    <div class="py-3 first:pt-0 last:pb-0">
+                        <p class="text-sm font-medium text-slate-800">
+                            {{ unit.name }}
+                        </p>
+
+                        <p class="text-xs text-slate-500">
+                            {{ unit.department.name }}
+                        </p>
+                    </div>
+                {% empty %}
+                    <div
+                        class="
+                            rounded-lg border border-dashed
+                            border-slate-300 p-6 text-center
+                        "
+                    >
+                        <p class="text-xs text-slate-500">
+                            No clinical units configured.
+                        </p>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</section>

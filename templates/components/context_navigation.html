@@ -1,0 +1,251 @@
+
+
+{% comment %}
+============================================================
+CONTEXT NAVIGATION COMPONENT
+
+File:
+templates/components/context_navigation.html
+
+Purpose:
+- Display the secondary contextual navigation row.
+- Show the active module title and description.
+- Provide Administration module shortcuts.
+- Preserve the existing two-row EHR navigation layout.
+
+Expected context:
+- active_primary_nav
+- active_administration_module
+- page_title
+- page_description
+============================================================
+{% endcomment %}
+
+
+<nav
+    id="context-navigation"
+    class="
+        flex min-h-11
+        items-center justify-between
+        gap-3
+        border-b border-slate-200
+        bg-white
+        px-3
+        shadow-sm
+        sm:px-4
+        lg:px-5
+    "
+    aria-label="Context navigation"
+>
+    <!-- =====================================================
+         CURRENT MODULE IDENTITY
+    ====================================================== -->
+    <div class="flex min-w-0 items-center gap-2">
+        <div
+            class="
+                grid h-7 w-7 shrink-0
+                place-items-center
+                rounded-md
+                bg-ehr-100
+                text-xs font-bold
+                text-ehr-800
+            "
+            aria-hidden="true"
+        >
+            {% if active_primary_nav == "administration" %}
+                ⚙
+            {% elif active_primary_nav == "analytics" %}
+                ▦
+            {% elif active_primary_nav == "ai-cds" %}
+                ✦
+            {% else %}
+                ✚
+            {% endif %}
+        </div>
+
+        <div class="min-w-0">
+            <p
+                class="
+                    truncate
+                    text-xs font-semibold
+                    text-slate-900
+                "
+            >
+                {{ page_title|default:"Liberia EHR" }}
+            </p>
+
+            {% if page_description %}
+                <p
+                    class="
+                        hidden truncate
+                        text-[10px]
+                        text-slate-500
+                        sm:block
+                    "
+                >
+                    {{ page_description }}
+                </p>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <!-- =====================================================
+         ADMINISTRATION CONTEXT LINKS
+    ====================================================== -->
+    {% if active_primary_nav == "administration" %}
+        <div
+            class="
+                hidden min-w-0
+                items-center gap-1
+                md:flex
+            "
+        >
+            <!-- Administration dashboard -->
+            <a
+                href="{% url 'administration:dashboard' %}"
+                hx-boost="false"
+                class="
+                    rounded-md
+                    px-2.5 py-1.5
+                    text-xs font-medium
+                    transition
+
+                    {% if active_administration_module == 'dashboard' %}
+                        bg-ehr-100
+                        text-ehr-800
+                    {% else %}
+                        text-slate-600
+                        hover:bg-slate-100
+                        hover:text-slate-900
+                    {% endif %}
+                "
+                {% if active_administration_module == "dashboard" %}
+                    aria-current="page"
+                {% endif %}
+            >
+                Dashboard
+            </a>
+
+            <!-- Users and staff -->
+            {% url 'administration:users' as administration_users_url %}
+
+            {% if administration_users_url %}
+                <a
+                    href="{{ administration_users_url }}"
+                    hx-boost="false"
+                    class="
+                        rounded-md
+                        px-2.5 py-1.5
+                        text-xs font-medium
+                        transition
+
+                        {% if active_administration_module == 'users' %}
+                            bg-ehr-100
+                            text-ehr-800
+                        {% else %}
+                            text-slate-600
+                            hover:bg-slate-100
+                            hover:text-slate-900
+                        {% endif %}
+                    "
+                    {% if active_administration_module == "users" %}
+                        aria-current="page"
+                    {% endif %}
+                >
+                    Users
+                </a>
+            {% endif %}
+
+            <!-- Facilities -->
+            {% url 'facilities:list' as facilities_list_url %}
+
+            {% if facilities_list_url %}
+                <a
+                    href="{{ facilities_list_url }}"
+                    hx-boost="false"
+                    class="
+                        rounded-md
+                        px-2.5 py-1.5
+                        text-xs font-medium
+                        transition
+
+                        {% if active_administration_module == 'facilities' %}
+                            bg-ehr-100
+                            text-ehr-800
+                        {% else %}
+                            text-slate-600
+                            hover:bg-slate-100
+                            hover:text-slate-900
+                        {% endif %}
+                    "
+                    {% if active_administration_module == "facilities" %}
+                        aria-current="page"
+                    {% endif %}
+                >
+                    Facilities
+                </a>
+            {% endif %}
+
+            <!-- Audit logs -->
+            {% url 'administration:audit_logs' as audit_logs_url %}
+
+            {% if audit_logs_url %}
+                <a
+                    href="{{ audit_logs_url }}"
+                    hx-boost="false"
+                    class="
+                        rounded-md
+                        px-2.5 py-1.5
+                        text-xs font-medium
+                        transition
+
+                        {% if active_administration_module == 'audit-logs' %}
+                            bg-ehr-100
+                            text-ehr-800
+                        {% else %}
+                            text-slate-600
+                            hover:bg-slate-100
+                            hover:text-slate-900
+                        {% endif %}
+                    "
+                    {% if active_administration_module == "audit-logs" %}
+                        aria-current="page"
+                    {% endif %}
+                >
+                    Audit Logs
+                </a>
+            {% endif %}
+
+            <!-- System settings -->
+            {% url 'administration:system_settings' as system_settings_url %}
+
+            {% if system_settings_url %}
+                <a
+                    href="{{ system_settings_url }}"
+                    hx-boost="false"
+                    class="
+                        rounded-md
+                        px-2.5 py-1.5
+                        text-xs font-medium
+                        transition
+
+                        {% if active_administration_module == 'settings' %}
+                            bg-ehr-100
+                            text-ehr-800
+                        {% else %}
+                            text-slate-600
+                            hover:bg-slate-100
+                            hover:text-slate-900
+                        {% endif %}
+                    "
+                    {% if active_administration_module == "settings" %}
+                        aria-current="page"
+                    {% endif %}
+                >
+                    Settings
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</nav>

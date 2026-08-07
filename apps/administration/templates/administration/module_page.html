@@ -1,0 +1,28 @@
+
+
+{% extends "administration/base.html" %}
+
+
+{% comment %}
+============================================================
+ADMINISTRATION MODULE PAGE
+
+File:
+apps/administration/templates/administration/module_page.html
+
+Purpose:
+- Provide one full-page wrapper for Administration modules.
+- Load module content into the shared Administration workspace.
+- Support HTMX replacement of the workspace content.
+============================================================
+{% endcomment %}
+
+
+{% block administration_content %}
+    <div
+        id="administration-module-content"
+        class="min-w-0"
+    >
+        {% include partial_template_name %}
+    </div>
+{% endblock administration_content %}

@@ -1,0 +1,103 @@
+
+
+
+<section
+    id="facilities-management-content"
+    class="space-y-4"
+>
+    <header
+        class="
+            flex flex-col gap-3
+            rounded-xl border border-slate-200
+            bg-white px-4 py-4 shadow-sm
+            sm:flex-row sm:items-center sm:justify-between
+        "
+    >
+        <div>
+            <p
+                class="
+                    text-[10px] font-semibold
+                    uppercase tracking-[0.14em]
+                    text-ehr-700
+                "
+            >
+                Organization and Facilities
+            </p>
+
+            <h1 class="mt-1 text-lg font-semibold text-slate-950">
+                {{ page_title }}
+            </h1>
+
+            <p class="mt-1 text-xs text-slate-500">
+                {{ page_description }}
+            </p>
+        </div>
+
+        <a
+            href="#"
+            class="
+                inline-flex items-center justify-center
+                rounded-lg bg-ehr-700
+                px-3 py-2
+                text-xs font-semibold text-white
+                hover:bg-ehr-800
+            "
+        >
+            Add Facility
+        </a>
+    </header>
+
+
+    <section
+        class="
+            overflow-hidden rounded-xl
+            border border-slate-200
+            bg-white shadow-sm
+        "
+    >
+        {% if facilities %}
+            <div class="divide-y divide-slate-200">
+                {% for facility in facilities %}
+                    <article
+                        class="
+                            flex flex-col gap-3
+                            px-4 py-3
+                            sm:flex-row sm:items-center
+                            sm:justify-between
+                        "
+                    >
+                        <div>
+                            <h2 class="text-sm font-semibold text-slate-900">
+                                {{ facility.name }}
+                            </h2>
+
+                            <p class="mt-1 text-xs text-slate-500">
+                                {{ facility.facility_type|default:"Healthcare facility" }}
+                            </p>
+                        </div>
+
+                        <a
+                            href="#"
+                            class="
+                                text-xs font-semibold
+                                text-ehr-700 hover:text-ehr-900
+                            "
+                        >
+                            View facility
+                        </a>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="px-4 py-12 text-center">
+                <h2 class="text-sm font-semibold text-slate-800">
+                    No facilities available
+                </h2>
+
+                <p class="mt-1 text-xs text-slate-500">
+                    Registered facilities will be listed here.
+                </p>
+            </div>
+        {% endif %}
+    </section>
+</section>

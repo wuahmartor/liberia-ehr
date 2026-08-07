@@ -1,0 +1,49 @@
+
+<section
+    id="roles-permissions-content"
+    class="space-y-4"
+>
+    {% include "administration/partials/workspace_header.html" %}
+
+    <section
+        class="
+            rounded-xl border border-slate-200
+            bg-white p-4 shadow-sm
+        "
+    >
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h2 class="text-sm font-semibold text-slate-900">
+                    Security Roles
+                </h2>
+
+                <p class="mt-1 text-xs text-slate-500">
+                    Define what users may view, create, update, approve,
+                    or administer.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="
+                    rounded-lg bg-ehr-700
+                    px-3 py-2
+                    text-xs font-semibold text-white
+                    hover:bg-ehr-800
+                "
+            >
+                Create Role
+            </button>
+        </div>
+
+        <div class="mt-4 rounded-lg border border-dashed border-slate-300 p-8 text-center">
+            <p class="text-sm font-medium text-slate-700">
+                No role records are currently displayed.
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Add the role model and permission assignments here.
+            </p>
+        </div>
+    </section>
+</section>

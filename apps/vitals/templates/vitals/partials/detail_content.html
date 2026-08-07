@@ -1,7 +1,1174 @@
-{# HTMX detail partial for vitals #}
+{% comment %}
+============================================================
+VITAL OBSERVATION DETAIL CONTENT
 
-<div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-    <p class="text-slate-500">
-        Record details will appear here.
-    </p>
+File:
+apps/vitals/templates/vitals/partials/detail_content.html
+
+Purpose:
+- Display one complete vital-sign observation.
+- Present patient and encounter context.
+- Show core vital signs in compact clinical cards.
+- Display calculated BMI, MAP, and pulse pressure.
+- Highlight abnormal and critical findings.
+- Display documentation, recorder, and audit information.
+- Provide edit and entered-in-error actions.
+
+Expected context:
+- vital
+- selected_patient
+- active_encounter
+============================================================
+{% endcomment %}
+
+
+<div class="mx-auto w-full max-w-7xl space-y-3 p-3">
+
+    <!-- =========================================================
+         PAGE HEADER
+    ========================================================== -->
+    <header
+        class="
+            flex flex-col gap-3
+            rounded-xl border border-slate-200
+            bg-white px-4 py-3 shadow-sm
+            lg:flex-row lg:items-center lg:justify-between
+        "
+    >
+        <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+                <h1 class="text-base font-semibold text-slate-900">
+                    Vital Sign Observation
+                </h1>
+
+                {% if vital.status == "entered_in_error" %}
+                    <span
+                        class="
+                            inline-flex items-center rounded-full
+                            bg-red-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-red-800
+                        "
+                    >
+                        Entered in error
+                    </span>
+
+                {% elif vital.status == "corrected" %}
+                    <span
+                        class="
+                            inline-flex items-center rounded-full
+                            bg-blue-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-blue-800
+                        "
+                    >
+                        Corrected
+                    </span>
+
+                {% else %}
+                    <span
+                        class="
+                            inline-flex items-center rounded-full
+                            bg-emerald-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-emerald-800
+                        "
+                    >
+                        Final
+                    </span>
+                {% endif %}
+
+
+                {% if vital.clinical_status == "critical" %}
+                    <span
+                        class="
+                            inline-flex items-center rounded-full
+                            bg-red-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-red-800
+                        "
+                    >
+                        Critical findings
+                    </span>
+
+                {% elif vital.clinical_status == "abnormal" %}
+                    <span
+                        class="
+                            inline-flex items-center rounded-full
+                            bg-amber-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-amber-800
+                        "
+                    >
+                        Abnormal findings
+                    </span>
+
+                {% elif vital.clinical_status == "normal" %}
+                    <span
+                        class="
+                            inline-flex items-center rounded-full
+                            bg-emerald-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-emerald-800
+                        "
+                    >
+                        Within expected range
+                    </span>
+
+                {% else %}
+                    <span
+                        class="
+                            inline-flex items-center rounded-full
+                            bg-slate-100 px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-slate-600
+                        "
+                    >
+                        Not assessed
+                    </span>
+                {% endif %}
+            </div>
+
+            <p class="mt-1 text-xs text-slate-500">
+                {{ vital.patient.display_name }}
+
+                <span class="mx-1 text-slate-300">
+                    •
+                </span>
+
+                MRN {{ vital.patient.mrn }}
+
+                <span class="mx-1 text-slate-300">
+                    •
+                </span>
+
+                {{ vital.recorded_at|date:"M j, Y" }}
+
+                at
+
+                {{ vital.recorded_at|time:"g:i A" }}
+            </p>
+        </div>
+
+
+        <!-- =====================================================
+             ACTIONS
+        ====================================================== -->
+        <div class="flex flex-wrap items-center gap-2">
+            {% if vital.encounter %}
+                <a
+                    href="{% url 'vitals:encounter_list' encounter_id=vital.encounter.pk %}"
+                    hx-boost="false"
+                    class="btn-secondary"
+                >
+                    Encounter Vitals
+                </a>
+            {% else %}
+                <a
+                    href="{% url 'vitals:patient_history' patient_id=vital.patient.pk %}"
+                    hx-boost="false"
+                    class="btn-secondary"
+                >
+                    Vital History
+                </a>
+            {% endif %}
+
+            {% if vital.status != "entered_in_error" %}
+                <a
+                    href="{% url 'vitals:update' pk=vital.pk %}"
+                    hx-boost="false"
+                    class="
+                        inline-flex min-h-9
+                        items-center justify-center gap-1.5
+                        rounded-lg border border-emerald-800
+                        bg-emerald-700 px-3 py-1.5
+                        text-xs font-semibold text-white
+                        shadow-sm transition
+                        hover:bg-emerald-800
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-emerald-500/40
+                    "
+                >
+                    <svg
+                        class="h-3.5 w-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        aria-hidden="true"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="
+                                M16.862 4.487
+                                18.55 2.8
+                                a1.875 1.875 0 1 1
+                                2.652 2.652
+                                L10.582 16.073
+                                a4.5 4.5 0 0 1-1.897 1.13
+                                L6 18l.797-2.685
+                                a4.5 4.5 0 0 1 1.13-1.897
+                                L16.862 4.487Z
+                            "
+                        />
+                    </svg>
+
+                    Edit
+                </a>
+
+                <a
+                    href="{% url 'vitals:entered_in_error' pk=vital.pk %}"
+                    hx-boost="false"
+                    class="
+                        inline-flex min-h-9
+                        items-center justify-center
+                        rounded-lg border border-red-300
+                        bg-white px-3 py-1.5
+                        text-xs font-semibold text-red-700
+                        shadow-sm transition
+                        hover:bg-red-50
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-red-300/50
+                    "
+                >
+                    Entered in Error
+                </a>
+            {% endif %}
+        </div>
+    </header>
+
+
+    <!-- =========================================================
+         ENTERED-IN-ERROR WARNING
+    ========================================================== -->
+    {% if vital.status == "entered_in_error" %}
+        <section
+            class="
+                rounded-xl border border-red-300
+                bg-red-50 px-4 py-3
+            "
+        >
+            <div class="flex items-start gap-3">
+                <div
+                    class="
+                        mt-0.5 grid h-8 w-8 shrink-0
+                        place-items-center rounded-full
+                        bg-red-100 text-red-700
+                    "
+                >
+                    <svg
+                        class="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        aria-hidden="true"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="
+                                M12 9v3.75
+                                M12 16.5h.008v.008H12V16.5Z
+                                M10.29 3.86 1.82 18
+                                A2 2 0 0 0 3.54 21h16.92
+                                a2 2 0 0 0 1.72-3
+                                L13.71 3.86
+                                a2 2 0 0 0-3.42 0Z
+                            "
+                        />
+                    </svg>
+                </div>
+
+                <div>
+                    <h2 class="text-sm font-semibold text-red-900">
+                        This observation was entered in error
+                    </h2>
+
+                    <p class="mt-1 whitespace-pre-line text-xs leading-5 text-red-800">
+                        {{ vital.entered_in_error_reason }}
+                    </p>
+
+                    {% if vital.entered_in_error_at %}
+                        <p class="mt-2 text-[10px] text-red-700">
+                            Marked in error
+                            {{ vital.entered_in_error_at|date:"M j, Y g:i A" }}
+
+                            {% if vital.entered_in_error_by %}
+                                by
+                                {{ vital.entered_in_error_by.get_full_name|default:vital.entered_in_error_by.username }}
+                            {% endif %}
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
+
+    <!-- =========================================================
+         ABNORMAL AND CRITICAL FINDINGS
+    ========================================================== -->
+    {% if vital.abnormal_findings %}
+        <section
+            class="
+                overflow-hidden rounded-xl
+                border
+                {% if vital.clinical_status == 'critical' %}
+                    border-red-300 bg-red-50
+                {% else %}
+                    border-amber-300 bg-amber-50
+                {% endif %}
+            "
+        >
+            <header
+                class="
+                    flex items-center justify-between gap-3
+                    border-b px-4 py-2.5
+                    {% if vital.clinical_status == 'critical' %}
+                        border-red-200
+                    {% else %}
+                        border-amber-200
+                    {% endif %}
+                "
+            >
+                <div>
+                    <h2
+                        class="
+                            text-xs font-semibold
+                            {% if vital.clinical_status == 'critical' %}
+                                text-red-900
+                            {% else %}
+                                text-amber-900
+                            {% endif %}
+                        "
+                    >
+                        Clinical Findings Requiring Review
+                    </h2>
+
+                    <p
+                        class="
+                            mt-0.5 text-[10px]
+                            {% if vital.clinical_status == 'critical' %}
+                                text-red-700
+                            {% else %}
+                                text-amber-700
+                            {% endif %}
+                        "
+                    >
+                        Review findings in the context of the patient's
+                        condition and clinical presentation.
+                    </p>
+                </div>
+
+                <span
+                    class="
+                        inline-flex rounded-full px-2 py-0.5
+                        text-[10px] font-semibold
+                        {% if vital.clinical_status == 'critical' %}
+                            bg-red-100 text-red-800
+                        {% else %}
+                            bg-amber-100 text-amber-800
+                        {% endif %}
+                    "
+                >
+                    {{ vital.abnormal_findings|length }}
+                    finding{{ vital.abnormal_findings|length|pluralize }}
+                </span>
+            </header>
+
+            <div
+                class="
+                    grid gap-2 p-3
+                    sm:grid-cols-2 xl:grid-cols-3
+                "
+            >
+                {% for finding in vital.abnormal_findings %}
+                    <article
+                        class="
+                            rounded-lg border bg-white px-3 py-2.5
+                            {% if finding.severity == 'critical' %}
+                                border-red-200
+                            {% else %}
+                                border-amber-200
+                            {% endif %}
+                        "
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p
+                                    class="
+                                        text-[10px] font-semibold uppercase
+                                        tracking-wide
+                                        {% if finding.severity == 'critical' %}
+                                            text-red-700
+                                        {% else %}
+                                            text-amber-700
+                                        {% endif %}
+                                    "
+                                >
+                                    {{ finding.label }}
+                                </p>
+
+                                <p class="mt-1 text-sm font-bold text-slate-900">
+                                    {{ finding.value }}
+                                </p>
+                            </div>
+
+                            <span
+                                class="
+                                    shrink-0 rounded-full px-2 py-0.5
+                                    text-[9px] font-semibold
+                                    {% if finding.severity == 'critical' %}
+                                        bg-red-100 text-red-800
+                                    {% else %}
+                                        bg-amber-100 text-amber-800
+                                    {% endif %}
+                                "
+                            >
+                                {{ finding.severity|title }}
+                            </span>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+
+
+    <!-- =========================================================
+         PATIENT AND ENCOUNTER CONTEXT
+    ========================================================== -->
+    <section
+        class="
+            overflow-hidden rounded-xl
+            border border-slate-200
+            bg-white shadow-sm
+        "
+    >
+        <header
+            class="
+                border-b border-slate-200
+                bg-slate-50 px-4 py-2.5
+            "
+        >
+            <h2 class="text-xs font-semibold text-slate-900">
+                Patient and Encounter
+            </h2>
+        </header>
+
+        <dl
+            class="
+                grid divide-y divide-slate-100
+                sm:grid-cols-2 sm:divide-x sm:divide-y-0
+                xl:grid-cols-4
+            "
+        >
+            <div class="px-4 py-3">
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Patient
+                </dt>
+
+                <dd class="mt-1 text-sm font-semibold text-slate-900">
+                    {{ vital.patient.display_name }}
+                </dd>
+
+                <dd class="mt-0.5 text-[10px] text-slate-500">
+                    MRN {{ vital.patient.mrn }}
+                </dd>
+            </div>
+
+            <div class="px-4 py-3">
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Encounter
+                </dt>
+
+                <dd class="mt-1 text-xs font-medium text-slate-900">
+                    {% if vital.encounter %}
+                        {{ vital.encounter.encounter_number }}
+                    {% else %}
+                        Not linked
+                    {% endif %}
+                </dd>
+
+                {% if vital.encounter %}
+                    <dd class="mt-0.5 text-[10px] text-slate-500">
+                        {{ vital.encounter.get_encounter_type_display }}
+                    </dd>
+                {% endif %}
+            </div>
+
+            <div class="px-4 py-3">
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Recorded
+                </dt>
+
+                <dd class="mt-1 text-xs font-medium text-slate-900">
+                    {{ vital.recorded_at|date:"M j, Y" }}
+                </dd>
+
+                <dd class="mt-0.5 text-[10px] text-slate-500">
+                    {{ vital.recorded_at|time:"g:i A" }}
+                </dd>
+            </div>
+
+            <div class="px-4 py-3">
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Position
+                </dt>
+
+                <dd class="mt-1 text-xs font-medium text-slate-900">
+                    {{ vital.get_position_display|default:"Not recorded" }}
+                </dd>
+            </div>
+        </dl>
+    </section>
+
+
+    <!-- =========================================================
+         CORE VITAL SIGNS
+    ========================================================== -->
+    <section
+        class="
+            overflow-hidden rounded-xl
+            border border-slate-200
+            bg-white shadow-sm
+        "
+    >
+        <header
+            class="
+                border-b border-slate-200
+                bg-slate-50 px-4 py-2.5
+            "
+        >
+            <h2 class="text-xs font-semibold text-slate-900">
+                Core Vital Signs
+            </h2>
+        </header>
+
+        <div
+            class="
+                grid gap-px bg-slate-200
+                sm:grid-cols-2
+                lg:grid-cols-3
+                xl:grid-cols-6
+            "
+        >
+            <!-- Temperature -->
+            <article class="bg-white px-4 py-3">
+                <p
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Temperature
+                </p>
+
+                <p class="mt-1 text-xl font-bold text-slate-900">
+                    {% if vital.temperature_celsius is not None %}
+                        {{ vital.temperature_celsius }}
+                        <span class="text-xs font-semibold text-slate-500">
+                            °C
+                        </span>
+                    {% else %}
+                        <span class="text-sm font-medium text-slate-400">
+                            Not recorded
+                        </span>
+                    {% endif %}
+                </p>
+
+                {% if vital.temperature_celsius is not None %}
+                    <p class="mt-1 text-[10px] text-slate-500">
+                        {{ vital.get_temperature_site_display }}
+                    </p>
+                {% endif %}
+            </article>
+
+
+            <!-- Heart rate -->
+            <article class="bg-white px-4 py-3">
+                <p
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Heart Rate
+                </p>
+
+                <p class="mt-1 text-xl font-bold text-slate-900">
+                    {% if vital.heart_rate is not None %}
+                        {{ vital.heart_rate }}
+                        <span class="text-xs font-semibold text-slate-500">
+                            bpm
+                        </span>
+                    {% else %}
+                        <span class="text-sm font-medium text-slate-400">
+                            Not recorded
+                        </span>
+                    {% endif %}
+                </p>
+            </article>
+
+
+            <!-- Respiratory rate -->
+            <article class="bg-white px-4 py-3">
+                <p
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Respiratory Rate
+                </p>
+
+                <p class="mt-1 text-xl font-bold text-slate-900">
+                    {% if vital.respiratory_rate is not None %}
+                        {{ vital.respiratory_rate }}
+                        <span class="text-xs font-semibold text-slate-500">
+                            /min
+                        </span>
+                    {% else %}
+                        <span class="text-sm font-medium text-slate-400">
+                            Not recorded
+                        </span>
+                    {% endif %}
+                </p>
+            </article>
+
+
+            <!-- Blood pressure -->
+            <article class="bg-white px-4 py-3">
+                <p
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Blood Pressure
+                </p>
+
+                <p class="mt-1 text-xl font-bold text-slate-900">
+                    {% if vital.systolic_blood_pressure is not None and vital.diastolic_blood_pressure is not None %}
+                        {{ vital.systolic_blood_pressure }}/{{ vital.diastolic_blood_pressure }}
+
+                        <span class="text-xs font-semibold text-slate-500">
+                            mmHg
+                        </span>
+                    {% else %}
+                        <span class="text-sm font-medium text-slate-400">
+                            Not recorded
+                        </span>
+                    {% endif %}
+                </p>
+            </article>
+
+
+            <!-- Oxygen saturation -->
+            <article class="bg-white px-4 py-3">
+                <p
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Oxygen Saturation
+                </p>
+
+                <p class="mt-1 text-xl font-bold text-slate-900">
+                    {% if vital.oxygen_saturation is not None %}
+                        {{ vital.oxygen_saturation }}
+
+                        <span class="text-xs font-semibold text-slate-500">
+                            %
+                        </span>
+                    {% else %}
+                        <span class="text-sm font-medium text-slate-400">
+                            Not recorded
+                        </span>
+                    {% endif %}
+                </p>
+            </article>
+
+
+            <!-- Pain -->
+            <article class="bg-white px-4 py-3">
+                <p
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Pain Score
+                </p>
+
+                <p class="mt-1 text-xl font-bold text-slate-900">
+                    {% if vital.pain_score is not None %}
+                        {{ vital.pain_score }}
+
+                        <span class="text-xs font-semibold text-slate-500">
+                            /10
+                        </span>
+                    {% else %}
+                        <span class="text-sm font-medium text-slate-400">
+                            Not recorded
+                        </span>
+                    {% endif %}
+                </p>
+            </article>
+        </div>
+    </section>
+
+
+    <!-- =========================================================
+         CALCULATIONS AND ADDITIONAL MEASUREMENTS
+    ========================================================== -->
+    <div class="grid gap-3 lg:grid-cols-2">
+
+        <!-- =====================================================
+             BLOOD PRESSURE CALCULATIONS
+        ====================================================== -->
+        <section
+            class="
+                overflow-hidden rounded-xl
+                border border-slate-200
+                bg-white shadow-sm
+            "
+        >
+            <header
+                class="
+                    border-b border-slate-200
+                    bg-slate-50 px-4 py-2.5
+                "
+            >
+                <h2 class="text-xs font-semibold text-slate-900">
+                    Blood Pressure Calculations
+                </h2>
+            </header>
+
+            <dl class="grid grid-cols-2 divide-x divide-slate-100">
+                <div class="px-4 py-3">
+                    <dt
+                        class="
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Mean Arterial Pressure
+                    </dt>
+
+                    <dd class="mt-1 text-lg font-bold text-slate-900">
+                        {% if vital.mean_arterial_pressure is not None %}
+                            {{ vital.mean_arterial_pressure }}
+
+                            <span class="text-xs font-medium text-slate-500">
+                                mmHg
+                            </span>
+                        {% else %}
+                            <span class="text-sm font-medium text-slate-400">
+                                Not calculated
+                            </span>
+                        {% endif %}
+                    </dd>
+                </div>
+
+                <div class="px-4 py-3">
+                    <dt
+                        class="
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Pulse Pressure
+                    </dt>
+
+                    <dd class="mt-1 text-lg font-bold text-slate-900">
+                        {% if vital.pulse_pressure is not None %}
+                            {{ vital.pulse_pressure }}
+
+                            <span class="text-xs font-medium text-slate-500">
+                                mmHg
+                            </span>
+                        {% else %}
+                            <span class="text-sm font-medium text-slate-400">
+                                Not calculated
+                            </span>
+                        {% endif %}
+                    </dd>
+                </div>
+            </dl>
+        </section>
+
+
+        <!-- =====================================================
+             OXYGEN SUPPORT
+        ====================================================== -->
+        <section
+            class="
+                overflow-hidden rounded-xl
+                border border-slate-200
+                bg-white shadow-sm
+            "
+        >
+            <header
+                class="
+                    border-b border-slate-200
+                    bg-slate-50 px-4 py-2.5
+                "
+            >
+                <h2 class="text-xs font-semibold text-slate-900">
+                    Oxygen Support
+                </h2>
+            </header>
+
+            <dl class="grid grid-cols-2 divide-x divide-slate-100">
+                <div class="px-4 py-3">
+                    <dt
+                        class="
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Delivery Method
+                    </dt>
+
+                    <dd class="mt-1 text-xs font-medium text-slate-900">
+                        {{ vital.get_oxygen_delivery_method_display|default:"Not recorded" }}
+                    </dd>
+                </div>
+
+                <div class="px-4 py-3">
+                    <dt
+                        class="
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Oxygen Flow
+                    </dt>
+
+                    <dd class="mt-1 text-xs font-medium text-slate-900">
+                        {% if vital.oxygen_flow_lpm is not None %}
+                            {{ vital.oxygen_flow_lpm }} L/min
+                        {% else %}
+                            Not recorded
+                        {% endif %}
+                    </dd>
+                </div>
+            </dl>
+        </section>
+    </div>
+
+
+    <!-- =========================================================
+         BODY MEASUREMENTS AND GLUCOSE
+    ========================================================== -->
+    <section
+        class="
+            overflow-hidden rounded-xl
+            border border-slate-200
+            bg-white shadow-sm
+        "
+    >
+        <header
+            class="
+                border-b border-slate-200
+                bg-slate-50 px-4 py-2.5
+            "
+        >
+            <h2 class="text-xs font-semibold text-slate-900">
+                Measurements
+            </h2>
+        </header>
+
+        <dl
+            class="
+                grid divide-y divide-slate-100
+                sm:grid-cols-2 sm:divide-x sm:divide-y-0
+                xl:grid-cols-5
+            "
+        >
+            <div class="px-4 py-3">
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Height
+                </dt>
+
+                <dd class="mt-1 text-sm font-semibold text-slate-900">
+                    {% if vital.height_cm is not None %}
+                        {{ vital.height_cm }} cm
+                    {% else %}
+                        <span class="font-normal text-slate-400">
+                            Not recorded
+                        </span>
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div class="px-4 py-3">
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Weight
+                </dt>
+
+                <dd class="mt-1 text-sm font-semibold text-slate-900">
+                    {% if vital.weight_kg is not None %}
+                        {{ vital.weight_kg }} kg
+                    {% else %}
+                        <span class="font-normal text-slate-400">
+                            Not recorded
+                        </span>
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div class="px-4 py-3">
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    BMI
+                </dt>
+
+                <dd class="mt-1 text-sm font-semibold text-slate-900">
+                    {% if vital.bmi is not None %}
+                        {{ vital.bmi }}
+                    {% else %}
+                        <span class="font-normal text-slate-400">
+                            Not calculated
+                        </span>
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div class="px-4 py-3">
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    BMI Category
+                </dt>
+
+                <dd class="mt-1 text-sm font-semibold text-slate-900">
+                    {% if vital.bmi_category %}
+                        {{ vital.bmi_category }}
+                    {% else %}
+                        <span class="font-normal text-slate-400">
+                            Not calculated
+                        </span>
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div class="px-4 py-3">
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Blood Glucose
+                </dt>
+
+                <dd class="mt-1 text-sm font-semibold text-slate-900">
+                    {% if vital.blood_glucose_mg_dl is not None %}
+                        {{ vital.blood_glucose_mg_dl }} mg/dL
+                    {% else %}
+                        <span class="font-normal text-slate-400">
+                            Not recorded
+                        </span>
+                    {% endif %}
+                </dd>
+            </div>
+        </dl>
+    </section>
+
+
+    <!-- =========================================================
+         NOTES
+    ========================================================== -->
+    {% if vital.notes %}
+        <section
+            class="
+                overflow-hidden rounded-xl
+                border border-slate-200
+                bg-white shadow-sm
+            "
+        >
+            <header
+                class="
+                    border-b border-slate-200
+                    bg-slate-50 px-4 py-2.5
+                "
+            >
+                <h2 class="text-xs font-semibold text-slate-900">
+                    Clinical Notes
+                </h2>
+            </header>
+
+            <div class="px-4 py-3">
+                <p class="whitespace-pre-line text-xs leading-5 text-slate-700">
+                    {{ vital.notes }}
+                </p>
+            </div>
+        </section>
+    {% endif %}
+
+
+    <!-- =========================================================
+         CORRECTION INFORMATION
+    ========================================================== -->
+    {% if vital.status == "corrected" and vital.correction_reason %}
+        <section
+            class="
+                overflow-hidden rounded-xl
+                border border-blue-200
+                bg-blue-50
+            "
+        >
+            <header
+                class="
+                    border-b border-blue-200
+                    px-4 py-2.5
+                "
+            >
+                <h2 class="text-xs font-semibold text-blue-900">
+                    Correction Information
+                </h2>
+            </header>
+
+            <div class="px-4 py-3">
+                <p class="whitespace-pre-line text-xs leading-5 text-blue-800">
+                    {{ vital.correction_reason }}
+                </p>
+            </div>
+        </section>
+    {% endif %}
+
+
+    <!-- =========================================================
+         RECORD INFORMATION
+    ========================================================== -->
+    <section
+        class="
+            overflow-hidden rounded-xl
+            border border-slate-200
+            bg-white shadow-sm
+        "
+    >
+        <header
+            class="
+                border-b border-slate-200
+                bg-slate-50 px-4 py-2.5
+            "
+        >
+            <h2 class="text-xs font-semibold text-slate-900">
+                Record Information
+            </h2>
+        </header>
+
+        <dl
+            class="
+                grid gap-x-5 gap-y-3 px-4 py-3
+                sm:grid-cols-2
+                xl:grid-cols-4
+            "
+        >
+            <div>
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Recorded By
+                </dt>
+
+                <dd class="mt-1 text-xs text-slate-900">
+                    {{ vital.recorded_by.get_full_name|default:vital.recorded_by.username }}
+                </dd>
+            </div>
+
+            <div>
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Record Status
+                </dt>
+
+                <dd class="mt-1 text-xs text-slate-900">
+                    {{ vital.get_status_display }}
+                </dd>
+            </div>
+
+            <div>
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Created
+                </dt>
+
+                <dd class="mt-1 text-xs text-slate-900">
+                    {{ vital.created_at|date:"M j, Y g:i A" }}
+                </dd>
+            </div>
+
+            <div>
+                <dt
+                    class="
+                        text-[10px] font-semibold uppercase
+                        tracking-wide text-slate-500
+                    "
+                >
+                    Last Updated
+                </dt>
+
+                <dd class="mt-1 text-xs text-slate-900">
+                    {{ vital.updated_at|date:"M j, Y g:i A" }}
+                </dd>
+            </div>
+        </dl>
+    </section>
 </div>

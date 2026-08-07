@@ -1,7 +1,117 @@
-{# HTMX list partial for vitals #}
+{% comment %}
 
-<div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-    <p class="text-slate-500">
-        No records available.
-    </p>
+============================================================
+
+VITAL LIST DEBUG CONTENT
+
+File:
+
+apps/vitals/templates/vitals/partials/list_content.html
+
+============================================================
+
+{% endcomment %}
+
+<div class="space-y-4 p-4">
+
+    <div class="rounded-lg border border-blue-300 bg-blue-50 p-4">
+
+        <h1 class="text-base font-bold text-blue-950">
+
+            Vitals workspace is loading
+
+        </h1>
+
+        <div class="mt-2 space-y-1 text-xs text-blue-900">
+
+            <p>
+
+                Patient:
+
+                {% if selected_patient %}
+
+                    {{ selected_patient.display_name }}
+
+                {% else %}
+
+                    NONE
+
+                {% endif %}
+
+            </p>
+
+            <p>
+
+                Encounter:
+
+                {% if active_encounter %}
+
+                    {{ active_encounter.encounter_number }}
+
+                {% else %}
+
+                    NONE
+
+                {% endif %}
+
+            </p>
+
+            <p>
+
+                Number of vital observations:
+
+                <strong>
+
+                    {{ vital_observations|length }}
+
+                </strong>
+
+            </p>
+
+        </div>
+
+    </div>
+
+    {% if selected_patient %}
+
+        <a
+
+            href="{% url 'vitals:create' %}?patient={{ selected_patient.pk }}{% if active_encounter %}&encounter={{ active_encounter.pk }}{% endif %}"
+
+            hx-boost="false"
+
+            class="
+
+                inline-flex min-h-9
+
+                items-center justify-center
+
+                rounded-lg border
+
+                border-emerald-800
+
+                bg-emerald-700 px-3 py-2
+
+                text-xs font-semibold
+
+                text-white
+
+            "
+
+            style="background-color:#047857;color:#ffffff;"
+
+        >
+
+            ＋ Record Vital Signs
+
+        </a>
+
+    {% endif %}
+
+    <div class="rounded-lg border border-slate-200 bg-white">
+
+        {% include "vitals/partials/vital_table.html" %}
+
+    </div>
+
 </div>

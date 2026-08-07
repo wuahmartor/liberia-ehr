@@ -1,0 +1,7 @@
+<option value="">Select department</option>
+
+{% for department in departments %}
+    <option value="{{ department.pk }}">
+        {{ department }}
+    </option>
+{% endfor %}

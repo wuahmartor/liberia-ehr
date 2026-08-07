@@ -1,0 +1,7 @@
+<option value="">Select clinical unit</option>
+
+{% for unit in clinical_units %}
+    <option value="{{ unit.pk }}">
+        {{ unit }}
+    </option>
+{% endfor %}

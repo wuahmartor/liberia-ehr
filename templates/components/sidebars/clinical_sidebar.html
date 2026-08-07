@@ -1,3383 +1,654 @@
 {% comment %}
-
 ============================================================
-
 CLINICAL SIDEBAR
 
 File:
-
 templates/components/sidebars/clinical_sidebar.html
 
 Purpose:
-
-- Organize clinical navigation into historical and actionable
-
-  sections.
-
-- Display each navigation item on its own full-width row.
-
-- Use collapsible accordion sections to conserve vertical space.
-
-- Keep only one major section expanded at a time.
-
-- Show encounter actions only when an active encounter exists.
-
-- Keep detailed clinical content in the main workspace.
+- Provide compact clinical navigation.
+- Separate longitudinal records from active encounter actions.
+- Display every navigation item on its own row.
+- Show only one Vitals navigation item.
+- Use collapsible sections to conserve workspace height.
 
 Expected context:
-
 - selected_patient
-
 - active_encounter
-
 - active_clinical_module
-
 - active_patient_section
-
 - active_encounter_module
-
-Current access policy:
-
-- All authenticated staff may use clinical navigation.
-
-- Role and permission restrictions will be added later.
-
 ============================================================
-
 {% endcomment %}
 
+
 <div
-
     x-data="{
-
         openSection:
-
-            {% if active_patient_section == 'overview' or active_patient_section == 'encounters' or active_patient_section == 'problems' or active_patient_section == 'medication-history' or active_patient_section == 'care-plan-history' or active_patient_section == 'documents' %}
-
-                'history'
-
-            {% elif active_encounter %}
-
+            {% if active_encounter %}
                 'encounter'
-
+            {% elif selected_patient %}
+                'record'
             {% else %}
-
-                'history'
-
+                'applications'
             {% endif %},
 
         toggleSection(section) {
-
             this.openSection =
-
                 this.openSection === section
-
                     ? null
-
                     : section;
-
         }
-
     }"
-
     class="
-
         flex h-full min-h-0 w-full
-
-        flex-col overflow-x-hidden overflow-y-auto
-
-        bg-white px-3 py-3
-
+        flex-col overflow-x-hidden
+        overflow-y-auto bg-white
+        px-3 py-3
     "
-
     aria-label="Clinical sidebar"
-
 >
-
     {% if selected_patient %}
-
         <!-- =====================================================
-
-             SELECTED PATIENT IDENTITY
-
+             PATIENT IDENTITY
         ====================================================== -->
-
         <section
-
             class="
-
                 shrink-0 rounded-xl
-
                 border border-slate-200
-
                 bg-gradient-to-br
-
                 from-white to-slate-50
-
                 p-3 shadow-sm
-
             "
-
-            aria-labelledby="sidebar-patient-name"
-
         >
-
             <div class="flex min-w-0 items-start gap-3">
-
                 <div
-
                     class="
-
                         grid h-11 w-11 shrink-0
-
                         place-items-center rounded-full
-
                         border border-emerald-200
-
                         bg-emerald-100
-
                         text-xs font-extrabold
-
-                        tracking-wide text-emerald-900
-
-                        shadow-sm
-
+                        text-emerald-900
                     "
-
-                    aria-hidden="true"
-
                 >
-
-                    {{ selected_patient.first_name|first|upper }}
-
-                    {{ selected_patient.last_name|first|upper }}
-
+                    {{ selected_patient.initials }}
                 </div>
 
                 <div class="min-w-0 flex-1">
-
-                    <h2
-
-                        id="sidebar-patient-name"
-
-                        class="
-
-                            truncate text-sm font-bold
-
-                            text-slate-950
-
-                        "
-
-                    >
-
-                        {{ selected_patient }}
-
+                    <h2 class="truncate text-sm font-bold text-slate-950">
+                        {{ selected_patient.display_name }}
                     </h2>
 
                     <dl class="mt-1.5 space-y-1">
-
-                        <div
-
-                            class="
-
-                                flex min-w-0 items-center
-
-                                gap-1.5 text-[10px]
-
-                            "
-
-                        >
-
-                            <dt
-
-                                class="
-
-                                    shrink-0 font-bold uppercase
-
-                                    tracking-wide text-slate-500
-
-                                "
-
-                            >
-
+                        <div class="flex items-center gap-1.5 text-[10px]">
+                            <dt class="font-bold uppercase text-slate-500">
                                 MRN
-
                             </dt>
 
-                            <dd
-
-                                class="
-
-                                    min-w-0 truncate
-
-                                    font-medium text-slate-700
-
-                                "
-
-                            >
-
-                                {% firstof selected_patient.mrn selected_patient.medical_record_number "Not assigned" %}
-
+                            <dd class="truncate font-medium text-slate-700">
+                                {{ selected_patient.mrn }}
                             </dd>
-
                         </div>
 
-                        <div
-
-                            class="
-
-                                flex min-w-0 items-center
-
-                                gap-1.5 text-[10px]
-
-                            "
-
-                        >
-
-                            <dt
-
-                                class="
-
-                                    shrink-0 font-bold uppercase
-
-                                    tracking-wide text-slate-500
-
-                                "
-
-                            >
-
+                        <div class="flex items-center gap-1.5 text-[10px]">
+                            <dt class="font-bold uppercase text-slate-500">
                                 DOB
-
                             </dt>
 
-                            <dd
-
-                                class="
-
-                                    min-w-0 truncate
-
-                                    font-medium text-slate-700
-
-                                "
-
-                            >
-
+                            <dd class="truncate font-medium text-slate-700">
                                 {{ selected_patient.date_of_birth|date:"m/d/Y" }}
-
-                                {% if selected_patient.age %}
-
-                                    · {{ selected_patient.age }} years
-
-                                {% endif %}
-
+                                · {{ selected_patient.age_display }} years
                             </dd>
-
                         </div>
 
-                        <div
-
-                            class="
-
-                                flex min-w-0 items-center
-
-                                gap-1.5 text-[10px]
-
-                            "
-
-                        >
-
-                            <dt
-
-                                class="
-
-                                    shrink-0 font-bold uppercase
-
-                                    tracking-wide text-slate-500
-
-                                "
-
-                            >
-
+                        <div class="flex items-center gap-1.5 text-[10px]">
+                            <dt class="font-bold uppercase text-slate-500">
                                 Sex
-
                             </dt>
 
-                            <dd
-
-                                class="
-
-                                    min-w-0 truncate
-
-                                    font-medium text-slate-700
-
-                                "
-
-                            >
-
-                                {{ selected_patient.get_sex_at_birth_display|default:"Not recorded" }}
-
+                            <dd class="truncate font-medium text-slate-700">
+                                {{ selected_patient.get_sex_at_birth_display }}
                             </dd>
-
                         </div>
-
                     </dl>
-
                 </div>
-
             </div>
 
-            <button
-
-                type="button"
-
+            <a
+                href="{% url 'patients:detail' patient_id=selected_patient.pk %}"
+                hx-boost="false"
                 class="
-
                     mt-3 flex min-h-8 w-full
-
-                    items-center justify-center gap-1.5
-
+                    items-center justify-center
                     rounded-lg border border-slate-300
-
                     bg-white px-2.5 py-1.5
-
                     text-[10px] font-semibold
-
                     text-slate-700 shadow-sm
-
-                    transition
-
-                    hover:border-emerald-300
-
-                    hover:bg-emerald-50
-
+                    transition hover:bg-emerald-50
                     hover:text-emerald-900
-
-                    focus:outline-none
-
-                    focus:ring-2
-
-                    focus:ring-emerald-500/30
-
                 "
-
-                onclick="
-
-                    const dialog = document.getElementById(
-
-                        'patient-demographics-modal'
-
-                    );
-
-                    if (dialog) {
-
-                        dialog.showModal();
-
-                    }
-
-                "
-
             >
-
-                <svg
-
-                    class="h-3.5 w-3.5"
-
-                    viewBox="0 0 24 24"
-
-                    fill="none"
-
-                    stroke="currentColor"
-
-                    stroke-width="2"
-
-                    aria-hidden="true"
-
-                >
-
-                    <path
-
-                        stroke-linecap="round"
-
-                        stroke-linejoin="round"
-
-                        d="
-
-                            M15 12a3 3 0 11-6 0
-
-                            3 3 0 016 0z
-
-                        "
-
-                    />
-
-                    <path
-
-                        stroke-linecap="round"
-
-                        stroke-linejoin="round"
-
-                        d="
-
-                            M2.458 12
-
-                            C3.732 7.943 7.523 5 12 5
-
-                            c4.478 0 8.268 2.943 9.542 7
-
-                            -1.274 4.057-5.064 7-9.542 7
-
-                            -4.477 0-8.268-2.943-9.542-7z
-
-                        "
-
-                    />
-
-                </svg>
-
-                <span>View Demographics</span>
-
-            </button>
-
+                View Patient Overview
+            </a>
         </section>
 
-        <!-- =====================================================
-
-             SIDEBAR ACCORDION
-
-        ====================================================== -->
 
         <div class="mt-3 space-y-2">
-
             <!-- =================================================
-
-                 HISTORICAL PATIENT RECORD
-
+                 PATIENT RECORD
             ================================================== -->
-
             <section
-
                 class="
-
                     overflow-hidden rounded-xl
-
                     border border-slate-200
-
                     bg-white shadow-sm
-
                 "
-
             >
-
                 <button
-
                     type="button"
-
                     class="
-
                         flex min-h-11 w-full
-
                         items-center gap-2.5
-
                         px-3 py-2 text-left
-
-                        transition
-
-                        hover:bg-slate-50
-
-                        focus:outline-none
-
-                        focus:ring-2
-
-                        focus:ring-inset
-
-                        focus:ring-emerald-500/30
-
+                        transition hover:bg-slate-50
                     "
-
-                    @click="toggleSection('history')"
-
-                    :aria-expanded="
-
-                        (openSection === 'history').toString()
-
-                    "
-
-                    aria-controls="historical-record-navigation"
-
+                    @click="toggleSection('record')"
                 >
-
                     <span
-
                         class="
-
                             grid h-7 w-7 shrink-0
-
                             place-items-center rounded-lg
-
                             bg-slate-100 text-slate-600
-
                         "
-
-                        aria-hidden="true"
-
                     >
-
                         ▤
-
                     </span>
 
                     <span class="min-w-0 flex-1">
-
                         <span
-
                             class="
-
                                 block truncate text-[11px]
-
                                 font-bold uppercase
-
                                 tracking-[0.08em]
-
                                 text-slate-700
-
                             "
-
                         >
-
-                            Historical Record
-
+                            Patient Record
                         </span>
 
-                        <span
-
-                            class="
-
-                                mt-0.5 block truncate
-
-                                text-[9px] text-slate-400
-
-                            "
-
-                        >
-
-                            Longitudinal patient information
-
+                        <span class="mt-0.5 block text-[9px] text-slate-400">
+                            Longitudinal clinical history
                         </span>
-
                     </span>
 
-                    <svg
-
-                        class="
-
-                            h-4 w-4 shrink-0 text-slate-400
-
-                            transition-transform duration-200
-
-                        "
-
-                        :class="{
-
-                            'rotate-180':
-
-                                openSection === 'history'
-
-                        }"
-
-                        viewBox="0 0 20 20"
-
-                        fill="currentColor"
-
-                        aria-hidden="true"
-
+                    <span
+                        class="text-slate-400 transition"
+                        :class="{ 'rotate-180': openSection === 'record' }"
                     >
-
-                        <path
-
-                            fill-rule="evenodd"
-
-                            d="
-
-                                M5.23 7.21a.75.75 0 011.06.02
-
-                                L10 11.17l3.71-3.94
-
-                                a.75.75 0 111.08 1.04
-
-                                l-4.25 4.5a.75.75 0 01-1.08 0
-
-                                l-4.25-4.5a.75.75 0 01.02-1.06z
-
-                            "
-
-                            clip-rule="evenodd"
-
-                        />
-
-                    </svg>
-
+                       ⌄
+                    </span>
                 </button>
 
                 <div
-
-                    id="historical-record-navigation"
-
                     x-cloak
-
-                    x-show="openSection === 'history'"
-
+                    x-show="openSection === 'record'"
                     x-collapse
-
-                    class="
-
-                        border-t border-slate-200
-
-                        bg-slate-50/60
-
-                    "
-
+                    class="border-t border-slate-200 bg-slate-50/60"
                 >
-
-                    <nav
-
-                        class="flex flex-col gap-1 p-2"
-
-                        aria-label="Historical patient record"
-
-                    >
-
-                        <!-- Patient overview -->
-
+                    <nav class="flex flex-col gap-1 p-2">
                         <a
-
                             href="{% url 'patients:detail' patient_id=selected_patient.pk %}"
-
                             hx-boost="false"
-
                             class="
-
-                                flex min-h-10 w-full
-
-                                items-center gap-2.5
-
+                                flex min-h-10 items-center gap-2.5
                                 rounded-lg border px-2.5 py-2
-
-                                text-left text-xs
-
-                                no-underline transition
-
+                                text-xs no-underline transition
                                 {% if active_patient_section == 'overview' %}
-
-                                    border-emerald-200
-
-                                    bg-white font-semibold
-
-                                    text-emerald-900 shadow-sm
-
+                                    border-emerald-200 bg-white
+                                    font-semibold text-emerald-900
+                                    shadow-sm
                                 {% else %}
-
-                                    border-transparent
-
-                                    font-medium text-slate-700
-
-                                    hover:border-slate-200
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
+                                    border-transparent font-medium
+                                    text-slate-700 hover:bg-white
                                 {% endif %}
-
                             "
-
-                            {% if active_patient_section == "overview" %}
-
-                                aria-current="page"
-
-                            {% endif %}
-
                         >
-
                             <span
-
                                 class="
-
-                                    grid h-7 w-7 shrink-0
-
-                                    place-items-center rounded-md
-
-                                    {% if active_patient_section == 'overview' %}
-
-                                        bg-emerald-700 text-white
-
-                                    {% else %}
-
-                                        bg-white text-slate-500
-
-                                        ring-1 ring-inset
-
-                                        ring-slate-200
-
-                                    {% endif %}
-
+                                    grid h-7 w-7 place-items-center
+                                    rounded-md bg-white
+                                    text-slate-500 ring-1
+                                    ring-inset ring-slate-200
                                 "
-
-                                aria-hidden="true"
-
                             >
-
                                 ▣
-
                             </span>
 
-                            <span class="min-w-0 flex-1 truncate">
-
-                                Patient Overview
-
-                            </span>
-
+                            Patient Overview
                         </a>
 
-                        <!-- Encounter history -->
-
                         <a
-
                             href="{% url 'encounters:list' %}?patient={{ selected_patient.pk }}"
-
                             hx-boost="false"
-
                             class="
-
-                                flex min-h-10 w-full
-
-                                items-center gap-2.5
-
-                                rounded-lg border px-2.5 py-2
-
-                                text-left text-xs
-
-                                no-underline transition
-
-                                {% if active_patient_section == 'encounters' %}
-
-                                    border-emerald-200
-
-                                    bg-white font-semibold
-
-                                    text-emerald-900 shadow-sm
-
-                                {% else %}
-
-                                    border-transparent
-
-                                    font-medium text-slate-700
-
-                                    hover:border-slate-200
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
-                                {% endif %}
-
+                                flex min-h-10 items-center gap-2.5
+                                rounded-lg border border-transparent
+                                px-2.5 py-2 text-xs font-medium
+                                text-slate-700 no-underline
+                                transition hover:bg-white
                             "
-
-                            {% if active_patient_section == "encounters" %}
-
-                                aria-current="page"
-
-                            {% endif %}
-
                         >
-
                             <span
-
                                 class="
-
-                                    grid h-7 w-7 shrink-0
-
-                                    place-items-center rounded-md
-
-                                    {% if active_patient_section == 'encounters' %}
-
-                                        bg-emerald-700 text-white
-
-                                    {% else %}
-
-                                        bg-white text-slate-500
-
-                                        ring-1 ring-inset
-
-                                        ring-slate-200
-
-                                    {% endif %}
-
+                                    grid h-7 w-7 place-items-center
+                                    rounded-md bg-white
+                                    text-slate-500 ring-1
+                                    ring-inset ring-slate-200
                                 "
-
-                                aria-hidden="true"
-
                             >
-
                                 ⇄
-
                             </span>
 
-                            <span class="min-w-0 flex-1 truncate">
-
-                                Encounter History
-
-                            </span>
-
+                            Encounter History
                         </a>
 
-                        <!-- Problem list -->
-
-                        <a
-
-                            href="#"
-
-                            class="
-
-                                flex min-h-10 w-full
-
-                                items-center gap-2.5
-
-                                rounded-lg border px-2.5 py-2
-
-                                text-left text-xs
-
-                                no-underline transition
-
-                                {% if active_patient_section == 'problems' %}
-
-                                    border-emerald-200
-
-                                    bg-white font-semibold
-
-                                    text-emerald-900 shadow-sm
-
-                                {% else %}
-
-                                    border-transparent
-
-                                    font-medium text-slate-700
-
-                                    hover:border-slate-200
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
-                                {% endif %}
-
-                            "
-
-                        >
-
-                            <span
-
+                        {% if not active_encounter %}
+                            <!-- One Vitals menu when no encounter is active -->
+                            <a
+                                href="{% url 'vitals:patient_history' patient_id=selected_patient.pk %}"
+                                hx-boost="false"
                                 class="
-
-                                    grid h-7 w-7 shrink-0
-
-                                    place-items-center rounded-md
-
-                                    bg-white text-slate-500
-
-                                    ring-1 ring-inset
-
-                                    ring-slate-200
-
+                                    flex min-h-10 items-center gap-2.5
+                                    rounded-lg border px-2.5 py-2
+                                    text-xs no-underline transition
+                                    {% if active_clinical_module == 'vitals' %}
+                                        border-emerald-200 bg-white
+                                        font-semibold text-emerald-900
+                                        shadow-sm
+                                    {% else %}
+                                        border-transparent font-medium
+                                        text-slate-700 hover:bg-white
+                                    {% endif %}
                                 "
-
-                                aria-hidden="true"
-
                             >
-
-                                ⊙
-
-                            </span>
-
-                            <span class="min-w-0 flex-1 truncate">
-
-                                Problem List
-
-                            </span>
-
-                        </a>
-
-                        <!-- Medication history -->
-
-                        <a
-
-                            href="#"
-
-                            class="
-
-                                flex min-h-10 w-full
-
-                                items-center gap-2.5
-
-                                rounded-lg border px-2.5 py-2
-
-                                text-left text-xs
-
-                                no-underline transition
-
-                                {% if active_patient_section == 'medication-history' %}
-
-                                    border-emerald-200
-
-                                    bg-white font-semibold
-
-                                    text-emerald-900 shadow-sm
-
-                                {% else %}
-
-                                    border-transparent
-
-                                    font-medium text-slate-700
-
-                                    hover:border-slate-200
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
-                                {% endif %}
-
-                            "
-
-                        >
-
-                            <span
-
-                                class="
-
-                                    grid h-7 w-7 shrink-0
-
-                                    place-items-center rounded-md
-
-                                    bg-white text-slate-500
-
-                                    ring-1 ring-inset
-
-                                    ring-slate-200
-
-                                "
-
-                                aria-hidden="true"
-
-                            >
-
-                                ◇
-
-                            </span>
-
-                            <span class="min-w-0 flex-1 truncate">
-
-                                Medication History
-
-                            </span>
-
-                        </a>
-
-                        <!-- Care plan history -->
-
-                        <a
-
-                            href="#"
-
-                            class="
-
-                                flex min-h-10 w-full
-
-                                items-center gap-2.5
-
-                                rounded-lg border px-2.5 py-2
-
-                                text-left text-xs
-
-                                no-underline transition
-
-                                {% if active_patient_section == 'care-plan-history' %}
-
-                                    border-emerald-200
-
-                                    bg-white font-semibold
-
-                                    text-emerald-900 shadow-sm
-
-                                {% else %}
-
-                                    border-transparent
-
-                                    font-medium text-slate-700
-
-                                    hover:border-slate-200
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
-                                {% endif %}
-
-                            "
-
-                        >
-
-                            <span
-
-                                class="
-
-                                    grid h-7 w-7 shrink-0
-
-                                    place-items-center rounded-md
-
-                                    bg-white text-slate-500
-
-                                    ring-1 ring-inset
-
-                                    ring-slate-200
-
-                                "
-
-                                aria-hidden="true"
-
-                            >
-
-                                ▱
-
-                            </span>
-
-                            <span class="min-w-0 flex-1 truncate">
-
-                                Care Plan History
-
-                            </span>
-
-                        </a>
-
-                        <!-- Documents -->
-
-                        <a
-
-                            href="#"
-
-                            class="
-
-                                flex min-h-10 w-full
-
-                                items-center gap-2.5
-
-                                rounded-lg border px-2.5 py-2
-
-                                text-left text-xs
-
-                                no-underline transition
-
-                                {% if active_patient_section == 'documents' %}
-
-                                    border-emerald-200
-
-                                    bg-white font-semibold
-
-                                    text-emerald-900 shadow-sm
-
-                                {% else %}
-
-                                    border-transparent
-
-                                    font-medium text-slate-700
-
-                                    hover:border-slate-200
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
-                                {% endif %}
-
-                            "
-
-                        >
-
-                            <span
-
-                                class="
-
-                                    grid h-7 w-7 shrink-0
-
-                                    place-items-center rounded-md
-
-                                    bg-white text-slate-500
-
-                                    ring-1 ring-inset
-
-                                    ring-slate-200
-
-                                "
-
-                                aria-hidden="true"
-
-                            >
-
-                                ▤
-
-                            </span>
-
-                            <span class="min-w-0 flex-1 truncate">
-
-                                Records and Documents
-
-                            </span>
-
-                        </a>
-
+                                <span
+                                    class="
+                                        grid h-7 w-7 place-items-center
+                                        rounded-md
+                                        {% if active_clinical_module == 'vitals' %}
+                                            bg-emerald-700 text-white
+                                        {% else %}
+                                            bg-white text-slate-500
+                                            ring-1 ring-inset
+                                            ring-slate-200
+                                        {% endif %}
+                                    "
+                                >
+                                    ♥
+                                </span>
+
+                                Vital Signs
+                            </a>
+                        {% endif %}
                     </nav>
-
                 </div>
-
             </section>
 
+
             <!-- =================================================
-
-                 ACTIONABLE ACTIVE ENCOUNTER
-
+                 ACTIVE ENCOUNTER
             ================================================== -->
-
             <section
-
                 class="
-
                     overflow-hidden rounded-xl
-
                     border border-slate-200
-
                     bg-white shadow-sm
-
                 "
-
             >
-
                 <button
-
                     type="button"
-
                     class="
-
                         flex min-h-11 w-full
-
                         items-center gap-2.5
-
                         px-3 py-2 text-left
-
-                        transition
-
-                        hover:bg-emerald-50/60
-
-                        focus:outline-none
-
-                        focus:ring-2
-
-                        focus:ring-inset
-
-                        focus:ring-emerald-500/30
-
+                        transition hover:bg-emerald-50/60
                     "
-
                     @click="toggleSection('encounter')"
-
-                    :aria-expanded="
-
-                        (openSection === 'encounter').toString()
-
-                    "
-
-                    aria-controls="active-encounter-navigation"
-
                 >
-
                     <span
-
                         class="
-
                             grid h-7 w-7 shrink-0
-
                             place-items-center rounded-lg
-
-                            {% if active_encounter and active_encounter.is_active and active_encounter.is_open %}
-
+                            {% if active_encounter %}
                                 bg-emerald-100 text-emerald-800
-
                             {% else %}
-
                                 bg-slate-100 text-slate-500
-
                             {% endif %}
-
                         "
-
-                        aria-hidden="true"
-
                     >
-
                         ✚
-
                     </span>
 
                     <span class="min-w-0 flex-1">
-
                         <span
-
                             class="
-
                                 block truncate text-[11px]
-
                                 font-bold uppercase
-
                                 tracking-[0.08em]
-
                                 text-slate-700
-
                             "
-
                         >
-
                             Active Encounter
-
                         </span>
 
-                        <span
-
-                            class="
-
-                                mt-0.5 block truncate
-
-                                text-[9px] text-slate-400
-
-                            "
-
-                        >
-
-                            Current documentation and orders
-
+                        <span class="mt-0.5 block text-[9px] text-slate-400">
+                            Current documentation and care
                         </span>
-
                     </span>
 
-                    {% if active_encounter and active_encounter.is_active and active_encounter.is_open %}
-
+                    {% if active_encounter %}
                         <span
-
                             class="
-
-                                inline-flex shrink-0
-
-                                items-center gap-1
-
                                 rounded-full bg-emerald-100
-
                                 px-1.5 py-0.5
-
                                 text-[8px] font-bold
-
                                 text-emerald-800
-
                             "
-
                         >
-
-                            <span
-
-                                class="
-
-                                    h-1.5 w-1.5
-
-                                    rounded-full bg-emerald-600
-
-                                "
-
-                                aria-hidden="true"
-
-                            ></span>
-
                             Open
-
                         </span>
-
-                    {% else %}
-
-                        <span
-
-                            class="
-
-                                shrink-0 rounded-full
-
-                                bg-slate-100 px-1.5 py-0.5
-
-                                text-[8px] font-bold
-
-                                text-slate-500
-
-                            "
-
-                        >
-
-                            Required
-
-                        </span>
-
                     {% endif %}
-
-                    <svg
-
-                        class="
-
-                            h-4 w-4 shrink-0 text-slate-400
-
-                            transition-transform duration-200
-
-                        "
-
-                        :class="{
-
-                            'rotate-180':
-
-                                openSection === 'encounter'
-
-                        }"
-
-                        viewBox="0 0 20 20"
-
-                        fill="currentColor"
-
-                        aria-hidden="true"
-
-                    >
-
-                        <path
-
-                            fill-rule="evenodd"
-
-                            d="
-
-                                M5.23 7.21a.75.75 0 011.06.02
-
-                                L10 11.17l3.71-3.94
-
-                                a.75.75 0 111.08 1.04
-
-                                l-4.25 4.5a.75.75 0 01-1.08 0
-
-                                l-4.25-4.5a.75.75 0 01.02-1.06z
-
-                            "
-
-                            clip-rule="evenodd"
-
-                        />
-
-                    </svg>
-
                 </button>
 
                 <div
-
-                    id="active-encounter-navigation"
-
                     x-cloak
-
                     x-show="openSection === 'encounter'"
-
                     x-collapse
-
-                    class="
-
-                        border-t border-slate-200
-
-                        bg-emerald-50/30
-
-                    "
-
+                    class="border-t border-slate-200 bg-emerald-50/30"
                 >
-
-                    {% if active_encounter and active_encounter.is_active and active_encounter.is_open %}
-
-                        <nav
-
-                            class="flex flex-col gap-1 p-2"
-
-                            aria-label="Active encounter actions"
-
-                        >
-
-                            <!-- Encounter summary -->
-
+                    {% if active_encounter and active_encounter.is_open %}
+                        <nav class="flex flex-col gap-1 p-2">
                             <a
-
-                                href="{% url 'encounters:detail' active_encounter.pk %}?section=summary"
-
+                                href="{% url 'encounters:detail' active_encounter.pk %}"
                                 hx-boost="false"
-
                                 class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
-                                    rounded-lg border px-2.5 py-2
-
-                                    text-left text-xs
-
-                                    no-underline transition
-
-                                    {% if active_patient_section == 'summary' %}
-
-                                        border-emerald-200
-
-                                        bg-white font-semibold
-
-                                        text-emerald-900 shadow-sm
-
-                                    {% else %}
-
-                                        border-transparent
-
-                                        font-medium text-slate-700
-
-                                        hover:border-emerald-100
-
-                                        hover:bg-white
-
-                                        hover:text-emerald-900
-
-                                    {% endif %}
-
+                                    flex min-h-10 items-center gap-2.5
+                                    rounded-lg border border-transparent
+                                    px-2.5 py-2 text-xs font-medium
+                                    text-slate-700 no-underline
+                                    transition hover:bg-white
                                 "
-
                             >
-
                                 <span
-
                                     class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-emerald-700
-
-                                        ring-1 ring-inset
-
-                                        ring-emerald-200
-
+                                        grid h-7 w-7 place-items-center
+                                        rounded-md bg-white
+                                        text-emerald-700 ring-1
+                                        ring-inset ring-emerald-200
                                     "
-
-                                    aria-hidden="true"
-
                                 >
-
                                     ▤
-
                                 </span>
 
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Encounter Summary
-
-                                </span>
-
+                                Encounter Summary
                             </a>
 
-                            <!-- Edit encounter -->
-
+                            <!-- The only Vitals menu when an encounter is active -->
                             <a
-
-                                href="{% url 'encounters:update' active_encounter.pk %}"
-
+                                href="{% url 'vitals:encounter_list' encounter_id=active_encounter.pk %}"
                                 hx-boost="false"
-
                                 class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
+                                    flex min-h-10 items-center gap-2.5
                                     rounded-lg border px-2.5 py-2
-
-                                    text-left text-xs
-
-                                    no-underline transition
-
-                                    {% if active_patient_section == 'edit-encounter' %}
-
-                                        border-emerald-200
-
-                                        bg-white font-semibold
-
-                                        text-emerald-900 shadow-sm
-
+                                    text-xs no-underline transition
+                                    {% if active_clinical_module == 'vitals' %}
+                                        border-emerald-200 bg-white
+                                        font-semibold text-emerald-900
+                                        shadow-sm
                                     {% else %}
-
-                                        border-transparent
-
-                                        font-medium text-slate-700
-
-                                        hover:border-emerald-100
-
-                                        hover:bg-white
-
-                                        hover:text-emerald-900
-
+                                        border-transparent font-medium
+                                        text-slate-700 hover:bg-white
                                     {% endif %}
-
                                 "
-
                             >
-
                                 <span
-
                                     class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-emerald-700
-
-                                        ring-1 ring-inset
-
-                                        ring-emerald-200
-
+                                        grid h-7 w-7 place-items-center
+                                        rounded-md
+                                        {% if active_clinical_module == 'vitals' %}
+                                            bg-emerald-700 text-white
+                                        {% else %}
+                                            bg-white text-emerald-700
+                                            ring-1 ring-inset
+                                            ring-emerald-200
+                                        {% endif %}
                                     "
-
-                                    aria-hidden="true"
-
                                 >
-
-                                    ✎
-
+                                    ♥
                                 </span>
 
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Edit Encounter
-
-                                </span>
-
+                                Vital Signs
                             </a>
 
-                            <!-- Triage -->
-
                             <a
-
-                                href="{% url 'encounters:detail' active_encounter.pk %}?section=triage"
-
+                                href="{% url 'vitals:create' %}?patient={{ selected_patient.pk }}&encounter={{ active_encounter.pk }}"
                                 hx-boost="false"
-
                                 class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
-                                    rounded-lg border border-transparent
-
-                                    px-2.5 py-2
-
-                                    text-left text-xs font-medium
-
-                                    text-slate-700 no-underline
-
-                                    transition
-
-                                    hover:border-emerald-100
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
+                                    flex min-h-10 items-center gap-2.5
+                                    rounded-lg border border-emerald-200
+                                    bg-emerald-50 px-2.5 py-2
+                                    text-xs font-semibold
+                                    text-emerald-900 no-underline
+                                    transition hover:bg-emerald-100
                                 "
-
                             >
-
                                 <span
-
                                     class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-emerald-700
-
-                                        ring-1 ring-inset
-
-                                        ring-emerald-200
-
+                                        grid h-7 w-7 place-items-center
+                                        rounded-md bg-emerald-700
+                                        text-white
                                     "
-
-                                    aria-hidden="true"
-
                                 >
-
-                                    ♡
-
+                                    ＋
                                 </span>
 
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Triage
-
-                                </span>
-
+                                Record Vital Signs
                             </a>
 
-                            <!-- Vitals -->
-
                             <a
-
-                                href="{% url 'encounters:detail' active_encounter.pk %}?section=vitals"
-
-                                hx-boost="false"
-
-                                class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
-                                    rounded-lg border border-transparent
-
-                                    px-2.5 py-2
-
-                                    text-left text-xs font-medium
-
-                                    text-slate-700 no-underline
-
-                                    transition
-
-                                    hover:border-emerald-100
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
-                                "
-
-                            >
-
-                                <span
-
-                                    class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-emerald-700
-
-                                        ring-1 ring-inset
-
-                                        ring-emerald-200
-
-                                    "
-
-                                    aria-hidden="true"
-
-                                >
-
-                                    ▧
-
-                                </span>
-
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Vitals
-
-                                </span>
-
-                            </a>
-
-                            <!-- Clinical notes -->
-
-                            <a
-
                                 href="{% url 'encounters:detail' active_encounter.pk %}?section=notes"
-
                                 hx-boost="false"
-
                                 class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
+                                    flex min-h-10 items-center gap-2.5
                                     rounded-lg border border-transparent
-
-                                    px-2.5 py-2
-
-                                    text-left text-xs font-medium
-
+                                    px-2.5 py-2 text-xs font-medium
                                     text-slate-700 no-underline
-
-                                    transition
-
-                                    hover:border-emerald-100
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
+                                    transition hover:bg-white
                                 "
-
                             >
-
                                 <span
-
                                     class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-emerald-700
-
-                                        ring-1 ring-inset
-
-                                        ring-emerald-200
-
+                                        grid h-7 w-7 place-items-center
+                                        rounded-md bg-white
+                                        text-emerald-700 ring-1
+                                        ring-inset ring-emerald-200
                                     "
-
-                                    aria-hidden="true"
-
                                 >
-
                                     ▰
-
                                 </span>
 
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Clinical Notes
-
-                                </span>
-
+                                Clinical Notes
                             </a>
 
-                            <!-- Diagnoses -->
-
                             <a
-
-                                href="{% url 'encounters:detail' active_encounter.pk %}?section=diagnoses"
-
-                                hx-boost="false"
-
-                                class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
-                                    rounded-lg border border-transparent
-
-                                    px-2.5 py-2
-
-                                    text-left text-xs font-medium
-
-                                    text-slate-700 no-underline
-
-                                    transition
-
-                                    hover:border-emerald-100
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
-                                "
-
-                            >
-
-                                <span
-
-                                    class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-emerald-700
-
-                                        ring-1 ring-inset
-
-                                        ring-emerald-200
-
-                                    "
-
-                                    aria-hidden="true"
-
-                                >
-
-                                    +
-
-                                </span>
-
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Diagnoses
-
-                                </span>
-
-                            </a>
-
-                            <!-- Orders -->
-
-                            <a
-
                                 href="{% url 'encounters:detail' active_encounter.pk %}?section=orders"
-
                                 hx-boost="false"
-
                                 class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
+                                    flex min-h-10 items-center gap-2.5
                                     rounded-lg border border-transparent
-
-                                    px-2.5 py-2
-
-                                    text-left text-xs font-medium
-
+                                    px-2.5 py-2 text-xs font-medium
                                     text-slate-700 no-underline
-
-                                    transition
-
-                                    hover:border-emerald-100
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
+                                    transition hover:bg-white
                                 "
-
                             >
-
                                 <span
-
                                     class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-emerald-700
-
-                                        ring-1 ring-inset
-
-                                        ring-emerald-200
-
+                                        grid h-7 w-7 place-items-center
+                                        rounded-md bg-white
+                                        text-emerald-700 ring-1
+                                        ring-inset ring-emerald-200
                                     "
-
-                                    aria-hidden="true"
-
                                 >
-
                                     ☷
-
                                 </span>
 
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Orders
-
-                                </span>
-
+                                Orders
                             </a>
-
-                            <!-- Laboratory -->
-
-                            <a
-
-                                href="{% url 'encounters:detail' active_encounter.pk %}?section=laboratory"
-
-                                hx-boost="false"
-
-                                class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
-                                    rounded-lg border border-transparent
-
-                                    px-2.5 py-2
-
-                                    text-left text-xs font-medium
-
-                                    text-slate-700 no-underline
-
-                                    transition
-
-                                    hover:border-emerald-100
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
-                                "
-
-                            >
-
-                                <span
-
-                                    class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-emerald-700
-
-                                        ring-1 ring-inset
-
-                                        ring-emerald-200
-
-                                    "
-
-                                    aria-hidden="true"
-
-                                >
-
-                                    ◫
-
-                                </span>
-
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Laboratory
-
-                                </span>
-
-                            </a>
-
-                            <!-- Imaging -->
-
-                            <a
-
-                                href="{% url 'encounters:detail' active_encounter.pk %}?section=imaging"
-
-                                hx-boost="false"
-
-                                class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
-                                    rounded-lg border border-transparent
-
-                                    px-2.5 py-2
-
-                                    text-left text-xs font-medium
-
-                                    text-slate-700 no-underline
-
-                                    transition
-
-                                    hover:border-emerald-100
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
-                                "
-
-                            >
-
-                                <span
-
-                                    class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-emerald-700
-
-                                        ring-1 ring-inset
-
-                                        ring-emerald-200
-
-                                    "
-
-                                    aria-hidden="true"
-
-                                >
-
-                                    ◉
-
-                                </span>
-
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Imaging
-
-                                </span>
-
-                            </a>
-
-                            <!-- Encounter medications -->
-
-                            <a
-
-                                href="{% url 'encounters:detail' active_encounter.pk %}?section=medications"
-
-                                hx-boost="false"
-
-                                class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
-                                    rounded-lg border border-transparent
-
-                                    px-2.5 py-2
-
-                                    text-left text-xs font-medium
-
-                                    text-slate-700 no-underline
-
-                                    transition
-
-                                    hover:border-emerald-100
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
-                                "
-
-                            >
-
-                                <span
-
-                                    class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-emerald-700
-
-                                        ring-1 ring-inset
-
-                                        ring-emerald-200
-
-                                    "
-
-                                    aria-hidden="true"
-
-                                >
-
-                                    ◇
-
-                                </span>
-
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Encounter Medications
-
-                                </span>
-
-                            </a>
-
-                            <!-- Flowsheets -->
-
-                            <a
-
-                                href="{% url 'encounters:detail' active_encounter.pk %}?section=flowsheets"
-
-                                hx-boost="false"
-
-                                class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
-                                    rounded-lg border border-transparent
-
-                                    px-2.5 py-2
-
-                                    text-left text-xs font-medium
-
-                                    text-slate-700 no-underline
-
-                                    transition
-
-                                    hover:border-emerald-100
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
-                                "
-
-                            >
-
-                                <span
-
-                                    class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-emerald-700
-
-                                        ring-1 ring-inset
-
-                                        ring-emerald-200
-
-                                    "
-
-                                    aria-hidden="true"
-
-                                >
-
-                                    ▥
-
-                                </span>
-
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Flowsheets
-
-                                </span>
-
-                            </a>
-
-                            <!-- Active care plan -->
-
-                            <a
-
-                                href="{% url 'encounters:detail' active_encounter.pk %}?section=care-plan"
-
-                                hx-boost="false"
-
-                                class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
-                                    rounded-lg border border-transparent
-
-                                    px-2.5 py-2
-
-                                    text-left text-xs font-medium
-
-                                    text-slate-700 no-underline
-
-                                    transition
-
-                                    hover:border-emerald-100
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
-                                "
-
-                            >
-
-                                <span
-
-                                    class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-emerald-700
-
-                                        ring-1 ring-inset
-
-                                        ring-emerald-200
-
-                                    "
-
-                                    aria-hidden="true"
-
-                                >
-
-                                    ▱
-
-                                </span>
-
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Active Care Plan
-
-                                </span>
-
-                            </a>
-
                         </nav>
 
                     {% else %}
-
                         <div class="p-3">
-
-                            <div
-
-                                class="
-
-                                    rounded-xl border
-
-                                    border-amber-200
-
-                                    bg-amber-50 p-3
-
-                                "
-
-                            >
-
-                                <div class="flex items-start gap-2.5">
-
-                                    <div
-
-                                        class="
-
-                                            grid h-8 w-8 shrink-0
-
-                                            place-items-center
-
-                                            rounded-lg bg-amber-100
-
-                                            text-sm font-bold
-
-                                            text-amber-700
-
-                                        "
-
-                                        aria-hidden="true"
-
-                                    >
-
-                                        !
-
-                                    </div>
-
-                                    <div class="min-w-0">
-
-                                        <p
-
-                                            class="
-
-                                                text-xs font-bold
-
-                                                text-amber-950
-
-                                            "
-
-                                        >
-
-                                            No active encounter
-
-                                        </p>
-
-                                        <p
-
-                                            class="
-
-                                                mt-1 text-[10px]
-
-                                                leading-4 text-amber-800
-
-                                            "
-
-                                        >
-
-                                            Start an encounter to access
-
-                                            clinical documentation.
-
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                                <a
-
-                                    href="{% url 'encounters:create' %}?patient={{ selected_patient.pk }}"
-
-                                    hx-boost="false"
-
-                                    class="
-
-                                        mt-3 flex min-h-10 w-full
-
-                                        items-center justify-center
-
-                                        gap-2 rounded-lg
-
-                                        border border-emerald-800
-
-                                        bg-emerald-700 px-3 py-2
-
-                                        text-xs font-semibold
-
-                                        text-white shadow-sm
-
-                                        transition
-
-                                        hover:bg-emerald-800
-
-                                        focus:outline-none
-
-                                        focus:ring-2
-
-                                        focus:ring-emerald-500/30
-
-                                    "
-
-                                    style="
-
-                                        background-color: #047857;
-
-                                        color: #ffffff;
-
-                                    "
-
-                                >
-
-                                    <span aria-hidden="true">＋</span>
-
-                                    <span>Start Encounter</span>
-
-                                </a>
-
-                            </div>
-
-                        </div>
-
-                    {% endif %}
-
-                </div>
-
-            </section>
-
-            <!-- =================================================
-
-                 QUICK ACTIONS
-
-            ================================================== -->
-
-            <section
-
-                class="
-
-                    overflow-hidden rounded-xl
-
-                    border border-slate-200
-
-                    bg-white shadow-sm
-
-                "
-
-            >
-
-                <button
-
-                    type="button"
-
-                    class="
-
-                        flex min-h-11 w-full
-
-                        items-center gap-2.5
-
-                        px-3 py-2 text-left
-
-                        transition hover:bg-slate-50
-
-                        focus:outline-none
-
-                        focus:ring-2
-
-                        focus:ring-inset
-
-                        focus:ring-emerald-500/30
-
-                    "
-
-                    @click="toggleSection('quick-actions')"
-
-                    :aria-expanded="
-
-                        (openSection === 'quick-actions').toString()
-
-                    "
-
-                    aria-controls="clinical-quick-actions"
-
-                >
-
-                    <span
-
-                        class="
-
-                            grid h-7 w-7 shrink-0
-
-                            place-items-center rounded-lg
-
-                            bg-blue-100 text-blue-700
-
-                        "
-
-                        aria-hidden="true"
-
-                    >
-
-                        ⚡
-
-                    </span>
-
-                    <span class="min-w-0 flex-1">
-
-                        <span
-
-                            class="
-
-                                block truncate text-[11px]
-
-                                font-bold uppercase
-
-                                tracking-[0.08em]
-
-                                text-slate-700
-
-                            "
-
-                        >
-
-                            Quick Actions
-
-                        </span>
-
-                        <span
-
-                            class="
-
-                                mt-0.5 block truncate
-
-                                text-[9px] text-slate-400
-
-                            "
-
-                        >
-
-                            Common patient workflow actions
-
-                        </span>
-
-                    </span>
-
-                    <svg
-
-                        class="
-
-                            h-4 w-4 shrink-0 text-slate-400
-
-                            transition-transform duration-200
-
-                        "
-
-                        :class="{
-
-                            'rotate-180':
-
-                                openSection === 'quick-actions'
-
-                        }"
-
-                        viewBox="0 0 20 20"
-
-                        fill="currentColor"
-
-                        aria-hidden="true"
-
-                    >
-
-                        <path
-
-                            fill-rule="evenodd"
-
-                            d="
-
-                                M5.23 7.21a.75.75 0 011.06.02
-
-                                L10 11.17l3.71-3.94
-
-                                a.75.75 0 111.08 1.04
-
-                                l-4.25 4.5a.75.75 0 01-1.08 0
-
-                                l-4.25-4.5a.75.75 0 01.02-1.06z
-
-                            "
-
-                            clip-rule="evenodd"
-
-                        />
-
-                    </svg>
-
-                </button>
-
-                <div
-
-                    id="clinical-quick-actions"
-
-                    x-cloak
-
-                    x-show="openSection === 'quick-actions'"
-
-                    x-collapse
-
-                    class="
-
-                        border-t border-slate-200
-
-                        bg-slate-50/60
-
-                    "
-
-                >
-
-                    <nav
-
-                        class="flex flex-col gap-1 p-2"
-
-                        aria-label="Patient quick actions"
-
-                    >
-
-                        <a
-
-                            href="{% url 'encounters:list' %}?patient={{ selected_patient.pk }}"
-
-                            hx-boost="false"
-
-                            class="
-
-                                flex min-h-10 w-full
-
-                                items-center gap-2.5
-
-                                rounded-lg border
-
-                                border-transparent
-
-                                px-2.5 py-2
-
-                                text-left text-xs font-medium
-
-                                text-slate-700 no-underline
-
-                                transition
-
-                                hover:border-slate-200
-
-                                hover:bg-white
-
-                                hover:text-emerald-900
-
-                            "
-
-                        >
-
-                            <span
-
-                                class="
-
-                                    grid h-7 w-7 shrink-0
-
-                                    place-items-center rounded-md
-
-                                    bg-white text-slate-500
-
-                                    ring-1 ring-inset
-
-                                    ring-slate-200
-
-                                "
-
-                                aria-hidden="true"
-
-                            >
-
-                                ⇄
-
-                            </span>
-
-                            <span class="min-w-0 flex-1 truncate">
-
-                                View All Encounters
-
-                            </span>
-
-                        </a>
-
-                        {% if active_encounter and active_encounter.is_active and active_encounter.is_open %}
+                            <p class="text-xs font-semibold text-slate-800">
+                                No active encounter
+                            </p>
 
                             <a
-
-                                href="{% url 'encounters:detail' active_encounter.pk %}"
-
+                                href="{% url 'encounters:create' %}?patient={{ selected_patient.pk }}"
                                 hx-boost="false"
-
                                 class="
-
-                                    flex min-h-10 w-full
-
-                                    items-center gap-2.5
-
+                                    mt-3 flex min-h-9
+                                    items-center justify-center
                                     rounded-lg border
-
-                                    border-transparent
-
-                                    px-2.5 py-2
-
-                                    text-left text-xs font-medium
-
-                                    text-slate-700 no-underline
-
-                                    transition
-
-                                    hover:border-slate-200
-
-                                    hover:bg-white
-
-                                    hover:text-emerald-900
-
+                                    border-emerald-800
+                                    bg-emerald-700 px-3 py-2
+                                    text-xs font-semibold
+                                    text-white
                                 "
-
+                                style="
+                                    background-color: #047857;
+                                    color: #ffffff;
+                                "
                             >
-
-                                <span
-
-                                    class="
-
-                                        grid h-7 w-7 shrink-0
-
-                                        place-items-center rounded-md
-
-                                        bg-white text-slate-500
-
-                                        ring-1 ring-inset
-
-                                        ring-slate-200
-
-                                    "
-
-                                    aria-hidden="true"
-
-                                >
-
-                                    ↗
-
-                                </span>
-
-                                <span class="min-w-0 flex-1 truncate">
-
-                                    Open Current Encounter
-
-                                </span>
-
+                                Start Encounter
                             </a>
-
-                        {% endif %}
-
-                        <a
-
-                            href="{% url 'patients:update' patient_id=selected_patient.pk %}"
-
-                            hx-boost="false"
-
-                            class="
-
-                                flex min-h-10 w-full
-
-                                items-center gap-2.5
-
-                                rounded-lg border
-
-                                border-transparent
-
-                                px-2.5 py-2
-
-                                text-left text-xs font-medium
-
-                                text-slate-700 no-underline
-
-                                transition
-
-                                hover:border-slate-200
-
-                                hover:bg-white
-
-                                hover:text-emerald-900
-
-                            "
-
-                        >
-
-                            <span
-
-                                class="
-
-                                    grid h-7 w-7 shrink-0
-
-                                    place-items-center rounded-md
-
-                                    bg-white text-slate-500
-
-                                    ring-1 ring-inset
-
-                                    ring-slate-200
-
-                                "
-
-                                aria-hidden="true"
-
-                            >
-
-                                ✎
-
-                            </span>
-
-                            <span class="min-w-0 flex-1 truncate">
-
-                                Edit Patient Demographics
-
-                            </span>
-
-                        </a>
-
-                    </nav>
-
+                        </div>
+                    {% endif %}
                 </div>
-
             </section>
-
         </div>
 
     {% else %}
-
         <!-- =====================================================
-
-             GENERAL CLINICAL WORKSPACE
-
+             GENERAL CLINICAL APPLICATIONS
         ====================================================== -->
-
         <section
-
             class="
-
-                rounded-xl border border-slate-200
-
+                overflow-hidden rounded-xl
+                border border-slate-200
                 bg-white shadow-sm
-
             "
-
         >
-
-            <div
-
-                class="
-
-                    border-b border-slate-200
-
-                    px-3 py-3
-
-                "
-
-            >
-
+            <header class="border-b border-slate-200 px-3 py-3">
                 <h2
-
                     class="
-
                         text-[11px] font-bold uppercase
-
-                        tracking-[0.08em] text-slate-700
-
+                        tracking-[0.08em]
+                        text-slate-700
                     "
-
                 >
-
                     Clinical Applications
-
                 </h2>
 
-                <p
-
-                    class="
-
-                        mt-1 text-[10px]
-
-                        leading-4 text-slate-400
-
-                    "
-
-                >
-
+                <p class="mt-1 text-[10px] text-slate-400">
                     Select a clinical workspace.
-
                 </p>
+            </header>
 
-            </div>
-
-            <nav
-
-                class="flex flex-col gap-1 p-2"
-
-                aria-label="Clinical application navigation"
-
-            >
-
+            <nav class="flex flex-col gap-1 p-2">
                 <a
-
                     href="{% url 'patients:list' %}"
-
                     hx-boost="false"
-
                     class="
-
-                        flex min-h-10 w-full
-
-                        items-center gap-2.5
-
-                        rounded-lg border px-2.5 py-2
-
-                        text-left text-xs
-
-                        no-underline transition
-
-                        {% if active_clinical_module == 'patients' %}
-
-                            border-emerald-200
-
-                            bg-emerald-50 font-semibold
-
-                            text-emerald-900 shadow-sm
-
-                        {% else %}
-
-                            border-transparent
-
-                            font-medium text-slate-700
-
-                            hover:border-emerald-100
-
-                            hover:bg-emerald-50
-
-                            hover:text-emerald-900
-
-                        {% endif %}
-
+                        flex min-h-10 items-center gap-2.5
+                        rounded-lg border border-transparent
+                        px-2.5 py-2 text-xs font-medium
+                        text-slate-700 no-underline
+                        transition hover:bg-emerald-50
                     "
-
                 >
-
                     <span
-
                         class="
-
-                            grid h-7 w-7 shrink-0
-
-                            place-items-center rounded-md
-
-                            {% if active_clinical_module == 'patients' %}
-
-                                bg-emerald-700 text-white
-
-                            {% else %}
-
-                                bg-slate-100 text-slate-500
-
-                            {% endif %}
-
+                            grid h-7 w-7 place-items-center
+                            rounded-md bg-slate-100
+                            text-slate-500
                         "
-
-                        aria-hidden="true"
-
                     >
-
                         ♙
-
                     </span>
 
-                    <span class="min-w-0 flex-1 truncate">
-
-                        Patients
-
-                    </span>
-
+                    Patients
                 </a>
 
                 <a
-
                     href="{% url 'encounters:list' %}"
-
                     hx-boost="false"
-
                     class="
-
-                        flex min-h-10 w-full
-
-                        items-center gap-2.5
-
-                        rounded-lg border px-2.5 py-2
-
-                        text-left text-xs
-
-                        no-underline transition
-
-                        {% if active_clinical_module == 'encounters' %}
-
-                            border-emerald-200
-
-                            bg-emerald-50 font-semibold
-
-                            text-emerald-900 shadow-sm
-
-                        {% else %}
-
-                            border-transparent
-
-                            font-medium text-slate-700
-
-                            hover:border-emerald-100
-
-                            hover:bg-emerald-50
-
-                            hover:text-emerald-900
-
-                        {% endif %}
-
+                        flex min-h-10 items-center gap-2.5
+                        rounded-lg border border-transparent
+                        px-2.5 py-2 text-xs font-medium
+                        text-slate-700 no-underline
+                        transition hover:bg-emerald-50
                     "
-
                 >
-
                     <span
-
                         class="
-
-                            grid h-7 w-7 shrink-0
-
-                            place-items-center rounded-md
-
-                            {% if active_clinical_module == 'encounters' %}
-
-                                bg-emerald-700 text-white
-
-                            {% else %}
-
-                                bg-slate-100 text-slate-500
-
-                            {% endif %}
-
+                            grid h-7 w-7 place-items-center
+                            rounded-md bg-slate-100
+                            text-slate-500
                         "
-
-                        aria-hidden="true"
-
                     >
-
                         ⇄
-
                     </span>
 
-                    <span class="min-w-0 flex-1 truncate">
-
-                        Encounters
-
-                    </span>
-
+                    Encounters
                 </a>
 
+                <!-- One general Vitals menu -->
                 <a
-
-                    href="#"
-
+                    href="{% url 'vitals:list' %}"
+                    hx-boost="false"
                     class="
-
-                        flex min-h-10 w-full
-
-                        items-center gap-2.5
-
-                        rounded-lg border
-
-                        border-transparent
-
-                        px-2.5 py-2
-
-                        text-left text-xs font-medium
-
-                        text-slate-700 no-underline
-
-                        transition
-
-                        hover:border-emerald-100
-
-                        hover:bg-emerald-50
-
-                        hover:text-emerald-900
-
+                        flex min-h-10 items-center gap-2.5
+                        rounded-lg border px-2.5 py-2
+                        text-xs no-underline transition
+                        {% if active_clinical_module == 'vitals' %}
+                            border-emerald-200 bg-emerald-50
+                            font-semibold text-emerald-900
+                            shadow-sm
+                        {% else %}
+                            border-transparent font-medium
+                            text-slate-700 hover:bg-emerald-50
+                        {% endif %}
                     "
-
                 >
-
                     <span
-
                         class="
-
-                            grid h-7 w-7 shrink-0
-
-                            place-items-center rounded-md
-
-                            bg-slate-100 text-slate-500
-
+                            grid h-7 w-7 place-items-center
+                            rounded-md
+                            {% if active_clinical_module == 'vitals' %}
+                                bg-emerald-700 text-white
+                            {% else %}
+                                bg-slate-100 text-slate-500
+                            {% endif %}
                         "
-
-                        aria-hidden="true"
-
                     >
-
-                        ♡
-
+                        ♥
                     </span>
 
-                    <span class="min-w-0 flex-1 truncate">
-
-                        Nursing
-
-                    </span>
-
+                    Vital Signs
                 </a>
-
-                <a
-
-                    href="#"
-
-                    class="
-
-                        flex min-h-10 w-full
-
-                        items-center gap-2.5
-
-                        rounded-lg border
-
-                        border-transparent
-
-                        px-2.5 py-2
-
-                        text-left text-xs font-medium
-
-                        text-slate-700 no-underline
-
-                        transition
-
-                        hover:border-emerald-100
-
-                        hover:bg-emerald-50
-
-                        hover:text-emerald-900
-
-                    "
-
-                >
-
-                    <span
-
-                        class="
-
-                            grid h-7 w-7 shrink-0
-
-                            place-items-center rounded-md
-
-                            bg-slate-100 text-slate-500
-
-                        "
-
-                        aria-hidden="true"
-
-                    >
-
-                        ☷
-
-                    </span>
-
-                    <span class="min-w-0 flex-1 truncate">
-
-                        Orders
-
-                    </span>
-
-                </a>
-
-                <a
-
-                    href="#"
-
-                    class="
-
-                        flex min-h-10 w-full
-
-                        items-center gap-2.5
-
-                        rounded-lg border
-
-                        border-transparent
-
-                        px-2.5 py-2
-
-                        text-left text-xs font-medium
-
-                        text-slate-700 no-underline
-
-                        transition
-
-                        hover:border-emerald-100
-
-                        hover:bg-emerald-50
-
-                        hover:text-emerald-900
-
-                    "
-
-                >
-
-                    <span
-
-                        class="
-
-                            grid h-7 w-7 shrink-0
-
-                            place-items-center rounded-md
-
-                            bg-slate-100 text-slate-500
-
-                        "
-
-                        aria-hidden="true"
-
-                    >
-
-                        ◇
-
-                    </span>
-
-                    <span class="min-w-0 flex-1 truncate">
-
-                        Medications
-
-                    </span>
-
-                </a>
-
-                <a
-
-                    href="#"
-
-                    class="
-
-                        flex min-h-10 w-full
-
-                        items-center gap-2.5
-
-                        rounded-lg border
-
-                        border-transparent
-
-                        px-2.5 py-2
-
-                        text-left text-xs font-medium
-
-                        text-slate-700 no-underline
-
-                        transition
-
-                        hover:border-emerald-100
-
-                        hover:bg-emerald-50
-
-                        hover:text-emerald-900
-
-                    "
-
-                >
-
-                    <span
-
-                        class="
-
-                            grid h-7 w-7 shrink-0
-
-                            place-items-center rounded-md
-
-                            bg-slate-100 text-slate-500
-
-                        "
-
-                        aria-hidden="true"
-
-                    >
-
-                        ◫
-
-                    </span>
-
-                    <span class="min-w-0 flex-1 truncate">
-
-                        Laboratory
-
-                    </span>
-
-                </a>
-
-                <a
-
-                    href="#"
-
-                    class="
-
-                        flex min-h-10 w-full
-
-                        items-center gap-2.5
-
-                        rounded-lg border
-
-                        border-transparent
-
-                        px-2.5 py-2
-
-                        text-left text-xs font-medium
-
-                        text-slate-700 no-underline
-
-                        transition
-
-                        hover:border-emerald-100
-
-                        hover:bg-emerald-50
-
-                        hover:text-emerald-900
-
-                    "
-
-                >
-
-                    <span
-
-                        class="
-
-                            grid h-7 w-7 shrink-0
-
-                            place-items-center rounded-md
-
-                            bg-slate-100 text-slate-500
-
-                        "
-
-                        aria-hidden="true"
-
-                    >
-
-                        ◉
-
-                    </span>
-
-                    <span class="min-w-0 flex-1 truncate">
-
-                        Imaging
-
-                    </span>
-
-                </a>
-
-                <a
-
-                    href="#"
-
-                    class="
-
-                        flex min-h-10 w-full
-
-                        items-center gap-2.5
-
-                        rounded-lg border
-
-                        border-transparent
-
-                        px-2.5 py-2
-
-                        text-left text-xs font-medium
-
-                        text-slate-700 no-underline
-
-                        transition
-
-                        hover:border-emerald-100
-
-                        hover:bg-emerald-50
-
-                        hover:text-emerald-900
-
-                    "
-
-                >
-
-                    <span
-
-                        class="
-
-                            grid h-7 w-7 shrink-0
-
-                            place-items-center rounded-md
-
-                            bg-slate-100 text-slate-500
-
-                        "
-
-                        aria-hidden="true"
-
-                    >
-
-                        ▱
-
-                    </span>
-
-                    <span class="min-w-0 flex-1 truncate">
-
-                        Care Management
-
-                    </span>
-
-                </a>
-
             </nav>
-
         </section>
-
     {% endif %}
-
 </div>

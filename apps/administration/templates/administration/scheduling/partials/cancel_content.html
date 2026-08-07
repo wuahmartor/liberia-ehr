@@ -1,0 +1,92 @@
+<div class="mx-auto max-w-2xl p-4">
+    <form
+        method="post"
+        action="{{ request.path }}"
+        hx-post="{{ request.path }}"
+        hx-target="#scheduling-cancel-workspace"
+        hx-swap="innerHTML"
+        class="
+            overflow-hidden rounded-xl
+            border border-red-200
+            bg-white shadow-sm
+        "
+    >
+        {% csrf_token %}
+
+        <header
+            class="
+                border-b border-red-200
+                bg-red-50 px-5 py-4
+            "
+        >
+            <h1 class="text-lg font-semibold text-red-900">
+                Cancel Appointment
+            </h1>
+
+            <p class="mt-1 text-xs text-red-700">
+                {{ appointment.appointment_number }}
+                · {{ appointment.patient }}
+            </p>
+        </header>
+
+        <div class="space-y-4 p-5">
+            <p class="text-sm text-slate-700">
+                This appointment will remain in the record
+                but will no longer be considered active.
+            </p>
+
+            <div>
+                <label
+                    for="{{ form.cancellation_reason.id_for_label }}"
+                    class="
+                        mb-1 block text-xs
+                        font-semibold text-slate-700
+                    "
+                >
+                    {{ form.cancellation_reason.label }}
+                </label>
+
+                {{ form.cancellation_reason }}
+
+                {% for error in form.cancellation_reason.errors %}
+                    <p class="mt-1 text-xs text-red-600">
+                        {{ error }}
+                    </p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <footer
+            class="
+                flex justify-end gap-2
+                border-t border-slate-200
+                bg-slate-50 px-5 py-3
+            "
+        >
+            <a
+                href="{% url 'administration:scheduling_detail' appointment_id=appointment.pk %}"
+                hx-boost="false"
+                class="
+                    rounded-md border border-slate-300
+                    bg-white px-3 py-2
+                    text-xs font-semibold text-slate-700
+                    hover:bg-slate-100
+                "
+            >
+                Keep Appointment
+            </a>
+
+            <button
+                type="submit"
+                class="
+                    rounded-md bg-red-700
+                    px-4 py-2 text-xs
+                    font-semibold text-white
+                    hover:bg-red-800
+                "
+            >
+                Cancel Appointment
+            </button>
+        </footer>
+    </form>
+</div>

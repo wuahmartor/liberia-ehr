@@ -1,3 +1,1375 @@
-{# HTMX form fields partial for vitals #}
+{% comment %}
 
-{{ form.as_p }}
+============================================================
+
+COMPACT VITAL FLOWSHEET
+
+File:
+
+apps/vitals/templates/vitals/partials/form_fields.html
+
+Purpose:
+
+- Render compact Epic-style vital intake.
+
+- Labels remain on the left.
+
+- Current observation date/time appears as column heading.
+
+- Values use small spreadsheet-like cells.
+
+- Blood pressure uses one combined row.
+
+- Avoid wide full-screen input controls.
+
+Expected context:
+
+- form
+
+============================================================
+
+{% endcomment %}
+
+<!-- =========================================================
+
+     VALIDATION ERRORS
+
+========================================================== -->
+
+{% if form.non_field_errors %}
+
+    <div
+
+        class="
+
+            mb-2 rounded-md
+
+            border border-red-300
+
+            bg-red-50
+
+            px-3 py-2
+
+        "
+
+    >
+
+        {% for error in form.non_field_errors %}
+
+            <p
+
+                class="
+
+                    text-[10px]
+
+                    font-semibold
+
+                    text-red-700
+
+                "
+
+            >
+
+                {{ error }}
+
+            </p>
+
+        {% endfor %}
+
+    </div>
+
+{% endif %}
+
+<!-- =========================================================
+
+     COMPACT FLOWSHEET
+
+========================================================== -->
+
+<div
+
+    class="
+
+        inline-block
+
+        min-w-[360px]
+
+        overflow-hidden
+
+        border border-slate-300
+
+        bg-white
+
+    "
+
+>
+
+    <!-- =====================================================
+
+         COLUMN HEADING
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            grid
+
+            grid-cols-[155px_165px]
+
+            border-b border-slate-400
+
+            bg-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex items-end
+
+                border-r border-slate-400
+
+                px-2 py-1.5
+
+                text-[9px] font-bold
+
+                uppercase tracking-wide
+
+                text-slate-600
+
+            "
+
+        >
+
+            Vital
+
+        </div>
+
+        <div
+
+            class="
+
+                bg-blue-50
+
+                px-2 py-1
+
+                text-center
+
+            "
+
+        >
+
+            <p
+
+                class="
+
+                    text-[9px]
+
+                    font-bold
+
+                    text-slate-800
+
+                "
+
+            >
+
+                {{ form.observation_date_display }}
+
+            </p>
+
+            <p
+
+                class="
+
+                    text-[9px]
+
+                    font-semibold
+
+                    text-blue-700
+
+                "
+
+            >
+
+                {{ form.observation_time_display }}
+
+            </p>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         TEMPERATURE
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-semibold
+
+                text-slate-700
+
+            "
+
+        >
+
+            Temperature
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                bg-white
+
+            "
+
+        >
+
+            <div class="w-[72px]">
+
+                {{ form.temperature_celsius }}
+
+            </div>
+
+            <span
+
+                class="
+
+                    ml-1 text-[9px]
+
+                    text-slate-500
+
+                "
+
+            >
+
+                °C
+
+            </span>
+
+        </div>
+
+    </div>
+
+    <!-- Temperature site -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            Temp Site
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                bg-white
+
+            "
+
+        >
+
+            <div class="w-[145px]">
+
+                {{ form.temperature_site }}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         PULSE
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-semibold
+
+                text-slate-700
+
+            "
+
+        >
+
+            Pulse
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                bg-white
+
+            "
+
+        >
+
+            <div class="w-[72px]">
+
+                {{ form.heart_rate }}
+
+            </div>
+
+            <span
+
+                class="
+
+                    ml-1 text-[9px]
+
+                    text-slate-500
+
+                "
+
+            >
+
+                bpm
+
+            </span>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         RESPIRATIONS
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-semibold
+
+                text-slate-700
+
+            "
+
+        >
+
+            Respirations
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                bg-white
+
+            "
+
+        >
+
+            <div class="w-[72px]">
+
+                {{ form.respiratory_rate }}
+
+            </div>
+
+            <span
+
+                class="
+
+                    ml-1 text-[9px]
+
+                    text-slate-500
+
+                "
+
+            >
+
+                /min
+
+            </span>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         BLOOD PRESSURE
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-semibold
+
+                text-slate-700
+
+            "
+
+        >
+
+            Blood Pressure
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9
+
+                items-center
+
+                bg-white
+
+                px-1
+
+            "
+
+        >
+
+            <div class="w-[52px]">
+
+                {{ form.systolic_blood_pressure }}
+
+            </div>
+
+            <span
+
+                class="
+
+                    mx-0.5
+
+                    text-xs font-bold
+
+                    text-slate-500
+
+                "
+
+            >
+
+                /
+
+            </span>
+
+            <div class="w-[52px]">
+
+                {{ form.diastolic_blood_pressure }}
+
+            </div>
+
+            <span
+
+                class="
+
+                    ml-1 text-[8px]
+
+                    text-slate-500
+
+                "
+
+            >
+
+                mmHg
+
+            </span>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         SPO2
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-semibold
+
+                text-slate-700
+
+            "
+
+        >
+
+            SpO₂
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                bg-white
+
+            "
+
+        >
+
+            <div class="w-[72px]">
+
+                {{ form.oxygen_saturation }}
+
+            </div>
+
+            <span
+
+                class="
+
+                    ml-1 text-[9px]
+
+                    text-slate-500
+
+                "
+
+            >
+
+                %
+
+            </span>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         OXYGEN DELIVERY
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            Oxygen Delivery
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                bg-white
+
+            "
+
+        >
+
+            <div class="w-[145px]">
+
+                {{ form.oxygen_delivery_method }}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Oxygen flow -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            O₂ Flow
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                bg-white
+
+            "
+
+        >
+
+            <div class="w-[72px]">
+
+                {{ form.oxygen_flow_lpm }}
+
+            </div>
+
+            <span
+
+                class="
+
+                    ml-1 text-[9px]
+
+                    text-slate-500
+
+                "
+
+            >
+
+                L/min
+
+            </span>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         PAIN
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-semibold
+
+                text-slate-700
+
+            "
+
+        >
+
+            Pain
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                bg-white
+
+            "
+
+        >
+
+            <div class="w-[52px]">
+
+                {{ form.pain_score }}
+
+            </div>
+
+            <span
+
+                class="
+
+                    ml-1 text-[9px]
+
+                    text-slate-500
+
+                "
+
+            >
+
+                /10
+
+            </span>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         POSITION
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-300
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            Position
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                bg-white
+
+            "
+
+        >
+
+            <div class="w-[145px]">
+
+                {{ form.position }}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         SECONDARY MEASUREMENTS
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            border-b border-slate-300
+
+            bg-slate-100
+
+            px-2 py-1
+
+            text-[8px] font-bold
+
+            uppercase tracking-wide
+
+            text-slate-500
+
+        "
+
+    >
+
+        Additional Measurements
+
+    </div>
+
+    <!-- Height -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            Height
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                bg-white
+
+            "
+
+        >
+
+            <div class="w-[72px]">
+
+                {{ form.height_cm }}
+
+            </div>
+
+            <span class="ml-1 text-[9px] text-slate-500">
+
+                cm
+
+            </span>
+
+        </div>
+
+    </div>
+
+    <!-- Weight -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            Weight
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                bg-white
+
+            "
+
+        >
+
+            <div class="w-[72px]">
+
+                {{ form.weight_kg }}
+
+            </div>
+
+            <span class="ml-1 text-[9px] text-slate-500">
+
+                kg
+
+            </span>
+
+        </div>
+
+    </div>
+
+    <!-- Glucose -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-300
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                border-r border-slate-300
+
+                bg-slate-50 px-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            Blood Glucose
+
+        </div>
+
+        <div
+
+            class="
+
+                flex h-9 items-center
+
+                bg-white
+
+            "
+
+        >
+
+            <div class="w-[72px]">
+
+                {{ form.blood_glucose_mg_dl }}
+
+            </div>
+
+            <span
+
+                class="
+
+                    ml-1 text-[9px]
+
+                    text-slate-500
+
+                "
+
+            >
+
+                mg/dL
+
+            </span>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         NOTES
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            grid grid-cols-[155px_165px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                border-r border-slate-300
+
+                bg-slate-50
+
+                px-2 py-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            Comments
+
+        </div>
+
+        <div class="bg-white">
+
+            {{ form.notes }}
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         UPDATE CORRECTION
+
+    ====================================================== -->
+
+    {% if form.is_update %}
+
+        <div
+
+            class="
+
+                grid grid-cols-[155px_165px]
+
+            "
+
+        >
+
+            <div
+
+                class="
+
+                    border-r border-slate-300
+
+                    bg-amber-50
+
+                    px-2 py-2
+
+                    text-[10px] font-semibold
+
+                    text-amber-800
+
+                "
+
+            >
+
+                Correction Reason
+
+            </div>
+
+            <div class="bg-amber-50">
+
+                {{ form.correction_reason }}
+
+            </div>
+
+        </div>
+
+    {% else %}
+
+        {{ form.correction_reason }}
+
+    {% endif %}
+
+</div>
+
+<!-- =========================================================
+
+     FIELD ERRORS
+
+========================================================== -->
+
+{% if form.errors %}
+
+    <div
+
+        class="
+
+            mt-2 max-w-md
+
+            rounded-md
+
+            border border-red-300
+
+            bg-red-50
+
+            p-2
+
+        "
+
+    >
+
+        <p
+
+            class="
+
+                text-[10px] font-bold
+
+                text-red-800
+
+            "
+
+        >
+
+            Review the following:
+
+        </p>
+
+        <div
+
+            class="
+
+                mt-1 space-y-1
+
+                text-[9px]
+
+                text-red-700
+
+            "
+
+        >
+
+            {% for field in form %}
+
+                {% for error in field.errors %}
+
+                    <p>
+
+                        <span class="font-semibold">
+
+                            {{ field.label }}:
+
+                        </span>
+
+                        {{ error }}
+
+                    </p>
+
+                {% endfor %}
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+{% endif %}

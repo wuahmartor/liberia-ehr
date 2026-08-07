@@ -1,0 +1,219 @@
+
+
+
+{% comment %}
+============================================================
+PATIENT OUTCOMES CONTENT
+
+File:
+apps/analytics/templates/analytics/partials/outcomes_content.html
+
+Purpose:
+- Display initial encounter outcome indicators.
+- Prepare the dashboard for diagnosis, readmission,
+  treatment, and follow-up outcomes.
+============================================================
+{% endcomment %}
+
+
+<div class="space-y-4 p-4">
+
+    {% include "analytics/components/loading_indicator.html" %}
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+    <header
+        class="
+            flex flex-col gap-2
+            sm:flex-row sm:items-center sm:justify-between
+        "
+    >
+        <div>
+            <h1 class="text-lg font-semibold text-slate-900">
+                Patient Outcomes
+            </h1>
+
+            <p class="mt-0.5 text-xs text-slate-500">
+                Encounter completion, repeat utilization, and clinical outcomes.
+            </p>
+        </div>
+
+        <p class="text-xs font-medium text-slate-500">
+            {{ filters.start_date|date:"M j, Y" }}
+            –
+            {{ filters.end_date|date:"M j, Y" }}
+        </p>
+    </header>
+
+
+    {% include "analytics/components/filter_bar.html" %}
+
+
+    <!-- =====================================================
+         OUTCOME METRICS
+    ====================================================== -->
+    <section
+        class="
+            grid gap-3
+            sm:grid-cols-2
+            xl:grid-cols-4
+        "
+    >
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Completed Encounters
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-emerald-700">
+                {{ encounter_summary.completed_encounters|default:0 }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Encounters reaching completion
+            </p>
+        </article>
+
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Cancelled Encounters
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-amber-700">
+                {{ encounter_summary.cancelled_encounters|default:0 }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Care workflows not completed
+            </p>
+        </article>
+
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Average Visit Time
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-slate-900">
+                {{ average_visit_duration_display }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Average episode duration
+            </p>
+        </article>
+
+
+        <article
+            class="
+                rounded-xl border border-dashed
+                border-slate-300 bg-slate-50
+                p-4
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Clinical Outcomes
+            </p>
+
+            <p class="mt-2 text-sm font-semibold text-slate-700">
+                Additional data pending
+            </p>
+
+            <p class="mt-1 text-xs leading-5 text-slate-500">
+                Readmissions, follow-up, mortality, and treatment outcomes
+                will appear as related clinical modules are connected.
+            </p>
+        </article>
+    </section>
+
+
+    <section class="grid gap-4 xl:grid-cols-3">
+        <div class="xl:col-span-2">
+            {% include "analytics/partials/encounter_trend.html" %}
+        </div>
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white shadow-sm
+            "
+        >
+            <header class="border-b border-slate-200 px-4 py-3">
+                <h2 class="text-sm font-semibold text-slate-900">
+                    Planned Outcome Measures
+                </h2>
+            </header>
+
+            <div class="space-y-2 p-4">
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        7-day return encounters
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        30-day readmissions
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Follow-up completion
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Treatment response
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Patient disposition
+                    </p>
+                </div>
+            </div>
+        </article>
+    </section>
+
+
+    {% include "analytics/partials/recent_encounters_table.html" %}
+</div>

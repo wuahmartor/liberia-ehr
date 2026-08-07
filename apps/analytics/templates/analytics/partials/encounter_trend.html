@@ -1,0 +1,118 @@
+
+
+
+{% comment %}
+============================================================
+ENCOUNTER TREND PARTIAL
+
+File:
+apps/analytics/templates/analytics/partials/encounter_trend.html
+
+Expected context:
+- encounter_trend
+============================================================
+{% endcomment %}
+
+
+<article
+    class="
+        overflow-hidden rounded-xl
+        border border-slate-200
+        bg-white shadow-sm
+    "
+>
+    <header
+        class="
+            flex items-center justify-between gap-3
+            border-b border-slate-200 px-4 py-3
+        "
+    >
+        <div>
+            <h2 class="text-sm font-semibold text-slate-900">
+                Encounter Trend
+            </h2>
+
+            <p class="mt-0.5 text-[11px] text-slate-500">
+                Daily encounter and completion volume.
+            </p>
+        </div>
+    </header>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th
+                        class="
+                            px-4 py-2 text-left
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Date
+                    </th>
+
+                    <th
+                        class="
+                            px-4 py-2 text-right
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Total
+                    </th>
+
+                    <th
+                        class="
+                            px-4 py-2 text-right
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Completed
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody class="divide-y divide-slate-100">
+                {% for row in encounter_trend %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-2 text-xs text-slate-700">
+                            {{ row.encounter_date|date:"M j, Y" }}
+                        </td>
+
+                        <td
+                            class="
+                                px-4 py-2 text-right
+                                text-xs font-semibold text-slate-900
+                            "
+                        >
+                            {{ row.total }}
+                        </td>
+
+                        <td
+                            class="
+                                px-4 py-2 text-right
+                                text-xs text-slate-700
+                            "
+                        >
+                            {{ row.completed }}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td
+                            colspan="3"
+                            class="
+                                px-4 py-10 text-center
+                                text-xs text-slate-500
+                            "
+                        >
+                            No encounter activity matches the selected filters.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</article>

@@ -1,7 +1,15 @@
 {% extends "layouts/app_shell.html" %}
 
+{% block title %}
+    Clinical Analytics | Liberia EHR
+{% endblock %}
+
 {% block workspace %}
-<h1 class="text-2xl font-bold">
-    quality_dashboard
-</h1>
+<div
+    id="analytics-workspace"
+    class="min-h-full"
+    aria-live="polite"
+>
+    {% include "analytics/partials/quality_content.html" %}
+</div>
 {% endblock %}

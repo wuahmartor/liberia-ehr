@@ -1,1 +1,169 @@
-{# Vitals HTMX partial: vital_table.html #}
+<div class="overflow-x-auto">
+
+    <table class="min-w-full divide-y divide-slate-200">
+
+        <thead class="bg-slate-50">
+
+            <tr>
+
+                <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase text-slate-500">
+
+                    Patient
+
+                </th>
+
+                <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase text-slate-500">
+
+                    Recorded
+
+                </th>
+
+                <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase text-slate-500">
+
+                    BP
+
+                </th>
+
+                <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase text-slate-500">
+
+                    HR
+
+                </th>
+
+                <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase text-slate-500">
+
+                    RR
+
+                </th>
+
+                <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase text-slate-500">
+
+                    SpO₂
+
+                </th>
+
+                <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase text-slate-500">
+
+                    Temp
+
+                </th>
+
+                <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase text-slate-500">
+
+                    Status
+
+                </th>
+
+                <th class="px-3 py-2 text-right text-[10px] font-semibold uppercase text-slate-500">
+
+                    Action
+
+                </th>
+
+            </tr>
+
+        </thead>
+
+        <tbody class="divide-y divide-slate-100 bg-white">
+
+            {% include "vitals/partials/table_rows.html" %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% if page_obj and page_obj.paginator.num_pages > 1 %}
+
+    <div
+
+        class="
+
+            flex items-center justify-between
+
+            border-t border-slate-200
+
+            px-3 py-2
+
+        "
+
+    >
+
+        <p class="text-[11px] text-slate-500">
+
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+
+        </p>
+
+        <div class="flex gap-2">
+
+            {% if page_obj.has_previous %}
+
+                <a
+
+                    href="?page={{ page_obj.previous_page_number }}"
+
+                    hx-get="?page={{ page_obj.previous_page_number }}"
+
+                    hx-target="#vitals-list-workspace"
+
+                    hx-swap="innerHTML"
+
+                    hx-push-url="true"
+
+                    class="
+
+                        rounded-md border border-slate-300
+
+                        px-2.5 py-1.5 text-xs
+
+                        font-semibold text-slate-700
+
+                    "
+
+                >
+
+                    Previous
+
+                </a>
+
+            {% endif %}
+
+            {% if page_obj.has_next %}
+
+                <a
+
+                    href="?page={{ page_obj.next_page_number }}"
+
+                    hx-get="?page={{ page_obj.next_page_number }}"
+
+                    hx-target="#vitals-list-workspace"
+
+                    hx-swap="innerHTML"
+
+                    hx-push-url="true"
+
+                    class="
+
+                        rounded-md border border-slate-300
+
+                        px-2.5 py-1.5 text-xs
+
+                        font-semibold text-slate-700
+
+                    "
+
+                >
+
+                    Next
+
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+{% endif %}

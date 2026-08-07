@@ -1,0 +1,859 @@
+{% comment %}
+
+============================================================
+
+VITAL TREND CHART
+
+File:
+
+apps/vitals/templates/vitals/partials/trend_chart.html
+
+Purpose:
+
+- Display one selected vital-sign trend.
+
+- Render without an external JavaScript chart library.
+
+- Show observation date/time, measured value, and clinical status.
+
+- Support replacement through HTMX when the metric or date range changes.
+
+Expected context:
+
+- trend_title
+
+- trend_description
+
+- trend_metric
+
+- trend_unit
+
+- trend_points
+
+Each item in trend_points should contain:
+
+- label
+
+- recorded_at
+
+- value
+
+- display_value
+
+- percent
+
+- status
+
+- vital_id
+
+Recommended status values:
+
+- normal
+
+- abnormal
+
+- critical
+
+- not_assessed
+
+============================================================
+
+{% endcomment %}
+
+<section
+
+    id="vital-trend-chart"
+
+    class="
+
+        overflow-hidden rounded-xl
+
+        border border-slate-200
+
+        bg-white shadow-sm
+
+    "
+
+>
+
+    <!-- =========================================================
+
+         CHART HEADER
+
+    ========================================================== -->
+
+    <header
+
+        class="
+
+            flex flex-col gap-2
+
+            border-b border-slate-200
+
+            bg-slate-50 px-4 py-3
+
+            sm:flex-row sm:items-center
+
+            sm:justify-between
+
+        "
+
+    >
+
+        <div class="min-w-0">
+
+            <h2 class="text-sm font-semibold text-slate-900">
+
+                {{ trend_title|default:"Vital Sign Trend" }}
+
+            </h2>
+
+            <p class="mt-0.5 text-[11px] text-slate-500">
+
+                {{ trend_description|default:"Recorded measurements over time." }}
+
+            </p>
+
+        </div>
+
+        {% if trend_points %}
+
+            <span
+
+                class="
+
+                    inline-flex w-fit items-center
+
+                    rounded-full bg-slate-200
+
+                    px-2 py-0.5
+
+                    text-[10px] font-semibold
+
+                    text-slate-700
+
+                "
+
+            >
+
+                {{ trend_points|length }}
+
+                observation{{ trend_points|length|pluralize }}
+
+            </span>
+
+        {% endif %}
+
+    </header>
+
+    {% if trend_points %}
+
+        <div class="p-4">
+
+            <!-- =================================================
+
+                 VISUAL TREND
+
+            ================================================== -->
+
+            <div
+
+                class="
+
+                    overflow-x-auto rounded-lg
+
+                    border border-slate-200
+
+                    bg-slate-50 p-3
+
+                "
+
+            >
+
+                <div
+
+                    class="
+
+                        flex min-w-[36rem]
+
+                        items-end gap-2
+
+                    "
+
+                    style="height: 15rem;"
+
+                    role="img"
+
+                    aria-label="{{ trend_title|default:'Vital sign trend chart' }}"
+
+                >
+
+                    {% for point in trend_points %}
+
+                        <div
+
+                            class="
+
+                                group flex min-w-0 flex-1
+
+                                flex-col items-center
+
+                                justify-end
+
+                            "
+
+                        >
+
+                            <!-- Value label -->
+
+                            <p
+
+                                class="
+
+                                    mb-1 whitespace-nowrap
+
+                                    text-[9px] font-semibold
+
+                                    text-slate-600
+
+                                "
+
+                            >
+
+                                {{ point.display_value|default:point.value }}
+
+                                {% if trend_unit %}
+
+                                    {{ trend_unit }}
+
+                                {% endif %}
+
+                            </p>
+
+                            <!-- Bar -->
+
+                            <a
+
+                                href="{% url 'vitals:detail' pk=point.vital_id %}"
+
+                                hx-boost="false"
+
+                                class="
+
+                                    relative flex w-full
+
+                                    max-w-10 items-end
+
+                                    overflow-hidden rounded-t-md
+
+                                    border
+
+                                    transition
+
+                                    hover:opacity-80
+
+                                    focus:outline-none
+
+                                    focus:ring-2
+
+                                    focus:ring-emerald-500/40
+
+                                    {% if point.status == 'critical' %}
+
+                                        border-red-500 bg-red-500
+
+                                    {% elif point.status == 'abnormal' %}
+
+                                        border-amber-500 bg-amber-500
+
+                                    {% elif point.status == 'normal' %}
+
+                                        border-emerald-600 bg-emerald-600
+
+                                    {% else %}
+
+                                        border-slate-400 bg-slate-400
+
+                                    {% endif %}
+
+                                "
+
+                                style="
+
+                                    height:
+
+                                    {% if point.percent %}
+
+                                        {{ point.percent }}%
+
+                                    {% else %}
+
+                                        4%
+
+                                    {% endif %};
+
+                                    min-height: 0.5rem;
+
+                                "
+
+                                aria-label="
+
+                                    {{ point.label }}:
+
+                                    {{ point.display_value|default:point.value }}
+
+                                    {{ trend_unit }}
+
+                                "
+
+                            >
+
+                                <span class="sr-only">
+
+                                    View observation
+
+                                </span>
+
+                                <!-- Hover information -->
+
+                                <span
+
+                                    class="
+
+                                        pointer-events-none
+
+                                        absolute bottom-full left-1/2
+
+                                        z-20 mb-2 hidden
+
+                                        w-40 -translate-x-1/2
+
+                                        rounded-lg bg-slate-900
+
+                                        px-2.5 py-2 text-left
+
+                                        text-[10px] text-white
+
+                                        shadow-xl
+
+                                        group-hover:block
+
+                                    "
+
+                                >
+
+                                    <strong class="block font-semibold">
+
+                                        {{ point.display_value|default:point.value }}
+
+                                        {{ trend_unit }}
+
+                                    </strong>
+
+                                    <span class="mt-0.5 block text-slate-300">
+
+                                        {{ point.recorded_at|date:"M j, Y g:i A" }}
+
+                                    </span>
+
+                                    <span class="mt-0.5 block capitalize text-slate-300">
+
+                                        {{ point.status|default:"Not assessed" }}
+
+                                    </span>
+
+                                </span>
+
+                            </a>
+
+                            <!-- X-axis label -->
+
+                            <p
+
+                                class="
+
+                                    mt-1 max-w-14 truncate
+
+                                    text-center text-[8px]
+
+                                    leading-3 text-slate-500
+
+                                "
+
+                                title="{{ point.recorded_at|date:'M j, Y g:i A' }}"
+
+                            >
+
+                                {{ point.label }}
+
+                            </p>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+            <!-- =================================================
+
+                 LEGEND
+
+            ================================================== -->
+
+            <div
+
+                class="
+
+                    mt-3 flex flex-wrap
+
+                    items-center gap-x-4 gap-y-2
+
+                "
+
+            >
+
+                <span
+
+                    class="
+
+                        inline-flex items-center gap-1.5
+
+                        text-[10px] text-slate-600
+
+                    "
+
+                >
+
+                    <span class="h-2.5 w-2.5 rounded-sm bg-emerald-600"></span>
+
+                    Normal
+
+                </span>
+
+                <span
+
+                    class="
+
+                        inline-flex items-center gap-1.5
+
+                        text-[10px] text-slate-600
+
+                    "
+
+                >
+
+                    <span class="h-2.5 w-2.5 rounded-sm bg-amber-500"></span>
+
+                    Abnormal
+
+                </span>
+
+                <span
+
+                    class="
+
+                        inline-flex items-center gap-1.5
+
+                        text-[10px] text-slate-600
+
+                    "
+
+                >
+
+                    <span class="h-2.5 w-2.5 rounded-sm bg-red-500"></span>
+
+                    Critical
+
+                </span>
+
+                <span
+
+                    class="
+
+                        inline-flex items-center gap-1.5
+
+                        text-[10px] text-slate-600
+
+                    "
+
+                >
+
+                    <span class="h-2.5 w-2.5 rounded-sm bg-slate-400"></span>
+
+                    Not assessed
+
+                </span>
+
+            </div>
+
+            <!-- =================================================
+
+                 ACCESSIBLE DATA TABLE
+
+            ================================================== -->
+
+            <details class="mt-3">
+
+                <summary
+
+                    class="
+
+                        cursor-pointer text-[11px]
+
+                        font-semibold text-emerald-700
+
+                        hover:text-emerald-900
+
+                    "
+
+                >
+
+                    View trend values
+
+                </summary>
+
+                <div
+
+                    class="
+
+                        mt-2 overflow-hidden rounded-lg
+
+                        border border-slate-200
+
+                    "
+
+                >
+
+                    <div class="overflow-x-auto">
+
+                        <table class="min-w-full divide-y divide-slate-200">
+
+                            <thead class="bg-slate-50">
+
+                                <tr>
+
+                                    <th
+
+                                        class="
+
+                                            px-3 py-2 text-left
+
+                                            text-[9px] font-semibold
+
+                                            uppercase tracking-wide
+
+                                            text-slate-500
+
+                                        "
+
+                                    >
+
+                                        Recorded
+
+                                    </th>
+
+                                    <th
+
+                                        class="
+
+                                            px-3 py-2 text-left
+
+                                            text-[9px] font-semibold
+
+                                            uppercase tracking-wide
+
+                                            text-slate-500
+
+                                        "
+
+                                    >
+
+                                        Value
+
+                                    </th>
+
+                                    <th
+
+                                        class="
+
+                                            px-3 py-2 text-left
+
+                                            text-[9px] font-semibold
+
+                                            uppercase tracking-wide
+
+                                            text-slate-500
+
+                                        "
+
+                                    >
+
+                                        Status
+
+                                    </th>
+
+                                    <th
+
+                                        class="
+
+                                            px-3 py-2 text-right
+
+                                            text-[9px] font-semibold
+
+                                            uppercase tracking-wide
+
+                                            text-slate-500
+
+                                        "
+
+                                    >
+
+                                        Action
+
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody class="divide-y divide-slate-100 bg-white">
+
+                                {% for point in trend_points %}
+
+                                    <tr>
+
+                                        <td class="px-3 py-2 text-[11px] text-slate-700">
+
+                                            {{ point.recorded_at|date:"M j, Y g:i A" }}
+
+                                        </td>
+
+                                        <td class="px-3 py-2 text-[11px] font-semibold text-slate-900">
+
+                                            {{ point.display_value|default:point.value }}
+
+                                            {% if trend_unit %}
+
+                                                {{ trend_unit }}
+
+                                            {% endif %}
+
+                                        </td>
+
+                                        <td class="px-3 py-2">
+
+                                            {% if point.status == "critical" %}
+
+                                                <span
+
+                                                    class="
+
+                                                        rounded-full bg-red-100
+
+                                                        px-2 py-0.5
+
+                                                        text-[9px] font-semibold
+
+                                                        text-red-800
+
+                                                    "
+
+                                                >
+
+                                                    Critical
+
+                                                </span>
+
+                                            {% elif point.status == "abnormal" %}
+
+                                                <span
+
+                                                    class="
+
+                                                        rounded-full bg-amber-100
+
+                                                        px-2 py-0.5
+
+                                                        text-[9px] font-semibold
+
+                                                        text-amber-800
+
+                                                    "
+
+                                                >
+
+                                                    Abnormal
+
+                                                </span>
+
+                                            {% elif point.status == "normal" %}
+
+                                                <span
+
+                                                    class="
+
+                                                        rounded-full bg-emerald-100
+
+                                                        px-2 py-0.5
+
+                                                        text-[9px] font-semibold
+
+                                                        text-emerald-800
+
+                                                    "
+
+                                                >
+
+                                                    Normal
+
+                                                </span>
+
+                                            {% else %}
+
+                                                <span
+
+                                                    class="
+
+                                                        rounded-full bg-slate-100
+
+                                                        px-2 py-0.5
+
+                                                        text-[9px] font-semibold
+
+                                                        text-slate-600
+
+                                                    "
+
+                                                >
+
+                                                    Not assessed
+
+                                                </span>
+
+                                            {% endif %}
+
+                                        </td>
+
+                                        <td class="px-3 py-2 text-right">
+
+                                            <a
+
+                                                href="{% url 'vitals:detail' pk=point.vital_id %}"
+
+                                                hx-boost="false"
+
+                                                class="
+
+                                                    text-[11px] font-semibold
+
+                                                    text-emerald-700
+
+                                                    hover:text-emerald-900
+
+                                                "
+
+                                            >
+
+                                                View
+
+                                            </a>
+
+                                        </td>
+
+                                    </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </details>
+
+        </div>
+
+    {% else %}
+
+        <!-- =====================================================
+
+             EMPTY STATE
+
+        ====================================================== -->
+
+        <div class="px-4 py-10 text-center">
+
+            <div
+
+                class="
+
+                    mx-auto grid h-10 w-10
+
+                    place-items-center rounded-full
+
+                    bg-slate-100 text-slate-400
+
+                "
+
+            >
+
+                <svg
+
+                    class="h-5 w-5"
+
+                    viewBox="0 0 24 24"
+
+                    fill="none"
+
+                    stroke="currentColor"
+
+                    stroke-width="1.8"
+
+                    aria-hidden="true"
+
+                >
+
+                    <path
+
+                        stroke-linecap="round"
+
+                        stroke-linejoin="round"
+
+                        d="
+
+                            M3 13.5 7.5 9l3 3
+
+                            6-7.5L21 9
+
+                            M3 21h18
+
+                        "
+
+                    />
+
+                </svg>
+
+            </div>
+
+            <h3 class="mt-3 text-sm font-semibold text-slate-800">
+
+                No trend data available
+
+            </h3>
+
+            <p class="mt-1 text-xs text-slate-500">
+
+                Record additional observations or select another metric.
+
+            </p>
+
+        </div>
+
+    {% endif %}
+
+</section>

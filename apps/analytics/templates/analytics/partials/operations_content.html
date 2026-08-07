@@ -1,0 +1,175 @@
+
+
+
+{% comment %}
+============================================================
+OPERATIONAL ANALYTICS CONTENT
+
+File:
+apps/analytics/templates/analytics/partials/operations_content.html
+
+Purpose:
+- Display encounter volume, completion, cancellation,
+  throughput, and operational activity.
+============================================================
+{% endcomment %}
+
+
+<div class="space-y-4 p-4">
+
+    {% include "analytics/components/loading_indicator.html" %}
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+    <header
+        class="
+            flex flex-col gap-2
+            sm:flex-row sm:items-center sm:justify-between
+        "
+    >
+        <div>
+            <h1 class="text-lg font-semibold text-slate-900">
+                Operational Analytics
+            </h1>
+
+            <p class="mt-0.5 text-xs text-slate-500">
+                Throughput, encounter volume, workflow, and service efficiency.
+            </p>
+        </div>
+
+        <p class="text-xs font-medium text-slate-500">
+            {{ filters.start_date|date:"M j, Y" }}
+            –
+            {{ filters.end_date|date:"M j, Y" }}
+        </p>
+    </header>
+
+
+    {% include "analytics/components/filter_bar.html" %}
+
+
+    <!-- =====================================================
+         OPERATIONS METRICS
+    ====================================================== -->
+    <section
+        class="
+            grid gap-3
+            sm:grid-cols-2
+            xl:grid-cols-4
+        "
+    >
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Encounter Volume
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-slate-900">
+                {{ encounter_summary.total_encounters|default:0 }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Total encounters in selected period
+            </p>
+        </article>
+
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Active Workload
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-blue-700">
+                {{ encounter_summary.active_encounters|default:0 }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Encounters currently open
+            </p>
+        </article>
+
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Completed
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-emerald-700">
+                {{ encounter_summary.completed_encounters|default:0 }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Completed encounters
+            </p>
+        </article>
+
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Average Visit Time
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-slate-900">
+                {{ average_visit_duration_display }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Arrival to encounter completion
+            </p>
+        </article>
+    </section>
+
+
+    <section class="grid gap-4 xl:grid-cols-3">
+        <div class="xl:col-span-2">
+            {% include "analytics/partials/encounter_trend.html" %}
+        </div>
+
+        <div>
+            {% include "analytics/partials/encounter_status_breakdown.html" %}
+        </div>
+    </section>
+
+
+    {% include "analytics/partials/recent_encounters_table.html" %}
+</div>

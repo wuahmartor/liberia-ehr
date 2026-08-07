@@ -1,0 +1,221 @@
+
+
+{% comment %}
+============================================================
+NURSING ANALYTICS CONTENT
+
+File:
+apps/analytics/templates/analytics/partials/nursing_content.html
+
+Purpose:
+- Display nursing workflow and triage analytics.
+- Prepare the dashboard for future vitals, assessments,
+  pain reassessment, falls, and documentation metrics.
+============================================================
+{% endcomment %}
+
+
+<div class="space-y-4 p-4">
+
+    {% include "analytics/components/loading_indicator.html" %}
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+    <header
+        class="
+            flex flex-col gap-2
+            sm:flex-row sm:items-center sm:justify-between
+        "
+    >
+        <div>
+            <h1 class="text-lg font-semibold text-slate-900">
+                Nursing Analytics
+            </h1>
+
+            <p class="mt-0.5 text-xs text-slate-500">
+                Nursing workload, triage activity, and documentation performance.
+            </p>
+        </div>
+
+        <p class="text-xs font-medium text-slate-500">
+            {{ filters.start_date|date:"M j, Y" }}
+            –
+            {{ filters.end_date|date:"M j, Y" }}
+        </p>
+    </header>
+
+
+    {% include "analytics/components/filter_bar.html" %}
+
+
+    <!-- =====================================================
+         NURSING METRICS
+    ====================================================== -->
+    <section
+        class="
+            grid gap-3
+            sm:grid-cols-2
+            xl:grid-cols-4
+        "
+    >
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Active Encounters
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-slate-900">
+                {{ encounter_summary.active_encounters|default:0 }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Current potential nursing workload
+            </p>
+        </article>
+
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Total Encounters
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-slate-900">
+                {{ encounter_summary.total_encounters|default:0 }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Encounters during this reporting period
+            </p>
+        </article>
+
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Completed Encounters
+            </p>
+
+            <p class="mt-2 text-2xl font-bold text-emerald-700">
+                {{ encounter_summary.completed_encounters|default:0 }}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Completed clinical workflows
+            </p>
+        </article>
+
+
+        <article
+            class="
+                rounded-xl border border-dashed
+                border-slate-300 bg-slate-50
+                p-4
+            "
+        >
+            <p
+                class="
+                    text-[10px] font-semibold uppercase
+                    tracking-wide text-slate-500
+                "
+            >
+                Nursing Measures
+            </p>
+
+            <p class="mt-2 text-sm font-semibold text-slate-700">
+                Pending nursing data
+            </p>
+
+            <p class="mt-1 text-xs leading-5 text-slate-500">
+                Vitals, assessments, falls, pain, and reassessment
+                metrics will appear when those modules are connected.
+            </p>
+        </article>
+    </section>
+
+
+    <!-- =====================================================
+         NURSING WORKLOAD TREND
+    ====================================================== -->
+    <section class="grid gap-4 xl:grid-cols-3">
+        <div class="xl:col-span-2">
+            {% include "analytics/partials/encounter_trend.html" %}
+        </div>
+
+        <article
+            class="
+                rounded-xl border border-slate-200
+                bg-white shadow-sm
+            "
+        >
+            <header class="border-b border-slate-200 px-4 py-3">
+                <h2 class="text-sm font-semibold text-slate-900">
+                    Planned Nursing Measures
+                </h2>
+            </header>
+
+            <div class="space-y-2 p-4">
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Triage completion time
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Vitals documentation compliance
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Pain reassessment compliance
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Fall-risk assessment compliance
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <p class="text-xs font-medium text-slate-700">
+                        Nursing documentation completion
+                    </p>
+                </div>
+            </div>
+        </article>
+    </section>
+
+
+    {% include "analytics/partials/recent_encounters_table.html" %}
+</div>

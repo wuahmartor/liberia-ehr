@@ -1,22 +1,20 @@
-{% extends "layouts/app_shell.html" %}
+{% extends "administration/base.html" %}
+
 
 {% comment %}
 ============================================================
-ADMINISTRATION DASHBOARD
+ADMINISTRATION DASHBOARD PAGE
 
-Full-page template used for:
-- Direct browser navigation
-- Page refreshes
-- Bookmarked administration dashboard URLs
+File:
+apps/administration/templates/administration/dashboard.html
+
+Purpose:
+- Render the complete administration dashboard page.
+- Include the dashboard partial used by HTMX requests.
 ============================================================
 {% endcomment %}
 
 
-{% block title %}
-    Administration
-{% endblock title %}
-
-
-{% block workspace %}
-    {% include "administration/partials/dashboard_workspace.html" %}
-{% endblock workspace %}
+{% block administration_content %}
+    {% include "administration/partials/dashboard_content.html" %}
+{% endblock %}

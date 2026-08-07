@@ -1,0 +1,50 @@
+<div
+    id="analytics-loading-indicator"
+    class="
+        htmx-indicator
+        fixed inset-0 z-40
+        bg-slate-950/10
+        backdrop-blur-[1px]
+    "
+    aria-hidden="true"
+>
+    <div
+        class="
+            absolute left-1/2 top-24
+            -translate-x-1/2
+            rounded-full bg-white
+            px-4 py-2 shadow-lg
+        "
+    >
+        <div class="flex items-center gap-2">
+            <svg
+                class="h-4 w-4 animate-spin text-ehr-700"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+            >
+                <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                />
+
+                <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="
+                        M4 12a8 8 0 018-8V0
+                        C5.373 0 0 5.373 0 12h4z
+                    "
+                />
+            </svg>
+
+            <span class="text-xs font-semibold text-slate-700">
+                Updating analytics
+            </span>
+        </div>
+    </div>
+</div>

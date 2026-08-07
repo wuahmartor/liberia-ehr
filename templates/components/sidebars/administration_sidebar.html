@@ -1,6 +1,3 @@
-
-
-
 {% comment %}
 ============================================================
 ADMINISTRATION SIDEBAR
@@ -9,151 +6,1521 @@ File:
 templates/components/sidebars/administration_sidebar.html
 
 Purpose:
-- Provide system, facility, user, security, and configuration
-  navigation.
-- Display only administrative components permitted for the user.
+- Provide detailed Administration navigation.
+- Keep only major Administration section headings in the
+  primary navigation dropdown.
+- Organize administrative pages into collapsible groups.
+- Automatically open the group containing the active page.
+- Highlight the active Administration module.
+- Safely disable routes that have not yet been implemented.
+
+Expected context:
+- active_primary_nav
+- active_admin_module
+- request.user
+- admin_sidebar_permissions
+
+Supported active_admin_module values:
+- dashboard
+- scheduling
+- users
+- roles
+- facilities
+- departments
+- clinical_units
+- rooms
+- beds
+- system_settings
+- clinical_dictionaries
+- integrations
+- data_management
+- audit_logs
+- system_health
 ============================================================
 {% endcomment %}
 
 
-<div
+{% comment %}
+============================================================
+SAFE ADMINISTRATION URL RESOLUTION
+
+Using "as variable" prevents unfinished routes from raising
+NoReverseMatch while rendering this shared sidebar.
+============================================================
+{% endcomment %}
+
+{% url 'administration:dashboard' as administration_dashboard_url %}
+{% url 'administration:scheduling' as administration_scheduling_url %}
+
+{% url 'administration:users' as administration_users_url %}
+{% url 'administration:roles' as administration_roles_url %}
+
+{% url 'administration:facilities' as administration_facilities_url %}
+{% url 'administration:departments' as administration_departments_url %}
+{% url 'administration:clinical_units' as administration_units_url %}
+{% url 'administration:rooms' as administration_rooms_url %}
+{% url 'administration:beds' as administration_beds_url %}
+
+{% url 'administration:system_settings' as administration_settings_url %}
+{% url 'administration:clinical_dictionaries' as administration_dictionaries_url %}
+{% url 'administration:integrations' as administration_integrations_url %}
+{% url 'administration:data_management' as administration_data_url %}
+
+{% url 'administration:audit_logs' as administration_audit_logs_url %}
+{% url 'administration:system_health' as administration_system_health_url %}
+
+{% url 'admin:index' as django_admin_url %}
+
+
+<aside
+    x-data="{
+        openSection: null,
+
+        init() {
+            const activeModule =
+                '{{ active_admin_module|default:"dashboard" }}';
+
+            if (
+                [
+                    'dashboard',
+                    'scheduling'
+                ].includes(activeModule)
+            ) {
+                this.openSection = 'overview';
+
+            } else if (
+                [
+                    'users',
+                    'roles'
+                ].includes(activeModule)
+            ) {
+                this.openSection = 'access';
+
+            } else if (
+                [
+                    'facilities',
+                    'departments',
+                    'clinical_units',
+                    'rooms',
+                    'beds'
+                ].includes(activeModule)
+            ) {
+                this.openSection = 'organization';
+
+            } else if (
+                [
+                    'system_settings',
+                    'clinical_dictionaries',
+                    'integrations',
+                    'data_management'
+                ].includes(activeModule)
+            ) {
+                this.openSection = 'configuration';
+
+            } else if (
+                [
+                    'audit_logs',
+                    'system_health'
+                ].includes(activeModule)
+            ) {
+                this.openSection = 'monitoring';
+
+            } else {
+                this.openSection = 'overview';
+            }
+        },
+
+        toggleSection(section) {
+            this.openSection = (
+                this.openSection === section
+                    ? null
+                    : section
+            );
+        },
+
+        isOpen(section) {
+            return this.openSection === section;
+        }
+    }"
     class="
-        h-full overflow-y-auto
-        bg-white px-3 py-3
+        flex h-full min-h-0 w-full flex-col
+        overflow-hidden
+        border-r border-slate-200
+        bg-white
     "
     aria-label="Administration sidebar"
 >
-    <section>
-        <p class="admin-sidebar-heading">
-            Administration
-        </p>
-
-        <nav class="space-y-1">
-            <a
-                href="#"
+    <!-- =====================================================
+         SIDEBAR HEADER
+    ====================================================== -->
+    <header
+        class="
+            shrink-0
+            border-b border-slate-200
+            bg-slate-50
+            px-4 py-4
+        "
+    >
+        <div class="flex items-center gap-3">
+            <div
                 class="
-                    admin-sidebar-link
-                    {% if active_admin_module == 'dashboard' %}
-                        admin-sidebar-link-active
-                    {% endif %}
+                    flex h-9 w-9 shrink-0
+                    items-center justify-center
+                    rounded-lg
+                    bg-ehr-50 text-ehr-700
+                    ring-1 ring-inset ring-ehr-100
+                "
+                aria-hidden="true"
+            >
+                <svg
+                    class="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="
+                            M4.5 21V5.25
+                            A2.25 2.25 0 0 1 6.75 3
+                            h10.5
+                            a2.25 2.25 0 0 1 2.25 2.25
+                            V21
+                            M9 7.5h6
+                            M9 11.25h6
+                            M9 15h2.25
+                            M3 21h18
+                        "
+                    />
+                </svg>
+            </div>
+
+            <div class="min-w-0">
+                <h2
+                    class="
+                        truncate text-sm font-semibold
+                        text-slate-900
+                    "
+                >
+                    Administration
+                </h2>
+
+                <p class="mt-0.5 text-xs text-slate-500">
+                    System and organizational management
+                </p>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- =====================================================
+         NAVIGATION AREA
+    ====================================================== -->
+    <div
+        class="
+            min-h-0 flex-1
+            overflow-x-hidden overflow-y-auto
+            px-3 py-3
+        "
+    >
+        <nav
+            class="space-y-3"
+            aria-label="Administration navigation"
+        >
+            <!-- =================================================
+                 OVERVIEW
+            ================================================== -->
+            <section
+                class="
+                    overflow-hidden rounded-lg
+                    border border-slate-200 bg-white
                 "
             >
-                <span aria-hidden="true">▦</span>
-                <span>Administration Dashboard</span>
-            </a>
+                <button
+                    type="button"
+                    class="
+                        flex w-full items-center justify-between
+                        gap-3 bg-slate-50 px-3 py-2.5
+                        text-left transition
+                        hover:bg-slate-100
+                        focus:outline-none
+                        focus-visible:ring-2
+                        focus-visible:ring-inset
+                        focus-visible:ring-ehr-500
+                    "
+                    @click="toggleSection('overview')"
+                    :aria-expanded="isOpen('overview').toString()"
+                    aria-controls="admin-overview-menu"
+                >
+                    <span
+                        class="
+                            text-[11px] font-semibold uppercase
+                            tracking-wider text-slate-600
+                        "
+                    >
+                        Overview
+                    </span>
 
-            <a
-                href="#"
+                    <svg
+                        class="
+                            h-4 w-4 shrink-0 text-slate-400
+                            transition-transform duration-200
+                        "
+                        :class="{
+                            'rotate-180': isOpen('overview')
+                        }"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="
+                                M5.23 7.21
+                                a.75.75 0 0 1 1.06.02
+                                L10 11.168
+                                l3.71-3.938
+                                a.75.75 0 1 1 1.08 1.04
+                                l-4.25 4.5
+                                a.75.75 0 0 1-1.08 0
+                                l-4.25-4.5
+                                a.75.75 0 0 1 .02-1.06Z
+                            "
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                </button>
+
+                <div
+                    id="admin-overview-menu"
+                    x-cloak
+                    x-show="isOpen('overview')"
+                    x-collapse
+                >
+                    <div
+                        class="
+                            space-y-1
+                            border-t border-slate-200
+                            p-1.5
+                        "
+                    >
+                        <!-- Administration dashboard -->
+                        {% if administration_dashboard_url %}
+                            <a
+                                href="{{ administration_dashboard_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'dashboard' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "dashboard" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'dashboard' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ▦
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    Administration Dashboard
+                                </span>
+                            </a>
+                        {% endif %}
+
+
+                        <!-- Scheduling -->
+                        {% if administration_scheduling_url %}
+                            <a
+                                href="{{ administration_scheduling_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'scheduling' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "scheduling" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'scheduling' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    □
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    Scheduling
+                                </span>
+                            </a>
+                        {% else %}
+                            <span
+                                class="
+                                    flex w-full cursor-not-allowed
+                                    items-center gap-3 rounded-md
+                                    px-3 py-2.5 text-sm font-medium
+                                    text-slate-400 opacity-60
+                                "
+                                aria-disabled="true"
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+                                        bg-slate-100
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    □
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    Scheduling
+                                </span>
+
+                                <span class="text-[10px]">
+                                    Soon
+                                </span>
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- =================================================
+                 ACCESS AND SECURITY
+            ================================================== -->
+            <section
                 class="
-                    admin-sidebar-link
-                    {% if active_admin_module == 'users' %}
-                        admin-sidebar-link-active
-                    {% endif %}
+                    overflow-hidden rounded-lg
+                    border border-slate-200 bg-white
                 "
             >
-                <span aria-hidden="true">♙</span>
-                <span>Users</span>
-            </a>
+                <button
+                    type="button"
+                    class="
+                        flex w-full items-center justify-between
+                        gap-3 bg-slate-50 px-3 py-2.5
+                        text-left transition
+                        hover:bg-slate-100
+                        focus:outline-none
+                        focus-visible:ring-2
+                        focus-visible:ring-inset
+                        focus-visible:ring-ehr-500
+                    "
+                    @click="toggleSection('access')"
+                    :aria-expanded="isOpen('access').toString()"
+                    aria-controls="admin-access-menu"
+                >
+                    <span
+                        class="
+                            text-[11px] font-semibold uppercase
+                            tracking-wider text-slate-600
+                        "
+                    >
+                        Access and Security
+                    </span>
 
-            <a
-                href="#"
+                    <svg
+                        class="
+                            h-4 w-4 shrink-0 text-slate-400
+                            transition-transform duration-200
+                        "
+                        :class="{
+                            'rotate-180': isOpen('access')
+                        }"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="
+                                M5.23 7.21
+                                a.75.75 0 0 1 1.06.02
+                                L10 11.168
+                                l3.71-3.938
+                                a.75.75 0 1 1 1.08 1.04
+                                l-4.25 4.5
+                                a.75.75 0 0 1-1.08 0
+                                l-4.25-4.5
+                                a.75.75 0 0 1 .02-1.06Z
+                            "
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                </button>
+
+                <div
+                    id="admin-access-menu"
+                    x-cloak
+                    x-show="isOpen('access')"
+                    x-collapse
+                >
+                    <div
+                        class="
+                            space-y-1
+                            border-t border-slate-200
+                            p-1.5
+                        "
+                    >
+                        <!-- User accounts -->
+                        {% if administration_users_url %}
+                            <a
+                                href="{{ administration_users_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'users' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "users" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'users' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ♙
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    User Accounts
+                                </span>
+                            </a>
+                        {% endif %}
+
+
+                        <!-- Roles and permissions -->
+                        {% if administration_roles_url %}
+                            <a
+                                href="{{ administration_roles_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'roles' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "roles" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'roles' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ◇
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    Roles and Permissions
+                                </span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- =================================================
+                 ORGANIZATION AND FACILITIES
+            ================================================== -->
+            <section
                 class="
-                    admin-sidebar-link
-                    {% if active_admin_module == 'roles' %}
-                        admin-sidebar-link-active
-                    {% endif %}
+                    overflow-hidden rounded-lg
+                    border border-slate-200 bg-white
                 "
             >
-                <span aria-hidden="true">⚿</span>
-                <span>Roles and Permissions</span>
-            </a>
+                <button
+                    type="button"
+                    class="
+                        flex w-full items-center justify-between
+                        gap-3 bg-slate-50 px-3 py-2.5
+                        text-left transition
+                        hover:bg-slate-100
+                        focus:outline-none
+                        focus-visible:ring-2
+                        focus-visible:ring-inset
+                        focus-visible:ring-ehr-500
+                    "
+                    @click="toggleSection('organization')"
+                    :aria-expanded="isOpen('organization').toString()"
+                    aria-controls="admin-organization-menu"
+                >
+                    <span
+                        class="
+                            text-[11px] font-semibold uppercase
+                            tracking-wider text-slate-600
+                        "
+                    >
+                        Organization and Facilities
+                    </span>
 
-            <a
-                href="#"
+                    <svg
+                        class="
+                            h-4 w-4 shrink-0 text-slate-400
+                            transition-transform duration-200
+                        "
+                        :class="{
+                            'rotate-180': isOpen('organization')
+                        }"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="
+                                M5.23 7.21
+                                a.75.75 0 0 1 1.06.02
+                                L10 11.168
+                                l3.71-3.938
+                                a.75.75 0 1 1 1.08 1.04
+                                l-4.25 4.5
+                                a.75.75 0 0 1-1.08 0
+                                l-4.25-4.5
+                                a.75.75 0 0 1 .02-1.06Z
+                            "
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                </button>
+
+                <div
+                    id="admin-organization-menu"
+                    x-cloak
+                    x-show="isOpen('organization')"
+                    x-collapse
+                >
+                    <div
+                        class="
+                            space-y-1
+                            border-t border-slate-200
+                            p-1.5
+                        "
+                    >
+                        <!-- Facilities -->
+                        {% if administration_facilities_url %}
+                            <a
+                                href="{{ administration_facilities_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'facilities' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "facilities" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'facilities' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ⌂
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    Facilities
+                                </span>
+                            </a>
+                        {% endif %}
+
+
+                        <!-- Departments -->
+                        {% if administration_departments_url %}
+                            <a
+                                href="{{ administration_departments_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'departments' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "departments" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'departments' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ▤
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    Departments
+                                </span>
+                            </a>
+                        {% endif %}
+
+
+                        <!-- Clinical units -->
+                        {% if administration_units_url %}
+                            <a
+                                href="{{ administration_units_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'clinical_units' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "clinical_units" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'clinical_units' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ▥
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    Clinical Units
+                                </span>
+                            </a>
+                        {% endif %}
+
+
+                        <!-- Rooms -->
+                        {% if administration_rooms_url %}
+                            <a
+                                href="{{ administration_rooms_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'rooms' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "rooms" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'rooms' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    □
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    Rooms
+                                </span>
+                            </a>
+                        {% endif %}
+
+
+                        <!-- Beds -->
+                        {% if administration_beds_url %}
+                            <a
+                                href="{{ administration_beds_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'beds' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "beds" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'beds' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ▱
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    Beds
+                                </span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- =================================================
+                 SYSTEM CONFIGURATION
+            ================================================== -->
+            <section
                 class="
-                    admin-sidebar-link
-                    {% if active_admin_module == 'facilities' %}
-                        admin-sidebar-link-active
-                    {% endif %}
+                    overflow-hidden rounded-lg
+                    border border-slate-200 bg-white
                 "
             >
-                <span aria-hidden="true">▥</span>
-                <span>Facilities</span>
-            </a>
+                <button
+                    type="button"
+                    class="
+                        flex w-full items-center justify-between
+                        gap-3 bg-slate-50 px-3 py-2.5
+                        text-left transition
+                        hover:bg-slate-100
+                        focus:outline-none
+                        focus-visible:ring-2
+                        focus-visible:ring-inset
+                        focus-visible:ring-ehr-500
+                    "
+                    @click="toggleSection('configuration')"
+                    :aria-expanded="isOpen('configuration').toString()"
+                    aria-controls="admin-configuration-menu"
+                >
+                    <span
+                        class="
+                            text-[11px] font-semibold uppercase
+                            tracking-wider text-slate-600
+                        "
+                    >
+                        System Configuration
+                    </span>
 
-            <a
-                href="#"
+                    <svg
+                        class="
+                            h-4 w-4 shrink-0 text-slate-400
+                            transition-transform duration-200
+                        "
+                        :class="{
+                            'rotate-180': isOpen('configuration')
+                        }"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="
+                                M5.23 7.21
+                                a.75.75 0 0 1 1.06.02
+                                L10 11.168
+                                l3.71-3.938
+                                a.75.75 0 1 1 1.08 1.04
+                                l-4.25 4.5
+                                a.75.75 0 0 1-1.08 0
+                                l-4.25-4.5
+                                a.75.75 0 0 1 .02-1.06Z
+                            "
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                </button>
+
+                <div
+                    id="admin-configuration-menu"
+                    x-cloak
+                    x-show="isOpen('configuration')"
+                    x-collapse
+                >
+                    <div
+                        class="
+                            space-y-1
+                            border-t border-slate-200
+                            p-1.5
+                        "
+                    >
+                        <!-- System settings -->
+                        {% if administration_settings_url %}
+                            <a
+                                href="{{ administration_settings_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'system_settings' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "system_settings" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'system_settings' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ⚙
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    System Settings
+                                </span>
+                            </a>
+                        {% endif %}
+
+
+                        <!-- Clinical dictionaries -->
+                        {% if administration_dictionaries_url %}
+                            <a
+                                href="{{ administration_dictionaries_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'clinical_dictionaries' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "clinical_dictionaries" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'clinical_dictionaries' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ▤
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    Clinical Dictionaries
+                                </span>
+                            </a>
+                        {% endif %}
+
+
+                        <!-- External integrations -->
+                        {% if administration_integrations_url %}
+                            <a
+                                href="{{ administration_integrations_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'integrations' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "integrations" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'integrations' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ⇄
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    External Integrations
+                                </span>
+                            </a>
+                        {% endif %}
+
+
+                        <!-- Data management -->
+                        {% if administration_data_url %}
+                            <a
+                                href="{{ administration_data_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'data_management' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "data_management" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'data_management' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ⛁
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    Data Management
+                                </span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- =================================================
+                 MONITORING AND COMPLIANCE
+            ================================================== -->
+            <section
                 class="
-                    admin-sidebar-link
-                    {% if active_admin_module == 'departments' %}
-                        admin-sidebar-link-active
-                    {% endif %}
+                    overflow-hidden rounded-lg
+                    border border-slate-200 bg-white
                 "
             >
-                <span aria-hidden="true">▤</span>
-                <span>Departments and Units</span>
-            </a>
+                <button
+                    type="button"
+                    class="
+                        flex w-full items-center justify-between
+                        gap-3 bg-slate-50 px-3 py-2.5
+                        text-left transition
+                        hover:bg-slate-100
+                        focus:outline-none
+                        focus-visible:ring-2
+                        focus-visible:ring-inset
+                        focus-visible:ring-ehr-500
+                    "
+                    @click="toggleSection('monitoring')"
+                    :aria-expanded="isOpen('monitoring').toString()"
+                    aria-controls="admin-monitoring-menu"
+                >
+                    <span
+                        class="
+                            text-[11px] font-semibold uppercase
+                            tracking-wider text-slate-600
+                        "
+                    >
+                        Monitoring and Compliance
+                    </span>
 
-            <a
-                href="#"
-                class="
-                    admin-sidebar-link
-                    {% if active_admin_module == 'rooms' %}
-                        admin-sidebar-link-active
-                    {% endif %}
-                "
-            >
-                <span aria-hidden="true">▱</span>
-                <span>Rooms and Beds</span>
-            </a>
+                    <svg
+                        class="
+                            h-4 w-4 shrink-0 text-slate-400
+                            transition-transform duration-200
+                        "
+                        :class="{
+                            'rotate-180': isOpen('monitoring')
+                        }"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="
+                                M5.23 7.21
+                                a.75.75 0 0 1 1.06.02
+                                L10 11.168
+                                l3.71-3.938
+                                a.75.75 0 1 1 1.08 1.04
+                                l-4.25 4.5
+                                a.75.75 0 0 1-1.08 0
+                                l-4.25-4.5
+                                a.75.75 0 0 1 .02-1.06Z
+                            "
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                </button>
+
+                <div
+                    id="admin-monitoring-menu"
+                    x-cloak
+                    x-show="isOpen('monitoring')"
+                    x-collapse
+                >
+                    <div
+                        class="
+                            space-y-1
+                            border-t border-slate-200
+                            p-1.5
+                        "
+                    >
+                        <!-- Audit logs -->
+                        {% if administration_audit_logs_url %}
+                            <a
+                                href="{{ administration_audit_logs_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'audit_logs' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "audit_logs" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'audit_logs' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ≣
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    Audit Logs
+                                </span>
+                            </a>
+                        {% endif %}
+
+
+                        <!-- System health -->
+                        {% if administration_system_health_url %}
+                            <a
+                                href="{{ administration_system_health_url }}"
+                                hx-boost="false"
+                                class="
+                                    group flex w-full items-center gap-3
+                                    rounded-md px-3 py-2.5
+                                    text-sm font-medium transition
+
+                                    {% if active_admin_module == 'system_health' %}
+                                        bg-ehr-50 text-ehr-800
+                                        ring-1 ring-inset ring-ehr-100
+                                    {% else %}
+                                        text-slate-700
+                                        hover:bg-slate-50
+                                        hover:text-slate-950
+                                    {% endif %}
+                                "
+                                {% if active_admin_module == "system_health" %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                <span
+                                    class="
+                                        grid h-7 w-7 shrink-0
+                                        place-items-center rounded-md
+
+                                        {% if active_admin_module == 'system_health' %}
+                                            bg-ehr-100 text-ehr-700
+                                        {% else %}
+                                            bg-slate-100 text-slate-500
+                                            group-hover:bg-white
+                                            group-hover:text-slate-700
+                                        {% endif %}
+                                    "
+                                    aria-hidden="true"
+                                >
+                                    ∿
+                                </span>
+
+                                <span class="min-w-0 flex-1 truncate">
+                                    System Health
+                                </span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
         </nav>
-    </section>
 
 
-    <section class="mt-4">
-        <p class="admin-sidebar-heading">
-            System Configuration
-        </p>
-
-        <nav class="space-y-1">
-            <a href="#" class="admin-sidebar-link">
-                <span aria-hidden="true">⚙</span>
-                <span>System Settings</span>
-            </a>
-
-            <a href="#" class="admin-sidebar-link">
-                <span aria-hidden="true">▤</span>
-                <span>Clinical Dictionaries</span>
-            </a>
-
-            <a href="#" class="admin-sidebar-link">
-                <span aria-hidden="true">⇄</span>
-                <span>Integrations</span>
-            </a>
-
-            <a href="#" class="admin-sidebar-link">
-                <span aria-hidden="true">▰</span>
-                <span>Audit Logs</span>
-            </a>
-
-            <a href="#" class="admin-sidebar-link">
-                <span aria-hidden="true">!</span>
-                <span>System Health</span>
-            </a>
-        </nav>
-    </section>
-
-
-    {% if request.user.is_staff %}
-        <section class="mt-4 border-t border-slate-200 pt-4">
-            <a
-                href="{% url 'admin:index' %}"
-                hx-boost="false"
-                class="admin-sidebar-link"
+        <!-- =====================================================
+             ADVANCED TOOLS
+        ====================================================== -->
+        {% if request.user.is_staff and django_admin_url %}
+            <section
+                class="
+                    mt-4 border-t
+                    border-slate-200 pt-4
+                "
+                aria-label="Advanced administration"
             >
-                <span aria-hidden="true">⚙</span>
-                <span>Django Administration</span>
-            </a>
-        </section>
-    {% endif %}
-</div>
+                <p
+                    class="
+                        mb-2 px-2
+                        text-[10px] font-semibold uppercase
+                        tracking-wider text-slate-400
+                    "
+                >
+                    Advanced Tools
+                </p>
+
+                <a
+                    href="{{ django_admin_url }}"
+                    hx-boost="false"
+                    class="
+                        group flex w-full items-center gap-3
+                        rounded-md border border-slate-200
+                        bg-white px-3 py-2.5
+                        text-sm font-medium text-slate-700
+                        transition
+                        hover:border-slate-300
+                        hover:bg-slate-50
+                        hover:text-slate-950
+                        focus:outline-none
+                        focus-visible:ring-2
+                        focus-visible:ring-ehr-500
+                    "
+                >
+                    <span
+                        class="
+                            grid h-7 w-7 shrink-0
+                            place-items-center rounded-md
+                            bg-slate-100 text-slate-500
+                            group-hover:bg-white
+                            group-hover:text-slate-700
+                        "
+                        aria-hidden="true"
+                    >
+                        ⚒
+                    </span>
+
+                    <span class="min-w-0 flex-1 truncate">
+                        Django Administration
+                    </span>
+
+                    <svg
+                        class="
+                            h-3.5 w-3.5 shrink-0
+                            text-slate-400
+                        "
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="
+                                M10.75 4.75
+                                a.75.75 0 0 1 .75-.75
+                                h3.75
+                                a.75.75 0 0 1 .75.75
+                                V8.5
+                                a.75.75 0 0 1-1.5 0
+                                V6.56
+                                l-5.72 5.72
+                                a.75.75 0 1 1-1.06-1.06
+                                l5.72-5.72
+                                H11.5
+                                a.75.75 0 0 1-.75-.75Z
+                            "
+                        />
+
+                        <path
+                            d="
+                                M5.75 5.5
+                                A1.25 1.25 0 0 0 4.5 6.75
+                                v7.5
+                                a1.25 1.25 0 0 0 1.25 1.25
+                                h7.5
+                                a1.25 1.25 0 0 0 1.25-1.25
+                                V11
+                                a.75.75 0 0 1 1.5 0
+                                v3.25
+                                A2.75 2.75 0 0 1 13.25 17
+                                h-7.5
+                                A2.75 2.75 0 0 1 3 14.25
+                                v-7.5
+                                A2.75 2.75 0 0 1 5.75 4
+                                H9
+                                a.75.75 0 0 1 0 1.5
+                                H5.75Z
+                            "
+                        />
+                    </svg>
+                </a>
+            </section>
+        {% endif %}
+    </div>
+
+
+    <!-- =====================================================
+         SIDEBAR FOOTER
+    ====================================================== -->
+    <footer
+        class="
+            shrink-0 border-t border-slate-200
+            bg-slate-50 px-4 py-3
+        "
+    >
+        <div class="flex items-center gap-2">
+            <span
+                class="relative flex h-2.5 w-2.5 shrink-0"
+                aria-hidden="true"
+            >
+                <span
+                    class="
+                        absolute inline-flex h-full w-full
+                        animate-ping rounded-full
+                        bg-emerald-400 opacity-50
+                    "
+                ></span>
+
+                <span
+                    class="
+                        relative inline-flex h-2.5 w-2.5
+                        rounded-full bg-emerald-500
+                    "
+                ></span>
+            </span>
+
+            <p class="text-xs font-medium text-slate-600">
+                Administrative services available
+            </p>
+        </div>
+    </footer>
+</aside>

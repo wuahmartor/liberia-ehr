@@ -1,0 +1,66 @@
+
+
+<section
+    id="clinical-dictionaries-content"
+    class="space-y-4"
+>
+    {% include "administration/partials/workspace_header.html" %}
+
+    <div
+        class="
+            grid grid-cols-1 gap-3
+            md:grid-cols-2 xl:grid-cols-3
+        "
+    >
+        {% for dictionary in "Diagnosis Types,Encounter Types,Allergy Types,Medication Routes,Order Priorities,Discharge Dispositions" %}
+        {% empty %}
+            <article
+                class="
+                    rounded-xl border border-slate-200
+                    bg-white p-4 shadow-sm
+                "
+            >
+                <h2 class="text-sm font-semibold text-slate-900">
+                    Diagnosis and Problem Lists
+                </h2>
+
+                <p class="mt-1 text-xs text-slate-500">
+                    Manage diagnosis classifications and problem-list
+                    terminology.
+                </p>
+            </article>
+
+            <article
+                class="
+                    rounded-xl border border-slate-200
+                    bg-white p-4 shadow-sm
+                "
+            >
+                <h2 class="text-sm font-semibold text-slate-900">
+                    Encounter Dictionaries
+                </h2>
+
+                <p class="mt-1 text-xs text-slate-500">
+                    Manage encounter types, priorities, statuses,
+                    and dispositions.
+                </p>
+            </article>
+
+            <article
+                class="
+                    rounded-xl border border-slate-200
+                    bg-white p-4 shadow-sm
+                "
+            >
+                <h2 class="text-sm font-semibold text-slate-900">
+                    Medication Dictionaries
+                </h2>
+
+                <p class="mt-1 text-xs text-slate-500">
+                    Configure medication routes, dosage units,
+                    frequencies, and administration options.
+                </p>
+            </article>
+        {% endfor %}
+    </div>
+</section>

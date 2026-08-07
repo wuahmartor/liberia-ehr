@@ -1,0 +1,86 @@
+
+<section
+    id="rooms-beds-content"
+    class="space-y-4"
+>
+    {% include "administration/partials/workspace_header.html" %}
+
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <section
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <h2 class="text-sm font-semibold text-slate-900">
+                Rooms
+            </h2>
+
+            <div class="mt-4 divide-y divide-slate-200">
+                {% for room in rooms %}
+                    <article class="py-3 first:pt-0">
+                        <p class="text-sm font-medium text-slate-800">
+                            {{ room.name }}
+                        </p>
+
+                        <p class="text-xs text-slate-500">
+                            {{ room.facility.name }}
+                        </p>
+                    </article>
+                {% empty %}
+                    <p class="text-xs text-slate-500">
+                        No rooms configured.
+                    </p>
+                {% endfor %}
+            </div>
+        </section>
+
+
+        <section
+            class="
+                rounded-xl border border-slate-200
+                bg-white p-4 shadow-sm
+            "
+        >
+            <h2 class="text-sm font-semibold text-slate-900">
+                Beds
+            </h2>
+
+            <div class="mt-4 divide-y divide-slate-200">
+                {% for bed in beds %}
+                    <article
+                        class="
+                            flex items-center justify-between
+                            gap-3 py-3 first:pt-0
+                        "
+                    >
+                        <div>
+                            <p class="text-sm font-medium text-slate-800">
+                                {{ bed.name }}
+                            </p>
+
+                            <p class="text-xs text-slate-500">
+                                {{ bed.room.name }}
+                            </p>
+                        </div>
+
+                        <span
+                            class="
+                                rounded-full bg-slate-100
+                                px-2 py-1
+                                text-[10px] font-semibold
+                                text-slate-600
+                            "
+                        >
+                            Configured
+                        </span>
+                    </article>
+                {% empty %}
+                    <p class="text-xs text-slate-500">
+                        No beds configured.
+                    </p>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</section>

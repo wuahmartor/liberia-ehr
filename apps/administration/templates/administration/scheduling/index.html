@@ -1,0 +1,28 @@
+
+
+{% extends "layouts/app_shell.html" %}
+
+{% comment %}
+============================================================
+SCHEDULING PAGE
+
+File:
+apps/administration/templates/administration/scheduling/index.html
+============================================================
+{% endcomment %}
+
+
+{% block title %}
+    Scheduling | Liberia EHR
+{% endblock %}
+
+
+{% block workspace %}
+<div
+    id="scheduling-workspace"
+    class="min-h-full"
+    aria-live="polite"
+>
+    {% include "administration/scheduling/partials/list_content.html" %}
+</div>
+{% endblock %}

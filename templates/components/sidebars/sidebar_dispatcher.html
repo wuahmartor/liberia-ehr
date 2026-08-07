@@ -1,32 +1,85 @@
 {% comment %}
 ============================================================
-PRIMARY SIDEBAR DISPATCHER
+CONTEXT SIDEBAR DISPATCHER
 
 File:
 templates/components/sidebars/sidebar_dispatcher.html
 
 Purpose:
-- Render exactly one primary sidebar.
-- Default safely to the Clinical sidebar.
-- Support ai_cds and the older ai-cds value.
+- Render exactly one contextual sidebar.
+- Select the sidebar using the active primary navigation area.
+- Display patient-specific clinical navigation when appropriate.
+- Display Administration navigation for Administration pages.
+- Prevent multiple sidebars from rendering simultaneously.
+
+Expected context:
+- active_primary_nav
+- active_clinical_module
+- active_analytics_module
+- active_admin_module
+- selected_patient
+- active_encounter
 ============================================================
 {% endcomment %}
 
 
-{% if active_primary_nav == "analytics" %}
+{% if active_primary_nav == "administration" %}
 
+    <!-- =====================================================
+         ADMINISTRATION SIDEBAR
+    ====================================================== -->
+    {% include "components/sidebars/administration_sidebar.html" %}
+
+
+{% elif active_primary_nav == "analytics" %}
+
+    <!-- =====================================================
+         ANALYTICS SIDEBAR
+    ====================================================== -->
     {% include "components/sidebars/analytics_sidebar.html" %}
 
-{% elif active_primary_nav == "ai_cds" or active_primary_nav == "ai-cds" %}
 
+{% elif active_primary_nav == "ai-cds" %}
+
+    <!-- =====================================================
+         AI / CDS SIDEBAR
+    ====================================================== -->
     {% include "components/sidebars/ai_cds_sidebar.html" %}
 
-{% elif active_primary_nav == "administration" %}
 
-    {% include "components/sidebars/administration_sidebar.html" %}
+{% elif active_primary_nav == "clinical" %}
+
+    <!-- =====================================================
+         CLINICAL SIDEBAR
+    ====================================================== -->
+    {% include "components/sidebars/clinical_sidebar.html" %}
+
 
 {% else %}
 
-    {% include "components/sidebars/clinical_sidebar.html" %}
+    <!-- =====================================================
+         DEFAULT SIDEBAR
+    ====================================================== -->
+    <div
+        class="
+            flex h-full min-h-0
+            flex-col bg-white
+        "
+    >
+        <div
+            class="
+                border-b border-slate-200
+                bg-slate-50 px-4 py-4
+            "
+        >
+            <h2 class="text-sm font-semibold text-slate-900">
+                Liberia EHR
+            </h2>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Select an application from the primary navigation.
+            </p>
+        </div>
+    </div>
 
 {% endif %}

@@ -1,0 +1,93 @@
+
+
+
+<section
+    id="audit-logs-content"
+    class="space-y-4"
+>
+    {% include "administration/partials/workspace_header.html" %}
+
+    <section
+        class="
+            overflow-hidden rounded-xl
+            border border-slate-200
+            bg-white shadow-sm
+        "
+    >
+        <div
+            class="
+                flex flex-col gap-3
+                border-b border-slate-200
+                px-4 py-3
+                md:flex-row md:items-center
+                md:justify-between
+            "
+        >
+            <div>
+                <h2 class="text-sm font-semibold text-slate-900">
+                    Recorded Activity
+                </h2>
+
+                <p class="mt-1 text-xs text-slate-500">
+                    Review user and system activity.
+                </p>
+            </div>
+
+            <form
+                method="get"
+                hx-get="{% url 'administration:audit_logs' %}"
+                hx-target="#audit-log-results"
+                hx-swap="innerHTML"
+                class="flex gap-2"
+            >
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ request.GET.q }}"
+                    placeholder="Search audit logs..."
+                    class="
+                        rounded-lg border border-slate-300
+                        px-3 py-2 text-sm
+                        focus:border-ehr-500
+                        focus:outline-none
+                        focus:ring-2 focus:ring-ehr-100
+                    "
+                >
+
+                <button
+                    type="submit"
+                    class="
+                        rounded-lg bg-slate-800
+                        px-3 py-2
+                        text-xs font-semibold text-white
+                        hover:bg-slate-900
+                    "
+                >
+                    Search
+                </button>
+            </form>
+        </div>
+
+        <div id="audit-log-results">
+            {% if audit_entries %}
+                <div class="divide-y divide-slate-200">
+                    {% for entry in audit_entries %}
+                        <article class="px-4 py-3">
+                            {{ entry }}
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="px-4 py-12 text-center">
+                    <h3 class="text-sm font-semibold text-slate-800">
+                        No audit entries available
+                    </h3>
+
+                    <p class="mt-1 text-xs text-slate-500">
+                        Audited events will appear here.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+</section>

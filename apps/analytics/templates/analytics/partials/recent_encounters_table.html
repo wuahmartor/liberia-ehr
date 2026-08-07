@@ -1,0 +1,236 @@
+
+
+{% comment %}
+============================================================
+RECENT ENCOUNTERS TABLE
+
+File:
+apps/analytics/templates/analytics/partials/recent_encounters_table.html
+
+Expected context:
+- recent_encounters
+============================================================
+{% endcomment %}
+
+
+<section
+    class="
+        overflow-hidden rounded-xl
+        border border-slate-200
+        bg-white shadow-sm
+    "
+>
+    <header
+        class="
+            flex flex-col gap-2
+            border-b border-slate-200 px-4 py-3
+            sm:flex-row sm:items-center sm:justify-between
+        "
+    >
+        <div>
+            <h2 class="text-sm font-semibold text-slate-900">
+                Recent Encounters
+            </h2>
+
+            <p class="mt-0.5 text-[11px] text-slate-500">
+                Encounters matching the current Analytics filters.
+            </p>
+        </div>
+
+        <a
+            href="{% url 'encounters:list' %}"
+            hx-boost="false"
+            class="
+                inline-flex items-center gap-1
+                text-xs font-semibold text-ehr-700
+                hover:text-ehr-900
+            "
+        >
+            <span>View all encounters</span>
+            <span aria-hidden="true">→</span>
+        </a>
+    </header>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th
+                        class="
+                            px-4 py-2 text-left
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Encounter
+                    </th>
+
+                    <th
+                        class="
+                            px-4 py-2 text-left
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Patient
+                    </th>
+
+                    <th
+                        class="
+                            px-4 py-2 text-left
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Type
+                    </th>
+
+                    <th
+                        class="
+                            px-4 py-2 text-left
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Status
+                    </th>
+
+                    <th
+                        class="
+                            px-4 py-2 text-left
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Started
+                    </th>
+
+                    <th
+                        class="
+                            px-4 py-2 text-right
+                            text-[10px] font-semibold uppercase
+                            tracking-wide text-slate-500
+                        "
+                    >
+                        Action
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody class="divide-y divide-slate-100">
+                {% for encounter in recent_encounters %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-2">
+                            <p class="text-xs font-semibold text-slate-900">
+                                {{ encounter.encounter_number }}
+                            </p>
+                        </td>
+
+                        <td class="px-4 py-2">
+                            <p class="text-xs font-medium text-slate-800">
+                                {{ encounter.patient }}
+                            </p>
+
+                            {% if encounter.patient.mrn %}
+                                <p class="mt-0.5 text-[10px] text-slate-500">
+                                    MRN {{ encounter.patient.mrn }}
+                                </p>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-4 py-2 text-xs text-slate-700">
+                            {{ encounter.get_encounter_type_display }}
+                        </td>
+
+                        <td class="px-4 py-2">
+                            {% if encounter.status == "completed" %}
+                                <span
+                                    class="
+                                        inline-flex rounded-full
+                                        bg-emerald-100 px-2 py-0.5
+                                        text-[10px] font-semibold
+                                        text-emerald-800
+                                    "
+                                >
+                                    {{ encounter.get_status_display }}
+                                </span>
+
+                            {% elif encounter.status == "cancelled" %}
+                                <span
+                                    class="
+                                        inline-flex rounded-full
+                                        bg-amber-100 px-2 py-0.5
+                                        text-[10px] font-semibold
+                                        text-amber-800
+                                    "
+                                >
+                                    {{ encounter.get_status_display }}
+                                </span>
+
+                            {% elif encounter.status == "entered_in_error" %}
+                                <span
+                                    class="
+                                        inline-flex rounded-full
+                                        bg-red-100 px-2 py-0.5
+                                        text-[10px] font-semibold
+                                        text-red-800
+                                    "
+                                >
+                                    {{ encounter.get_status_display }}
+                                </span>
+
+                            {% else %}
+                                <span
+                                    class="
+                                        inline-flex rounded-full
+                                        bg-blue-100 px-2 py-0.5
+                                        text-[10px] font-semibold
+                                        text-blue-800
+                                    "
+                                >
+                                    {{ encounter.get_status_display }}
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-4 py-2 text-xs text-slate-700">
+                            {{ encounter.start_datetime|date:"M j, Y" }}
+
+                            <p class="mt-0.5 text-[10px] text-slate-500">
+                                {{ encounter.start_datetime|time:"g:i A" }}
+                            </p>
+                        </td>
+
+                        <td class="px-4 py-2 text-right">
+                            <a
+                                href="{% url 'encounters:detail' encounter.pk %}"
+                                hx-boost="false"
+                                class="
+                                    inline-flex items-center
+                                    rounded-md border border-slate-300
+                                    bg-white px-2.5 py-1.5
+                                    text-[11px] font-semibold text-slate-700
+                                    transition hover:bg-slate-100
+                                "
+                            >
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td
+                            colspan="6"
+                            class="
+                                px-4 py-10 text-center
+                                text-xs text-slate-500
+                            "
+                        >
+                            No encounters match the current Analytics filters.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>

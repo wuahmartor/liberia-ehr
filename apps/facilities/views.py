@@ -53,13 +53,35 @@ def facility_queryset():
 
 @login_required
 def facility_list(request):
+    """
+    Display the paginated facility list.
+
+    Standard request:
+    - Render the complete Facilities page.
+
+    HTMX request:
+    - Render only the list workspace content.
+    """
+
     query = request.GET.get("q", "").strip()
-    facility_type = request.GET.get("facility_type", "").strip()
-    status = request.GET.get("status", "active").strip()
-    county = request.GET.get("county", "").strip()
+    facility_type = request.GET.get(
+        "facility_type",
+        "",
+    ).strip()
+    status = request.GET.get(
+        "status",
+        "active",
+    ).strip()
+    county = request.GET.get(
+        "county",
+        "",
+    ).strip()
 
     facilities = facility_queryset()
 
+    # ========================================================
+    # SEARCH FILTER
+    # ========================================================
     if query:
         facilities = facilities.filter(
             Q(name__icontains=query)
@@ -70,25 +92,50 @@ def facility_list(request):
             | Q(county_or_state__icontains=query)
         )
 
+    # ========================================================
+    # FACILITY TYPE FILTER
+    # ========================================================
     if facility_type:
-        facilities = facilities.filter(facility_type=facility_type)
+        facilities = facilities.filter(
+            facility_type=facility_type,
+        )
 
+    # ========================================================
+    # COUNTY FILTER
+    # ========================================================
     if county:
         facilities = facilities.filter(
-            county_or_state__iexact=county
+            county_or_state__iexact=county,
         )
 
+    # ========================================================
+    # STATUS FILTER
+    # ========================================================
     if status == "active":
-        facilities = facilities.filter(is_active=True)
+        facilities = facilities.filter(
+            is_active=True,
+        )
     elif status == "inactive":
-        facilities = facilities.filter(is_active=False)
+        facilities = facilities.filter(
+            is_active=False,
+        )
     elif status:
         facilities = facilities.filter(
-            operational_status=status
+            operational_status=status,
         )
 
-    paginator = Paginator(facilities, FACILITY_PAGE_SIZE)
-    page_obj = paginator.get_page(request.GET.get("page"))
+    facilities = facilities.order_by(
+        "name",
+    )
+
+    paginator = Paginator(
+        facilities,
+        FACILITY_PAGE_SIZE,
+    )
+
+    page_obj = paginator.get_page(
+        request.GET.get("page"),
+    )
 
     context = {
         "page_obj": page_obj,
@@ -101,21 +148,27 @@ def facility_list(request):
         "operational_statuses": (
             Facility.OperationalStatus.choices
         ),
+
+        # Administration navigation state
         "active_primary_nav": "administration",
-        "active_secondary_nav": "facilities",
+        "active_admin_module": "facilities",
     }
 
     template_name = (
-        "facilities/partials/facility_table.html"
+        "facilities/partials/list_content.html"
         if is_htmx(request)
-        else "facilities/facility_list.html"
+        else "facilities/list.html"
     )
 
-    return render(
+    response = render(
         request,
         template_name,
         context,
     )
+
+    response["Vary"] = "HX-Request"
+
+    return response
 
 
 @login_required
@@ -139,9 +192,21 @@ def facility_search(request):
         },
     )
 
-
 @login_required
-def facility_detail(request, facility_id):
+def facility_detail(
+    request,
+    facility_id,
+):
+    """
+    Display one facility and its organizational records.
+
+    Standard request:
+    - Render the complete Facility Detail page.
+
+    HTMX request:
+    - Render only the facility detail workspace.
+    """
+
     facility = get_object_or_404(
         facility_queryset(),
         pk=facility_id,
@@ -149,53 +214,116 @@ def facility_detail(request, facility_id):
 
     context = {
         "facility": facility,
+
+        # Administration navigation state
         "active_primary_nav": "administration",
-        "active_secondary_nav": "facilities",
+        "active_admin_module": "facilities",
     }
 
     template_name = (
-        "facilities/partials/facility_detail.html"
+        "facilities/partials/detail_content.html"
         if is_htmx(request)
-        else "facilities/facility_detail.html"
+        else "facilities/detail.html"
     )
 
-    return render(
+    response = render(
         request,
         template_name,
         context,
     )
 
+    response["Vary"] = "HX-Request"
 
-class FacilityCreateView(LoginRequiredMixin, CreateView):
+    return response
+
+
+class FacilityCreateView(
+    LoginRequiredMixin,
+    CreateView,
+):
+    """
+    Create a new facility.
+    """
+
     model = Facility
     form_class = FacilityForm
-    template_name = "facilities/facility_form.html"
+    template_name = "facilities/form.html"
 
-    def get_template_names(self):
-        if is_htmx(self.request):
-            return [
-                "facilities/partials/facility_form.html"
-            ]
+    def get_initial(self):
+        initial = super().get_initial()
 
-        return [self.template_name]
+        parent_facility_id = self.request.GET.get(
+            "parent_facility",
+        )
 
-    def form_valid(self, form):
-        facility = form.save(commit=False)
-        facility.created_by = self.request.user
-        facility.updated_by = self.request.user
+        if parent_facility_id:
+            initial["parent_facility"] = (
+                parent_facility_id
+            )
+
+        return initial
+
+    def get_context_data(
+        self,
+        **kwargs,
+    ):
+        context = super().get_context_data(
+            **kwargs,
+        )
+
+        context.update(
+            {
+                "form_mode": "create",
+                "page_title": "Create Facility",
+                "submit_label": "Create Facility",
+                "active_primary_nav": (
+                    "administration"
+                ),
+                "active_admin_module": (
+                    "facilities"
+                ),
+            }
+        )
+
+        return context
+
+    def form_valid(
+        self,
+        form,
+    ):
+        facility = form.save(
+            commit=False,
+        )
+
+        facility.created_by = (
+            self.request.user
+        )
+        facility.updated_by = (
+            self.request.user
+        )
+
         facility.save()
 
         self.object = facility
 
         if is_htmx(self.request):
-            response = HttpResponse(status=204)
-            response["HX-Trigger"] = "facilityCreated"
+            response = HttpResponse(
+                status=204,
+            )
+
+            response["HX-Trigger"] = (
+                "facilityCreated"
+            )
+
             response["HX-Redirect"] = reverse(
                 "facilities:detail",
                 kwargs={
-                    "facility_id": facility.pk,
+                    "facility_id": (
+                        facility.pk
+                    ),
                 },
             )
+
             return response
 
         return redirect(
@@ -203,31 +331,77 @@ class FacilityCreateView(LoginRequiredMixin, CreateView):
             facility_id=facility.pk,
         )
 
+class FacilityUpdateView(
+    LoginRequiredMixin,
+    UpdateView,
+):
+    """
+    Update an existing facility.
+    """
 
-class FacilityUpdateView(LoginRequiredMixin, UpdateView):
     model = Facility
     form_class = FacilityForm
     pk_url_kwarg = "facility_id"
-    template_name = "facilities/facility_form.html"
+    template_name = "facilities/form.html"
 
-    def get_template_names(self):
-        if is_htmx(self.request):
-            return [
-                "facilities/partials/facility_form.html"
-            ]
+    def get_context_data(
+        self,
+        **kwargs,
+    ):
+        context = super().get_context_data(
+            **kwargs,
+        )
 
-        return [self.template_name]
+        context.update(
+            {
+                "form_mode": "update",
+                "page_title": "Update Facility",
+                "submit_label": "Save Changes",
+                "active_primary_nav": (
+                    "administration"
+                ),
+                "active_admin_module": (
+                    "facilities"
+                ),
+            }
+        )
 
-    def form_valid(self, form):
-        facility = form.save(commit=False)
-        facility.updated_by = self.request.user
+        return context
+
+    def form_valid(
+        self,
+        form,
+    ):
+        facility = form.save(
+            commit=False,
+        )
+
+        facility.updated_by = (
+            self.request.user
+        )
+
         facility.save()
 
         self.object = facility
 
         if is_htmx(self.request):
-            response = HttpResponse(status=204)
-            response["HX-Trigger"] = "facilityUpdated"
+            response = HttpResponse(
+                status=204,
+            )
+
+            response["HX-Trigger"] = (
+                "facilityUpdated"
+            )
+
+            response["HX-Redirect"] = reverse(
+                "facilities:detail",
+                kwargs={
+                    "facility_id": (
+                        facility.pk
+                    ),
+                },
+            )
+
             return response
 
         return redirect(
@@ -235,33 +409,67 @@ class FacilityUpdateView(LoginRequiredMixin, UpdateView):
             facility_id=facility.pk,
         )
 
+class FacilityDeleteView(
+    LoginRequiredMixin,
+    DeleteView,
+):
+    """
+    Delete a facility after confirmation.
+    """
 
-class FacilityDeleteView(LoginRequiredMixin, DeleteView):
     model = Facility
     pk_url_kwarg = "facility_id"
     template_name = (
-        "facilities/facility_confirm_delete.html"
+        "facilities/confirm_delete.html"
     )
-    success_url = reverse_lazy("facilities:list")
+    success_url = reverse_lazy(
+        "facilities:list",
+    )
 
-    def get_template_names(self):
+    def get_context_data(
+        self,
+        **kwargs,
+    ):
+        context = super().get_context_data(
+            **kwargs,
+        )
+
+        context.update(
+            {
+                "active_primary_nav": (
+                    "administration"
+                ),
+                "active_admin_module": (
+                    "facilities"
+                ),
+            }
+        )
+
+        return context
+
+    def form_valid(
+        self,
+        form,
+    ):
+        response = super().form_valid(
+            form,
+        )
+
         if is_htmx(self.request):
-            return [
-                "facilities/partials/"
-                "facility_confirm_delete.html"
-            ]
-
-        return [self.template_name]
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-
-        if is_htmx(self.request):
-            htmx_response = HttpResponse(status=204)
-            htmx_response["HX-Trigger"] = "facilityDeleted"
-            htmx_response["HX-Redirect"] = reverse(
-                "facilities:list"
+            htmx_response = HttpResponse(
+                status=204,
             )
+
+            htmx_response["HX-Trigger"] = (
+                "facilityDeleted"
+            )
+
+            htmx_response["HX-Redirect"] = (
+                reverse(
+                    "facilities:list",
+                )
+            )
+
             return htmx_response
 
         return response
