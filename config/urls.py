@@ -53,13 +53,18 @@ urlpatterns = [
         ),
 
     path(
-        "analytics/", include("apps.analytics.urls")
+        "analytics/", include("apps.analytics.urls"),
     ),
-      path(
+    path(
 
         "vitals/",
 
-        include("apps.vitals.urls"),)
+            include("apps.vitals.urls"),),
+
+    path(
+    "clinical-notes/",
+    include("apps.clinical_notes.urls"),
+    ),
 
     
 ]

@@ -1,0 +1,571 @@
+{% comment %}
+============================================================
+CLINICAL NOTES LIST PARTIAL
+
+File:
+apps/clinical_notes/templates/clinical_notes/partials/note_list.html
+
+Purpose:
+- Display longitudinal clinical notes for the selected patient.
+- Preserve active encounter context.
+- Provide a visible New Note action in the workspace header.
+- Provide a secondary New Note action in the empty state.
+- Support filtering and HTMX navigation.
+============================================================
+{% endcomment %}
+
+
+<section class="flex h-full min-h-0 flex-col bg-white">
+
+    <!-- =====================================================
+         WORKSPACE HEADER
+    ====================================================== -->
+
+    <header
+        class="
+            flex shrink-0 flex-col gap-3
+            border-b border-slate-200
+            bg-white px-4 py-3
+            sm:flex-row
+            sm:items-center
+            sm:justify-between
+        "
+    >
+
+        <!-- =============================================
+             TITLE / DESCRIPTION
+        ============================================== -->
+
+        <div class="min-w-0">
+
+            <div class="flex flex-wrap items-center gap-2">
+
+                <h1 class="text-base font-semibold text-slate-900">
+                    Clinical Notes
+                </h1>
+
+                {% if page_obj %}
+                    <span
+                        class="
+                            rounded-full bg-slate-100
+                            px-2 py-0.5
+                            text-[10px] font-semibold
+                            text-slate-600
+                        "
+                    >
+                        {{ page_obj.paginator.count }}
+                    </span>
+                {% endif %}
+
+            </div>
+
+
+            <p class="mt-0.5 text-xs text-slate-500">
+                Clinical documentation and patient note history.
+            </p>
+
+        </div>
+
+
+        <!-- =============================================
+             PRIMARY ACTION
+        ============================================== -->
+
+        {% if selected_patient %}
+
+            {% if active_encounter %}
+
+                <a
+                    href="{% url 'clinical_notes:create' selected_patient.pk %}?encounter={{ active_encounter.pk }}"
+                    hx-get="{% url 'clinical_notes:create' selected_patient.pk %}?encounter={{ active_encounter.pk }}"
+                    hx-target="#clinical-notes-workspace"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                    class="
+                        inline-flex h-9 shrink-0
+                        items-center justify-center gap-2
+                        rounded-lg border
+                        border-emerald-800
+                        bg-emerald-700
+                        px-3.5
+                        text-xs font-semibold
+                        text-white
+                        shadow-sm
+                        transition
+                        hover:bg-emerald-800
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-emerald-500
+                        focus:ring-offset-1
+                    "
+                    style="
+                        background-color: #047857;
+                        border-color: #065f46;
+                        color: #ffffff;
+                    "
+                >
+
+                    <svg
+                        class="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 4v16m8-8H4"
+                        />
+                    </svg>
+
+                    New Note
+
+                </a>
+
+            {% else %}
+
+                <a
+                    href="{% url 'clinical_notes:create' selected_patient.pk %}"
+                    hx-get="{% url 'clinical_notes:create' selected_patient.pk %}"
+                    hx-target="#clinical-notes-workspace"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                    class="
+                        inline-flex h-9 shrink-0
+                        items-center justify-center gap-2
+                        rounded-lg border
+                        border-emerald-800
+                        bg-emerald-700
+                        px-3.5
+                        text-xs font-semibold
+                        text-white
+                        shadow-sm
+                        transition
+                        hover:bg-emerald-800
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-emerald-500
+                        focus:ring-offset-1
+                    "
+                    style="
+                        background-color: #047857;
+                        border-color: #065f46;
+                        color: #ffffff;
+                    "
+                >
+
+                    <svg
+                        class="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 4v16m8-8H4"
+                        />
+                    </svg>
+
+                    New Note
+
+                </a>
+
+            {% endif %}
+
+        {% endif %}
+
+    </header>
+
+
+    <!-- =====================================================
+         PATIENT / ENCOUNTER CONTEXT
+    ====================================================== -->
+
+    <div
+        class="
+            flex shrink-0 flex-wrap
+            items-center gap-x-5 gap-y-1
+            border-b border-slate-200
+            bg-slate-50
+            px-4 py-2
+            text-[11px]
+        "
+    >
+
+        {% if selected_patient %}
+
+            <div>
+                <span class="text-slate-500">
+                    Patient
+                </span>
+
+                <span class="ml-1 font-semibold text-slate-800">
+                    {{ selected_patient.display_name }}
+                </span>
+            </div>
+
+        {% endif %}
+
+
+        {% if active_encounter %}
+
+            <div>
+                <span class="text-slate-500">
+                    Encounter
+                </span>
+
+                <span class="ml-1 font-medium text-slate-800">
+                    {{ active_encounter }}
+                </span>
+            </div>
+
+
+            {% if active_encounter.status %}
+
+                <div>
+                    <span class="text-slate-500">
+                        Status
+                    </span>
+
+                    <span class="ml-1 font-medium text-slate-800">
+                        {{ active_encounter.get_status_display }}
+                    </span>
+                </div>
+
+            {% endif %}
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- =====================================================
+         FILTER BAR
+    ====================================================== -->
+
+    <div
+        class="
+            shrink-0
+            border-b border-slate-200
+            bg-white
+            px-4 py-2.5
+        "
+    >
+
+        <form
+            method="get"
+            action="{{ request.path }}"
+            hx-get="{{ request.path }}"
+            hx-target="#clinical-notes-workspace"
+            hx-swap="innerHTML"
+            hx-push-url="true"
+            hx-trigger="change"
+            class="flex flex-wrap items-center gap-2"
+        >
+
+            {% if active_encounter %}
+                <input
+                    type="hidden"
+                    name="encounter"
+                    value="{{ active_encounter.pk }}"
+                >
+            {% endif %}
+
+
+            <select
+                name="note_type"
+                class="
+                    h-8 min-w-[160px]
+                    rounded-md
+                    border border-slate-300
+                    bg-white
+                    px-2
+                    text-xs text-slate-700
+                    outline-none
+                    focus:border-emerald-500
+                    focus:ring-1
+                    focus:ring-emerald-500
+                "
+            >
+
+                <option value="">
+                    All note types
+                </option>
+
+                {% for value, label in note_type_choices %}
+                    <option
+                        value="{{ value }}"
+                        {% if request.GET.note_type == value %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ label }}
+                    </option>
+                {% endfor %}
+
+            </select>
+
+
+            <select
+                name="status"
+                class="
+                    h-8 min-w-[130px]
+                    rounded-md
+                    border border-slate-300
+                    bg-white
+                    px-2
+                    text-xs text-slate-700
+                    outline-none
+                    focus:border-emerald-500
+                    focus:ring-1
+                    focus:ring-emerald-500
+                "
+            >
+
+                <option value="">
+                    All statuses
+                </option>
+
+                {% for value, label in status_choices %}
+                    <option
+                        value="{{ value }}"
+                        {% if request.GET.status == value %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ label }}
+                    </option>
+                {% endfor %}
+
+            </select>
+
+        </form>
+
+    </div>
+
+
+    <!-- =====================================================
+         NOTE HISTORY
+    ====================================================== -->
+
+    <div class="min-h-0 flex-1 overflow-y-auto">
+
+        {% if notes %}
+
+            <div class="divide-y divide-slate-100">
+
+                {% for note in notes %}
+                    {% include "clinical_notes/partials/note_row.html" %}
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div
+                class="
+                    flex min-h-[320px]
+                    items-center justify-center
+                    px-6 py-10
+                "
+            >
+
+                <div class="max-w-sm text-center">
+
+                    <div
+                        class="
+                            mx-auto
+                            flex h-11 w-11
+                            items-center justify-center
+                            rounded-full
+                            border border-slate-200
+                            bg-slate-50
+                            text-slate-400
+                        "
+                    >
+                        <svg
+                            class="h-5 w-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.5"
+                                d="M9 12h6m-6 4h6M7 4h7l3 3v13H7V4z"
+                            />
+                        </svg>
+                    </div>
+
+
+                    <h2 class="mt-3 text-sm font-semibold text-slate-800">
+                        No clinical notes
+                    </h2>
+
+
+                    <p class="mt-1 text-xs leading-5 text-slate-500">
+                        No clinical documentation has been entered
+                        for this patient.
+                    </p>
+
+
+                    {% if selected_patient %}
+
+                        <div class="mt-4 flex justify-center">
+
+                            {% if active_encounter %}
+
+                                <a
+                                    href="{% url 'clinical_notes:create' selected_patient.pk %}?encounter={{ active_encounter.pk }}"
+                                    hx-get="{% url 'clinical_notes:create' selected_patient.pk %}?encounter={{ active_encounter.pk }}"
+                                    hx-target="#clinical-notes-workspace"
+                                    hx-swap="innerHTML"
+                                    hx-push-url="true"
+                                    class="
+                                        inline-flex h-9
+                                        items-center justify-center gap-2
+                                        rounded-lg border
+                                        border-emerald-800
+                                        bg-emerald-700
+                                        px-3.5
+                                        text-xs font-semibold
+                                        text-white
+                                        shadow-sm
+                                        transition
+                                        hover:bg-emerald-800
+                                    "
+                                    style="
+                                        background-color: #047857;
+                                        border-color: #065f46;
+                                        color: #ffffff;
+                                    "
+                                >
+                                    <span class="text-sm leading-none">
+                                        +
+                                    </span>
+
+                                    Create First Note
+                                </a>
+
+                            {% else %}
+
+                                <a
+                                    href="{% url 'clinical_notes:create' selected_patient.pk %}"
+                                    hx-get="{% url 'clinical_notes:create' selected_patient.pk %}"
+                                    hx-target="#clinical-notes-workspace"
+                                    hx-swap="innerHTML"
+                                    hx-push-url="true"
+                                    class="
+                                        inline-flex h-9
+                                        items-center justify-center gap-2
+                                        rounded-lg border
+                                        border-emerald-800
+                                        bg-emerald-700
+                                        px-3.5
+                                        text-xs font-semibold
+                                        text-white
+                                        shadow-sm
+                                        transition
+                                        hover:bg-emerald-800
+                                    "
+                                    style="
+                                        background-color: #047857;
+                                        border-color: #065f46;
+                                        color: #ffffff;
+                                    "
+                                >
+                                    <span class="text-sm leading-none">
+                                        +
+                                    </span>
+
+                                    Create First Note
+                                </a>
+
+                            {% endif %}
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- =====================================================
+         PAGINATION
+    ====================================================== -->
+
+    {% if page_obj.has_other_pages %}
+
+        <footer
+            class="
+                flex shrink-0
+                items-center justify-between
+                border-t border-slate-200
+                bg-white
+                px-4 py-2
+                text-xs text-slate-500
+            "
+        >
+
+            <div>
+                Page {{ page_obj.number }}
+                of {{ page_obj.paginator.num_pages }}
+            </div>
+
+
+            <div class="flex items-center gap-1">
+
+                {% if page_obj.has_previous %}
+
+                    <a
+                        href="?page={{ page_obj.previous_page_number }}{% if active_encounter %}&encounter={{ active_encounter.pk }}{% endif %}"
+                        class="
+                            rounded-md
+                            border border-slate-300
+                            bg-white px-2 py-1
+                            text-slate-700
+                            hover:bg-slate-50
+                        "
+                    >
+                        Previous
+                    </a>
+
+                {% endif %}
+
+
+                {% if page_obj.has_next %}
+
+                    <a
+                        href="?page={{ page_obj.next_page_number }}{% if active_encounter %}&encounter={{ active_encounter.pk }}{% endif %}"
+                        class="
+                            rounded-md
+                            border border-slate-300
+                            bg-white px-2 py-1
+                            text-slate-700
+                            hover:bg-slate-50
+                        "
+                    >
+                        Next
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        </footer>
+
+    {% endif %}
+
+</section>

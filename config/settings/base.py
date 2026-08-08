@@ -51,6 +51,7 @@ LOCAL_APPS = [
     "apps.notifications",
     "apps.pharmacy",
     'apps.administration',
+    "apps.clinical_notes",
 ]
 
 

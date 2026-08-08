@@ -1,0 +1,1789 @@
+{% comment %}
+
+============================================================
+
+DYNAMIC CLINICAL NOTE FORM FIELDS
+
+File:
+
+apps/clinical_notes/templates/clinical_notes/partials/note_form_fields.html
+
+Purpose:
+
+- Make the clinical form actually change with Note Type.
+
+- Bind directly to the Django Note Type select.
+
+- Keep Note Type visible as the first field.
+
+- Use different documentation structures by note category.
+
+- Keep short fields compact.
+
+- Avoid duplicate Django form fields.
+
+- Keep narrative documentation in compact columns.
+
+Important:
+
+- Each Django field is rendered only once.
+
+- Alpine controls visibility, labels, help text, and layout.
+
+============================================================
+
+{% endcomment %}
+
+<div
+
+    x-data="{
+
+        noteType: '',
+
+        init() {
+
+            this.$nextTick(() => {
+
+                const field = document.getElementById(
+
+                    '{{ form.note_type.id_for_label }}'
+
+                );
+
+                if (!field) {
+
+                    console.error('Clinical note type field was not found.');
+
+                    return;
+
+                }
+
+                this.noteType = field.value || 'progress';
+
+                field.addEventListener('change', (event) => {
+
+                    this.noteType = event.target.value;
+
+                    console.log(
+
+                        'Clinical note type changed:',
+
+                        this.noteType
+
+                    );
+
+                });
+
+            });
+
+        },
+
+        isGeneral() {
+
+            return this.noteType === 'general';
+
+        },
+
+        isTelephone() {
+
+            return this.noteType === 'telephone';
+
+        },
+
+        isProcedure() {
+
+            return this.noteType === 'procedure';
+
+        },
+
+        isDischarge() {
+
+            return this.noteType === 'discharge';
+
+        },
+
+        isNursing() {
+
+            return this.noteType === 'nursing';
+
+        },
+
+        isAdmission() {
+
+            return this.noteType === 'admission';
+
+        },
+
+        isConsultation() {
+
+            return this.noteType === 'consultation';
+
+        },
+
+        isCaseManagement() {
+
+            return [
+
+                'case_management',
+
+                'care_coordination'
+
+            ].includes(this.noteType);
+
+        },
+
+        isSoapFamily() {
+
+            return [
+
+                'progress',
+
+                'soap',
+
+                'physician',
+
+                'np',
+
+                'follow_up'
+
+            ].includes(this.noteType);
+
+        },
+
+        showSubjective() {
+
+            return !this.isGeneral();
+
+        },
+
+        showObjective() {
+
+            return ![
+
+                'general',
+
+                'telephone'
+
+            ].includes(this.noteType);
+
+        },
+
+        showAssessment() {
+
+            return !this.isGeneral();
+
+        },
+
+        showPlan() {
+
+            return !this.isGeneral();
+
+        },
+
+        noteTypeName() {
+
+            const labels = {
+
+                progress: 'Progress Note',
+
+                soap: 'SOAP Note',
+
+                physician: 'Physician Note',
+
+                np: 'Nurse Practitioner Note',
+
+                nursing: 'Nursing Note',
+
+                admission: 'Admission Note',
+
+                consultation: 'Consultation Note',
+
+                procedure: 'Procedure Note',
+
+                discharge: 'Discharge Note',
+
+                case_management: 'Case Management Note',
+
+                care_coordination: 'Care Coordination Note',
+
+                telephone: 'Telephone Note',
+
+                follow_up: 'Follow-up Note',
+
+                general: 'General Clinical Note'
+
+            };
+
+            return labels[this.noteType] || 'Clinical Note';
+
+        },
+
+        noteDescription() {
+
+            const labels = {
+
+                progress:
+
+                    'Document current patient status, findings, assessment, and plan.',
+
+                soap:
+
+                    'Structured Subjective, Objective, Assessment, and Plan documentation.',
+
+                physician:
+
+                    'Physician history, examination, clinical assessment, and treatment plan.',
+
+                np:
+
+                    'Nurse practitioner evaluation, assessment, and management plan.',
+
+                nursing:
+
+                    'Document patient status, nursing assessment, response, and interventions.',
+
+                admission:
+
+                    'Document presenting history, admission findings, assessment, and initial plan.',
+
+                consultation:
+
+                    'Document consultation history, findings, clinical impression, and recommendations.',
+
+                procedure:
+
+                    'Document pre-procedure status, procedure findings, outcome, and post-procedure plan.',
+
+                discharge:
+
+                    'Document hospital course, discharge condition, assessment, and follow-up.',
+
+                case_management:
+
+                    'Document patient needs, barriers, resources, interventions, and follow-up.',
+
+                care_coordination:
+
+                    'Document care needs, available services, coordination issues, and next steps.',
+
+                telephone:
+
+                    'Document reason for call, triage assessment, advice, and follow-up.',
+
+                follow_up:
+
+                    'Document interval changes, current findings, assessment, and ongoing plan.',
+
+                general:
+
+                    'Enter flexible narrative clinical documentation.'
+
+            };
+
+            return labels[this.noteType] || '';
+
+        },
+
+        subjectiveTitle() {
+
+            const labels = {
+
+                progress: 'Subjective',
+
+                soap: 'Subjective',
+
+                physician: 'History / Subjective',
+
+                np: 'History / Subjective',
+
+                nursing:
+
+                    'Patient Status / Concerns',
+
+                admission:
+
+                    'History / HPI',
+
+                consultation:
+
+                    'Consultation History',
+
+                procedure:
+
+                    'Pre-Procedure Assessment',
+
+                discharge:
+
+                    'Hospital Course',
+
+                case_management:
+
+                    'Patient Needs / Concerns',
+
+                care_coordination:
+
+                    'Care Coordination Needs',
+
+                telephone:
+
+                    'Reason for Call',
+
+                follow_up:
+
+                    'Interval History'
+
+            };
+
+            return labels[this.noteType] || 'Subjective';
+
+        },
+
+        subjectiveHelp() {
+
+            const labels = {
+
+                nursing:
+
+                    'Symptoms, concerns, changes, and patient-reported information.',
+
+                admission:
+
+                    'Presenting complaint, history of present illness, and relevant history.',
+
+                consultation:
+
+                    'Reason for consultation and relevant clinical history.',
+
+                procedure:
+
+                    'Indication, preparation, consent, and pre-procedure condition.',
+
+                discharge:
+
+                    'Major events, treatment course, and progress during hospitalization.',
+
+                case_management:
+
+                    'Patient needs, goals, social concerns, and support requirements.',
+
+                care_coordination:
+
+                    'Transitions, referrals, services, and care coordination needs.',
+
+                telephone:
+
+                    'Reason for contact and information reported by patient or caregiver.',
+
+                follow_up:
+
+                    'Changes since the previous encounter or treatment.'
+
+            };
+
+            return labels[this.noteType]
+
+                || 'Symptoms, history, concerns, and patient report.';
+
+        },
+
+        objectiveTitle() {
+
+            const labels = {
+
+                progress: 'Objective',
+
+                soap: 'Objective',
+
+                physician: 'Examination / Findings',
+
+                np: 'Examination / Findings',
+
+                nursing:
+
+                    'Nursing Assessment',
+
+                admission:
+
+                    'Admission Findings',
+
+                consultation:
+
+                    'Clinical Findings',
+
+                procedure:
+
+                    'Procedure / Findings',
+
+                discharge:
+
+                    'Status at Discharge',
+
+                case_management:
+
+                    'Barriers / Resources',
+
+                care_coordination:
+
+                    'Services / Resources',
+
+                follow_up:
+
+                    'Current Findings'
+
+            };
+
+            return labels[this.noteType] || 'Objective';
+
+        },
+
+        objectiveHelp() {
+
+            const labels = {
+
+                nursing:
+
+                    'Focused nursing assessment and observed patient condition.',
+
+                admission:
+
+                    'Initial physical examination, observations, and findings.',
+
+                consultation:
+
+                    'Relevant examination, diagnostic results, and record findings.',
+
+                procedure:
+
+                    'Procedure performed, technique, findings, and observations.',
+
+                discharge:
+
+                    'Clinical and functional condition at discharge.',
+
+                case_management:
+
+                    'Barriers, available support, resources, and social factors.',
+
+                care_coordination:
+
+                    'Services currently involved and available resources.',
+
+                follow_up:
+
+                    'Current examination and objective findings.'
+
+            };
+
+            return labels[this.noteType]
+
+                || 'Examination findings and objective observations.';
+
+        },
+
+        assessmentTitle() {
+
+            const labels = {
+
+                progress: 'Assessment',
+
+                soap: 'Assessment',
+
+                physician: 'Assessment',
+
+                np: 'Assessment',
+
+                nursing:
+
+                    'Nursing Impression / Response',
+
+                admission:
+
+                    'Admission Assessment',
+
+                consultation:
+
+                    'Clinical Impression',
+
+                procedure:
+
+                    'Procedure Outcome',
+
+                discharge:
+
+                    'Discharge Assessment',
+
+                case_management:
+
+                    'Case Management Assessment',
+
+                care_coordination:
+
+                    'Coordination Assessment',
+
+                telephone:
+
+                    'Telephone Triage Assessment',
+
+                follow_up:
+
+                    'Assessment'
+
+            };
+
+            return labels[this.noteType] || 'Assessment';
+
+        },
+
+        assessmentHelp() {
+
+            const labels = {
+
+                nursing:
+
+                    'Patient response, nursing concerns, and clinical impression.',
+
+                admission:
+
+                    'Initial assessment, active problems, and clinical priorities.',
+
+                consultation:
+
+                    'Consultant impression and interpretation.',
+
+                procedure:
+
+                    'Patient tolerance, outcome, complications, and immediate status.',
+
+                discharge:
+
+                    'Condition at discharge and remaining active problems.',
+
+                case_management:
+
+                    'Assessment of needs, barriers, support, and readiness.',
+
+                care_coordination:
+
+                    'Outstanding coordination issues and transition needs.',
+
+                telephone:
+
+                    'Clinical triage impression based on information obtained.',
+
+                follow_up:
+
+                    'Current clinical assessment and treatment response.'
+
+            };
+
+            return labels[this.noteType]
+
+                || 'Clinical impression and interpretation.';
+
+        },
+
+        planTitle() {
+
+            const labels = {
+
+                progress: 'Plan',
+
+                soap: 'Plan',
+
+                physician: 'Treatment Plan',
+
+                np: 'Management Plan',
+
+                nursing:
+
+                    'Nursing Interventions / Plan',
+
+                admission:
+
+                    'Admission Plan',
+
+                consultation:
+
+                    'Recommendations',
+
+                procedure:
+
+                    'Post-Procedure Plan',
+
+                discharge:
+
+                    'Discharge Instructions / Follow-up',
+
+                case_management:
+
+                    'Interventions / Follow-up',
+
+                care_coordination:
+
+                    'Coordination Plan',
+
+                telephone:
+
+                    'Advice / Follow-up',
+
+                follow_up:
+
+                    'Ongoing Plan'
+
+            };
+
+            return labels[this.noteType] || 'Plan';
+
+        },
+
+        planHelp() {
+
+            const labels = {
+
+                nursing:
+
+                    'Interventions, monitoring, education, and follow-up.',
+
+                admission:
+
+                    'Treatment, orders, monitoring, investigations, and admission plan.',
+
+                consultation:
+
+                    'Recommendations, treatment suggestions, and follow-up.',
+
+                procedure:
+
+                    'Monitoring, instructions, restrictions, and post-procedure care.',
+
+                discharge:
+
+                    'Medications, instructions, appointments, and return precautions.',
+
+                case_management:
+
+                    'Actions, referrals, resources, and follow-up activities.',
+
+                care_coordination:
+
+                    'Referrals, communications, services, and next steps.',
+
+                telephone:
+
+                    'Advice provided, escalation instructions, and follow-up.',
+
+                follow_up:
+
+                    'Continued treatment and next follow-up.'
+
+            };
+
+            return labels[this.noteType]
+
+                || 'Treatment, education, referrals, and follow-up.';
+
+        }
+
+    }"
+
+    class="
+
+        mx-auto
+
+        w-full max-w-[900px]
+
+        space-y-3
+
+    "
+
+>
+
+    <!-- =====================================================
+
+         NOTE INFORMATION
+
+    ====================================================== -->
+
+    <section
+
+        class="
+
+            overflow-hidden
+
+            rounded-lg
+
+            border border-slate-200
+
+            bg-white
+
+            shadow-sm
+
+        "
+
+    >
+
+        <header
+
+            class="
+
+                flex items-center justify-between
+
+                border-b border-slate-200
+
+                bg-slate-50
+
+                px-3 py-1.5
+
+            "
+
+        >
+
+            <h2
+
+                class="
+
+                    text-[9px] font-bold
+
+                    uppercase tracking-wide
+
+                    text-slate-600
+
+                "
+
+            >
+
+                Note Information
+
+            </h2>
+
+            <span
+
+                class="
+
+                    rounded-full
+
+                    border border-emerald-200
+
+                    bg-emerald-50
+
+                    px-2 py-0.5
+
+                    text-[8px] font-bold
+
+                    text-emerald-800
+
+                "
+
+                x-text="noteTypeName()"
+
+            ></span>
+
+        </header>
+
+        <div class="space-y-3 p-3">
+
+            <!-- =================================================
+
+                 SHORT FIELDS
+
+            ================================================== -->
+
+            <div
+
+                class="
+
+                    grid grid-cols-1
+
+                    gap-x-3 gap-y-2
+
+                    md:grid-cols-12
+
+                "
+
+            >
+
+                <!-- =============================================
+
+                     NOTE TYPE
+
+                ============================================== -->
+
+                <div class="md:col-span-3">
+
+                    <label
+
+                        for="{{ form.note_type.id_for_label }}"
+
+                        class="
+
+                            mb-1 block
+
+                            text-[9px] font-semibold
+
+                            text-slate-600
+
+                        "
+
+                    >
+
+                        Note Type
+
+                    </label>
+
+                    <div class="max-w-[220px]">
+
+                        {{ form.note_type }}
+
+                    </div>
+
+                    {% for error in form.note_type.errors %}
+
+                        <p class="mt-1 text-[9px] text-red-600">
+
+                            {{ error }}
+
+                        </p>
+
+                    {% endfor %}
+
+                </div>
+
+                <!-- =============================================
+
+                     ENCOUNTER
+
+                ============================================== -->
+
+                <div class="md:col-span-4">
+
+                    <label
+
+                        for="{{ form.encounter.id_for_label }}"
+
+                        class="
+
+                            mb-1 block
+
+                            text-[9px] font-semibold
+
+                            text-slate-600
+
+                        "
+
+                    >
+
+                        Encounter
+
+                    </label>
+
+                    <div class="max-w-[270px]">
+
+                        {{ form.encounter }}
+
+                    </div>
+
+                    {% for error in form.encounter.errors %}
+
+                        <p class="mt-1 text-[9px] text-red-600">
+
+                            {{ error }}
+
+                        </p>
+
+                    {% endfor %}
+
+                </div>
+
+                <!-- =============================================
+
+                     TITLE
+
+                ============================================== -->
+
+                <div class="md:col-span-5">
+
+                    <label
+
+                        for="{{ form.title.id_for_label }}"
+
+                        class="
+
+                            mb-1 block
+
+                            text-[9px] font-semibold
+
+                            text-slate-600
+
+                        "
+
+                    >
+
+                        Note Title
+
+                        <span class="font-normal text-slate-400">
+
+                            optional
+
+                        </span>
+
+                    </label>
+
+                    <div class="max-w-[310px]">
+
+                        {{ form.title }}
+
+                    </div>
+
+                    {% for error in form.title.errors %}
+
+                        <p class="mt-1 text-[9px] text-red-600">
+
+                            {{ error }}
+
+                        </p>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+            <!-- =================================================
+
+                 CHIEF COMPLAINT
+
+            ================================================== -->
+
+            <div class="max-w-xl">
+
+                <label
+
+                    for="{{ form.chief_complaint.id_for_label }}"
+
+                    class="
+
+                        mb-1 flex items-center gap-1
+
+                        text-[10px] font-bold
+
+                        text-slate-700
+
+                    "
+
+                >
+
+                    Chief Complaint
+
+                    <span class="text-red-500">
+
+                        *
+
+                    </span>
+
+                </label>
+
+                {{ form.chief_complaint }}
+
+                {% for error in form.chief_complaint.errors %}
+
+                    <p class="mt-1 text-[9px] text-red-600">
+
+                        {{ error }}
+
+                    </p>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- =====================================================
+
+         ACTIVE NOTE TYPE INFORMATION
+
+         This visibly confirms Alpine detected the selection.
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            rounded-lg
+
+            border border-emerald-200
+
+            bg-emerald-50
+
+            px-3 py-2
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                text-[10px] font-bold
+
+                text-emerald-900
+
+            "
+
+            x-text="noteTypeName()"
+
+        ></div>
+
+        <div
+
+            class="
+
+                mt-0.5
+
+                text-[9px]
+
+                text-emerald-700
+
+            "
+
+            x-text="noteDescription()"
+
+        ></div>
+
+    </div>
+
+    <!-- =====================================================
+
+         GENERAL CLINICAL NOTE
+
+         General removes all structured SOAP fields.
+
+    ====================================================== -->
+
+    <section
+
+        x-cloak
+
+        x-show="isGeneral()"
+
+        class="
+
+            overflow-hidden
+
+            rounded-lg
+
+            border border-indigo-200
+
+            bg-white
+
+        "
+
+    >
+
+        <header
+
+            class="
+
+                border-b border-indigo-200
+
+                bg-indigo-50
+
+                px-3 py-2
+
+            "
+
+        >
+
+            <h2
+
+                class="
+
+                    text-[10px] font-bold
+
+                    text-indigo-900
+
+                "
+
+            >
+
+                General Clinical Documentation
+
+            </h2>
+
+            <p class="mt-0.5 text-[8px] text-indigo-600">
+
+                Flexible narrative clinical documentation.
+
+            </p>
+
+        </header>
+
+        <div class="p-2.5">
+
+            {{ form.content }}
+
+            {% for error in form.content.errors %}
+
+                <p class="mt-1 text-[9px] text-red-600">
+
+                    {{ error }}
+
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+    <!-- =====================================================
+
+         STRUCTURED NOTE
+
+         Hidden entirely for General Note.
+
+    ====================================================== -->
+
+    <div
+
+        x-cloak
+
+        x-show="!isGeneral()"
+
+        class="
+
+            grid grid-cols-1
+
+            gap-3
+
+            lg:grid-cols-2
+
+        "
+
+    >
+
+        <!-- =================================================
+
+             SECTION 1
+
+        ================================================== -->
+
+        <section
+
+            x-show="showSubjective()"
+
+            class="
+
+                overflow-hidden
+
+                rounded-lg
+
+                border border-sky-200
+
+                bg-white
+
+            "
+
+        >
+
+            <header
+
+                class="
+
+                    flex items-center gap-2
+
+                    border-b border-sky-200
+
+                    bg-sky-50
+
+                    px-2.5 py-1.5
+
+                "
+
+            >
+
+                <span
+
+                    class="
+
+                        flex h-5 w-5
+
+                        shrink-0
+
+                        items-center justify-center
+
+                        rounded
+
+                        text-[8px] font-bold
+
+                        text-white
+
+                    "
+
+                    style="
+
+                        background-color: #0284c7;
+
+                        color: white;
+
+                    "
+
+                >
+
+                    1
+
+                </span>
+
+                <div class="min-w-0">
+
+                    <h2
+
+                        class="
+
+                            text-[10px] font-bold
+
+                            text-sky-900
+
+                        "
+
+                        x-text="subjectiveTitle()"
+
+                    ></h2>
+
+                    <p
+
+                        class="
+
+                            truncate
+
+                            text-[8px]
+
+                            text-sky-600
+
+                        "
+
+                        x-text="subjectiveHelp()"
+
+                    ></p>
+
+                </div>
+
+            </header>
+
+            <div class="p-2">
+
+                {{ form.subjective }}
+
+                {% for error in form.subjective.errors %}
+
+                    <p class="mt-1 text-[9px] text-red-600">
+
+                        {{ error }}
+
+                    </p>
+
+                {% endfor %}
+
+            </div>
+
+        </section>
+
+        <!-- =================================================
+
+             SECTION 2
+
+             Hidden for Telephone Notes
+
+        ================================================== -->
+
+        <section
+
+            x-show="showObjective()"
+
+            class="
+
+                overflow-hidden
+
+                rounded-lg
+
+                border border-violet-200
+
+                bg-white
+
+            "
+
+        >
+
+            <header
+
+                class="
+
+                    flex items-center gap-2
+
+                    border-b border-violet-200
+
+                    bg-violet-50
+
+                    px-2.5 py-1.5
+
+                "
+
+            >
+
+                <span
+
+                    class="
+
+                        flex h-5 w-5
+
+                        shrink-0
+
+                        items-center justify-center
+
+                        rounded
+
+                        text-[8px] font-bold
+
+                        text-white
+
+                    "
+
+                    style="
+
+                        background-color: #7c3aed;
+
+                        color: white;
+
+                    "
+
+                >
+
+                    2
+
+                </span>
+
+                <div class="min-w-0">
+
+                    <h2
+
+                        class="
+
+                            text-[10px] font-bold
+
+                            text-violet-900
+
+                        "
+
+                        x-text="objectiveTitle()"
+
+                    ></h2>
+
+                    <p
+
+                        class="
+
+                            truncate
+
+                            text-[8px]
+
+                            text-violet-600
+
+                        "
+
+                        x-text="objectiveHelp()"
+
+                    ></p>
+
+                </div>
+
+            </header>
+
+            <div class="p-2">
+
+                {{ form.objective }}
+
+                {% for error in form.objective.errors %}
+
+                    <p class="mt-1 text-[9px] text-red-600">
+
+                        {{ error }}
+
+                    </p>
+
+                {% endfor %}
+
+            </div>
+
+        </section>
+
+        <!-- =================================================
+
+             SECTION 3
+
+        ================================================== -->
+
+        <section
+
+            x-show="showAssessment()"
+
+            class="
+
+                overflow-hidden
+
+                rounded-lg
+
+                border border-amber-200
+
+                bg-white
+
+            "
+
+        >
+
+            <header
+
+                class="
+
+                    flex items-center gap-2
+
+                    border-b border-amber-200
+
+                    bg-amber-50
+
+                    px-2.5 py-1.5
+
+                "
+
+            >
+
+                <span
+
+                    class="
+
+                        flex h-5 w-5
+
+                        shrink-0
+
+                        items-center justify-center
+
+                        rounded
+
+                        text-[8px] font-bold
+
+                        text-white
+
+                    "
+
+                    style="
+
+                        background-color: #d97706;
+
+                        color: white;
+
+                    "
+
+                >
+
+                    <span
+
+                        x-text="
+
+                            isTelephone()
+
+                                ? '2'
+
+                                : '3'
+
+                        "
+
+                    ></span>
+
+                </span>
+
+                <div class="min-w-0">
+
+                    <h2
+
+                        class="
+
+                            text-[10px] font-bold
+
+                            text-amber-900
+
+                        "
+
+                        x-text="assessmentTitle()"
+
+                    ></h2>
+
+                    <p
+
+                        class="
+
+                            truncate
+
+                            text-[8px]
+
+                            text-amber-600
+
+                        "
+
+                        x-text="assessmentHelp()"
+
+                    ></p>
+
+                </div>
+
+            </header>
+
+            <div class="p-2">
+
+                {{ form.assessment }}
+
+                {% for error in form.assessment.errors %}
+
+                    <p class="mt-1 text-[9px] text-red-600">
+
+                        {{ error }}
+
+                    </p>
+
+                {% endfor %}
+
+            </div>
+
+        </section>
+
+        <!-- =================================================
+
+             SECTION 4
+
+        ================================================== -->
+
+        <section
+
+            x-show="showPlan()"
+
+            class="
+
+                overflow-hidden
+
+                rounded-lg
+
+                border border-emerald-200
+
+                bg-white
+
+            "
+
+        >
+
+            <header
+
+                class="
+
+                    flex items-center gap-2
+
+                    border-b border-emerald-200
+
+                    bg-emerald-50
+
+                    px-2.5 py-1.5
+
+                "
+
+            >
+
+                <span
+
+                    class="
+
+                        flex h-5 w-5
+
+                        shrink-0
+
+                        items-center justify-center
+
+                        rounded
+
+                        text-[8px] font-bold
+
+                        text-white
+
+                    "
+
+                    style="
+
+                        background-color: #047857;
+
+                        color: white;
+
+                    "
+
+                >
+
+                    <span
+
+                        x-text="
+
+                            isTelephone()
+
+                                ? '3'
+
+                                : '4'
+
+                        "
+
+                    ></span>
+
+                </span>
+
+                <div class="min-w-0">
+
+                    <h2
+
+                        class="
+
+                            text-[10px] font-bold
+
+                            text-emerald-900
+
+                        "
+
+                        x-text="planTitle()"
+
+                    ></h2>
+
+                    <p
+
+                        class="
+
+                            truncate
+
+                            text-[8px]
+
+                            text-emerald-600
+
+                        "
+
+                        x-text="planHelp()"
+
+                    ></p>
+
+                </div>
+
+            </header>
+
+            <div class="p-2">
+
+                {{ form.plan }}
+
+                {% for error in form.plan.errors %}
+
+                    <p class="mt-1 text-[9px] text-red-600">
+
+                        {{ error }}
+
+                    </p>
+
+                {% endfor %}
+
+            </div>
+
+        </section>
+
+    </div>
+
+    <!-- =====================================================
+
+         ADDITIONAL DOCUMENTATION
+
+         This is intentionally separate from General because
+
+         form.content must only appear ONCE in the DOM.
+
+         We cannot render form.content both here and above.
+
+         Therefore this container changes position/presentation
+
+         through Alpine rather than rendering another widget.
+
+    ====================================================== -->
+
+    <section
+
+        x-cloak
+
+        x-show="!isGeneral()"
+
+        class="
+
+            overflow-hidden
+
+            rounded-lg
+
+            border border-slate-200
+
+            bg-white
+
+        "
+
+    >
+
+        <header
+
+            class="
+
+                border-b border-slate-200
+
+                bg-slate-50
+
+                px-2.5 py-1.5
+
+            "
+
+        >
+
+            <h2 class="text-[9px] font-bold text-slate-700">
+
+                Additional Documentation
+
+                <span class="font-normal text-slate-400">
+
+                    — optional
+
+                </span>
+
+            </h2>
+
+        </header>
+
+        <div class="p-2">
+
+            <!--
+
+            IMPORTANT:
+
+            form.content cannot also be rendered here because
+
+            it is already rendered in the General section above.
+
+            See the forms.py recommendation below.
+
+            -->
+
+            <p class="text-[9px] text-slate-400">
+
+                Additional narrative is available for General Clinical Notes.
+
+            </p>
+
+        </div>
+
+    </section>
+
+</div>

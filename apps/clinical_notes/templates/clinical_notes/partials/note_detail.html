@@ -1,0 +1,826 @@
+{% comment %}
+============================================================
+CLINICAL NOTE DETAIL PARTIAL
+
+File:
+apps/clinical_notes/templates/clinical_notes/partials/note_detail.html
+
+Purpose:
+- Display a clinical note in compact medical-record format.
+- Make Chief Complaint the primary note identifier.
+- Group metadata separately from clinical documentation.
+- Keep Edit, Sign and Back actions clearly visible.
+============================================================
+{% endcomment %}
+
+
+<section
+    class="
+        min-h-full w-full
+        bg-slate-50
+        px-3 py-4
+        sm:px-4
+    "
+>
+
+    <!-- =====================================================
+         NOTE DOCUMENT
+    ====================================================== -->
+
+    <article
+        class="
+            mx-auto w-full max-w-5xl
+            overflow-hidden
+            rounded-xl
+            border border-slate-200
+            bg-white
+            shadow-sm
+        "
+    >
+
+        <!-- =================================================
+             HEADER
+        ================================================== -->
+
+        <header
+            class="
+                border-b border-slate-200
+                bg-white
+                px-4 py-3
+            "
+        >
+
+            <div
+                class="
+                    flex flex-col gap-3
+                    sm:flex-row
+                    sm:items-start
+                    sm:justify-between
+                "
+            >
+
+                <!-- =========================================
+                     NOTE IDENTITY
+                ========================================== -->
+
+                <div class="min-w-0">
+
+                    <div
+                        class="
+                            text-[9px] font-bold
+                            uppercase tracking-[0.08em]
+                            text-slate-400
+                        "
+                    >
+                        Chief Complaint
+                    </div>
+
+
+                    <h1
+                        class="
+                            mt-0.5
+                            text-base font-semibold
+                            text-slate-950
+                        "
+                    >
+                        {{ note.chief_complaint }}
+                    </h1>
+
+
+                    <div
+                        class="
+                            mt-1.5
+                            flex flex-wrap
+                            items-center
+                            gap-x-2 gap-y-1
+                            text-[10px]
+                            text-slate-500
+                        "
+                    >
+
+                        <span class="font-semibold text-slate-700">
+                            {{ note.get_note_type_display }}
+                        </span>
+
+
+                        <span class="text-slate-300">
+                            •
+                        </span>
+
+
+                        <span>
+                            {{ note.created_at|date:"M j, Y" }}
+                            {{ note.created_at|date:"g:i A" }}
+                        </span>
+
+
+                        {% if note.author %}
+
+                            <span class="text-slate-300">
+                                •
+                            </span>
+
+                            <span>
+                                {{ note.author.get_full_name|default:note.author.username }}
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     ACTIONS
+                ========================================== -->
+
+                <div
+                    class="
+                        flex shrink-0
+                        flex-wrap items-center gap-2
+                    "
+                >
+
+                    <!-- STATUS -->
+
+                    <span
+                        class="
+                            inline-flex h-7
+                            items-center
+                            rounded-full
+                            border px-2.5
+                            text-[9px] font-bold
+                            uppercase tracking-wide
+
+                            {% if note.status == 'draft' %}
+                                border-amber-200
+                                bg-amber-50
+                                text-amber-700
+
+                            {% elif note.status == 'signed' %}
+                                border-emerald-200
+                                bg-emerald-50
+                                text-emerald-700
+
+                            {% elif note.status == 'amended' %}
+                                border-blue-200
+                                bg-blue-50
+                                text-blue-700
+
+                            {% elif note.status == 'voided' %}
+                                border-red-200
+                                bg-red-50
+                                text-red-700
+
+                            {% else %}
+                                border-slate-200
+                                bg-slate-50
+                                text-slate-600
+                            {% endif %}
+                        "
+                    >
+                        {{ note.get_status_display }}
+                    </span>
+
+
+                    {% if note.can_edit %}
+
+                        <!-- EDIT -->
+
+                        <a
+                            href="{% url 'clinical_notes:update' note.pk %}"
+                            hx-get="{% url 'clinical_notes:update' note.pk %}"
+                            hx-target="#clinical-notes-workspace"
+                            hx-swap="innerHTML"
+                            hx-push-url="true"
+                            class="
+                                inline-flex h-8
+                                items-center justify-center
+                                rounded-md
+                                border border-slate-300
+                                bg-white
+                                px-3
+                                text-[10px] font-semibold
+                                text-slate-700
+                                shadow-sm
+                                transition
+                                hover:bg-slate-50
+                            "
+                        >
+                            Edit
+                        </a>
+
+
+                        <!-- SIGN -->
+
+                        <form
+                            method="post"
+                            action="{% url 'clinical_notes:sign' note.pk %}"
+                            hx-post="{% url 'clinical_notes:sign' note.pk %}"
+                        >
+
+                            {% csrf_token %}
+
+                            <button
+                                type="submit"
+                                class="
+                                    inline-flex h-8
+                                    items-center justify-center
+                                    gap-1.5
+                                    rounded-md
+                                    border border-emerald-800
+                                    bg-emerald-700
+                                    px-3
+                                    text-[10px] font-semibold
+                                    text-white
+                                    shadow-sm
+                                    transition
+                                    hover:bg-emerald-800
+                                "
+                                style="
+                                    background-color: #047857;
+                                    border-color: #065f46;
+                                    color: #ffffff;
+                                "
+                            >
+                                <svg
+                                    class="h-3.5 w-3.5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M5 13l4 4L19 7"
+                                    />
+                                </svg>
+
+                                Sign Note
+                            </button>
+
+                        </form>
+
+                    {% endif %}
+
+
+                    <!-- BACK -->
+
+                    <a
+                        href="{% url 'clinical_notes:list' note.patient.pk %}{% if note.encounter %}?encounter={{ note.encounter.pk }}{% endif %}"
+                        hx-get="{% url 'clinical_notes:list' note.patient.pk %}{% if note.encounter %}?encounter={{ note.encounter.pk }}{% endif %}"
+                        hx-target="#clinical-notes-workspace"
+                        hx-swap="innerHTML"
+                        hx-push-url="true"
+                        class="
+                            inline-flex h-8
+                            items-center justify-center
+                            rounded-md
+                            border border-slate-300
+                            bg-white
+                            px-3
+                            text-[10px] font-semibold
+                            text-slate-700
+                            shadow-sm
+                            transition
+                            hover:bg-slate-50
+                        "
+                    >
+                        Back
+                    </a>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- =================================================
+             PATIENT / ENCOUNTER METADATA
+        ================================================== -->
+
+        <section
+            class="
+                grid grid-cols-2
+                gap-x-4 gap-y-2
+                border-b border-slate-200
+                bg-slate-50
+                px-4 py-2.5
+                md:grid-cols-4
+            "
+        >
+
+            <!-- PATIENT -->
+
+            <div>
+
+                <div
+                    class="
+                        text-[8px] font-bold
+                        uppercase tracking-wide
+                        text-slate-400
+                    "
+                >
+                    Patient
+                </div>
+
+                <div
+                    class="
+                        mt-0.5 truncate
+                        text-[10px] font-semibold
+                        text-slate-700
+                    "
+                >
+                    {{ note.patient }}
+                </div>
+
+            </div>
+
+
+            <!-- ENCOUNTER -->
+
+            <div>
+
+                <div
+                    class="
+                        text-[8px] font-bold
+                        uppercase tracking-wide
+                        text-slate-400
+                    "
+                >
+                    Encounter
+                </div>
+
+                <div
+                    class="
+                        mt-0.5 truncate
+                        text-[10px] font-medium
+                        text-slate-700
+                    "
+                >
+                    {% if note.encounter %}
+                        {{ note.encounter }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+
+            </div>
+
+
+            <!-- NOTE TYPE -->
+
+            <div>
+
+                <div
+                    class="
+                        text-[8px] font-bold
+                        uppercase tracking-wide
+                        text-slate-400
+                    "
+                >
+                    Note Type
+                </div>
+
+                <div
+                    class="
+                        mt-0.5
+                        text-[10px] font-medium
+                        text-slate-700
+                    "
+                >
+                    {{ note.get_note_type_display }}
+                </div>
+
+            </div>
+
+
+            <!-- AUTHOR -->
+
+            <div>
+
+                <div
+                    class="
+                        text-[8px] font-bold
+                        uppercase tracking-wide
+                        text-slate-400
+                    "
+                >
+                    Author
+                </div>
+
+                <div
+                    class="
+                        mt-0.5 truncate
+                        text-[10px] font-medium
+                        text-slate-700
+                    "
+                >
+                    {{ note.author.get_full_name|default:note.author.username }}
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             VOID WARNING
+        ================================================== -->
+
+        {% if note.status == "voided" %}
+
+            <div class="px-4 pt-3">
+
+                <div
+                    class="
+                        rounded-md
+                        border border-red-200
+                        bg-red-50
+                        px-3 py-2
+                    "
+                >
+
+                    <p class="text-[11px] font-semibold text-red-700">
+                        This clinical note has been voided.
+                    </p>
+
+                    {% if note.void_reason %}
+
+                        <p class="mt-0.5 text-[10px] text-red-600">
+                            {{ note.void_reason }}
+                        </p>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+
+        <!-- =================================================
+             CLINICAL DOCUMENTATION
+        ================================================== -->
+
+        <div class="px-4 py-3">
+
+            <div
+                class="
+                    grid grid-cols-1
+                    gap-3
+                    xl:grid-cols-2
+                "
+            >
+
+                <!-- SUBJECTIVE -->
+
+                {% if note.subjective %}
+
+                    <section
+                        class="
+                            rounded-lg
+                            border border-slate-200
+                            bg-white
+                        "
+                    >
+
+                        <header
+                            class="
+                                flex items-center gap-2
+                                border-b border-slate-200
+                                bg-slate-50
+                                px-3 py-1.5
+                            "
+                        >
+
+                            <span
+                                class="
+                                    flex h-5 w-5
+                                    items-center justify-center
+                                    rounded bg-slate-200
+                                    text-[9px] font-bold
+                                    text-slate-700
+                                "
+                            >
+                                S
+                            </span>
+
+                            <h2
+                                class="
+                                    text-[10px] font-bold
+                                    text-slate-700
+                                "
+                            >
+                                Subjective
+                            </h2>
+
+                        </header>
+
+
+                        <div
+                            class="
+                                whitespace-pre-line
+                                px-3 py-2.5
+                                text-xs leading-5
+                                text-slate-800
+                            "
+                        >{{ note.subjective }}</div>
+
+                    </section>
+
+                {% endif %}
+
+
+                <!-- OBJECTIVE -->
+
+                {% if note.objective %}
+
+                    <section
+                        class="
+                            rounded-lg
+                            border border-slate-200
+                            bg-white
+                        "
+                    >
+
+                        <header
+                            class="
+                                flex items-center gap-2
+                                border-b border-slate-200
+                                bg-slate-50
+                                px-3 py-1.5
+                            "
+                        >
+
+                            <span
+                                class="
+                                    flex h-5 w-5
+                                    items-center justify-center
+                                    rounded bg-slate-200
+                                    text-[9px] font-bold
+                                    text-slate-700
+                                "
+                            >
+                                O
+                            </span>
+
+                            <h2
+                                class="
+                                    text-[10px] font-bold
+                                    text-slate-700
+                                "
+                            >
+                                Objective
+                            </h2>
+
+                        </header>
+
+
+                        <div
+                            class="
+                                whitespace-pre-line
+                                px-3 py-2.5
+                                text-xs leading-5
+                                text-slate-800
+                            "
+                        >{{ note.objective }}</div>
+
+                    </section>
+
+                {% endif %}
+
+
+                <!-- ASSESSMENT -->
+
+                {% if note.assessment %}
+
+                    <section
+                        class="
+                            rounded-lg
+                            border border-slate-200
+                            bg-white
+                        "
+                    >
+
+                        <header
+                            class="
+                                flex items-center gap-2
+                                border-b border-slate-200
+                                bg-slate-50
+                                px-3 py-1.5
+                            "
+                        >
+
+                            <span
+                                class="
+                                    flex h-5 w-5
+                                    items-center justify-center
+                                    rounded bg-slate-200
+                                    text-[9px] font-bold
+                                    text-slate-700
+                                "
+                            >
+                                A
+                            </span>
+
+                            <h2
+                                class="
+                                    text-[10px] font-bold
+                                    text-slate-700
+                                "
+                            >
+                                Assessment
+                            </h2>
+
+                        </header>
+
+
+                        <div
+                            class="
+                                whitespace-pre-line
+                                px-3 py-2.5
+                                text-xs leading-5
+                                text-slate-800
+                            "
+                        >{{ note.assessment }}</div>
+
+                    </section>
+
+                {% endif %}
+
+
+                <!-- PLAN -->
+
+                {% if note.plan %}
+
+                    <section
+                        class="
+                            rounded-lg
+                            border border-slate-200
+                            bg-white
+                        "
+                    >
+
+                        <header
+                            class="
+                                flex items-center gap-2
+                                border-b border-slate-200
+                                bg-slate-50
+                                px-3 py-1.5
+                            "
+                        >
+
+                            <span
+                                class="
+                                    flex h-5 w-5
+                                    items-center justify-center
+                                    rounded bg-slate-200
+                                    text-[9px] font-bold
+                                    text-slate-700
+                                "
+                            >
+                                P
+                            </span>
+
+                            <h2
+                                class="
+                                    text-[10px] font-bold
+                                    text-slate-700
+                                "
+                            >
+                                Plan
+                            </h2>
+
+                        </header>
+
+
+                        <div
+                            class="
+                                whitespace-pre-line
+                                px-3 py-2.5
+                                text-xs leading-5
+                                text-slate-800
+                            "
+                        >{{ note.plan }}</div>
+
+                    </section>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- =================================================
+                 ADDITIONAL DOCUMENTATION
+            ================================================== -->
+
+            {% if note.content %}
+
+                <section
+                    class="
+                        mt-3
+                        rounded-lg
+                        border border-slate-200
+                        bg-white
+                    "
+                >
+
+                    <header
+                        class="
+                            border-b border-slate-200
+                            bg-slate-50
+                            px-3 py-1.5
+                        "
+                    >
+
+                        <h2
+                            class="
+                                text-[10px] font-bold
+                                text-slate-700
+                            "
+                        >
+                            Additional Documentation
+                        </h2>
+
+                    </header>
+
+
+                    <div
+                        class="
+                            whitespace-pre-line
+                            px-3 py-2.5
+                            text-xs leading-5
+                            text-slate-800
+                        "
+                    >{{ note.content }}</div>
+
+                </section>
+
+            {% endif %}
+
+
+            <!-- =================================================
+                 ELECTRONIC SIGNATURE
+            ================================================== -->
+
+            {% if note.signed_at %}
+
+                <footer
+                    class="
+                        mt-3
+                        flex items-center gap-2
+                        rounded-lg
+                        border border-emerald-200
+                        bg-emerald-50
+                        px-3 py-2
+                    "
+                >
+
+                    <span
+                        class="
+                            flex h-6 w-6
+                            shrink-0
+                            items-center justify-center
+                            rounded-full
+                            bg-emerald-100
+                            text-xs font-bold
+                            text-emerald-700
+                        "
+                    >
+                        ✓
+                    </span>
+
+
+                    <div>
+
+                        <p
+                            class="
+                                text-[10px] font-semibold
+                                text-slate-800
+                            "
+                        >
+                            Electronically Signed
+                        </p>
+
+                        <p class="text-[9px] text-slate-500">
+                            {{ note.signed_by.get_full_name|default:note.signed_by.username }}
+                            ·
+                            {{ note.signed_at|date:"M j, Y g:i A" }}
+                        </p>
+
+                    </div>
+
+                </footer>
+
+            {% endif %}
+
+        </div>
+
+    </article>
+
+</section>

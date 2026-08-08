@@ -1,0 +1,31 @@
+{% extends "layouts/app_shell.html" %}
+
+{% comment %}
+============================================================
+CLINICAL NOTES LIST PAGE
+
+File:
+apps/clinical_notes/templates/clinical_notes/note_list.html
+
+Purpose:
+- Display the selected patient's clinical note history.
+- Render the reusable note-list partial inside the main workspace.
+============================================================
+{% endcomment %}
+
+
+{% block title %}
+    Clinical Notes | Liberia EHR
+{% endblock %}
+
+
+{% block workspace %}
+
+<div
+    id="clinical-notes-workspace"
+    class="h-full min-h-0 w-full"
+>
+    {% include "clinical_notes/partials/note_list.html" %}
+</div>
+
+{% endblock %}

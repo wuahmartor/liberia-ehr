@@ -1,0 +1,591 @@
+{% comment %}
+
+============================================================
+
+CLINICAL NOTE ROW
+
+File:
+
+apps/clinical_notes/templates/clinical_notes/partials/note_row.html
+
+Purpose:
+
+- Render one clinical note in the patient note history.
+
+- Use the encounter chief complaint / reason for visit as the
+
+  primary clickable link to the clinical note.
+
+- Display note type, author, date/time, encounter, and status.
+
+- Keep the row compact and clinically readable.
+
+- Support HTMX navigation to note detail.
+
+Display priority:
+
+1. Encounter reason_for_visit as Chief Complaint
+
+2. Note title as fallback
+
+3. Note type as final fallback
+
+============================================================
+
+{% endcomment %}
+
+<article
+
+    class="
+
+        group
+
+        border-b border-slate-100
+
+        bg-white
+
+        px-4 py-3
+
+        transition
+
+        hover:bg-slate-50
+
+    "
+
+>
+
+    <div
+
+        class="
+
+            flex flex-col gap-2
+
+            sm:flex-row
+
+            sm:items-start
+
+            sm:justify-between
+
+        "
+
+    >
+
+        <!-- =================================================
+
+             NOTE CONTENT
+
+        ================================================== -->
+
+        <div class="min-w-0 flex-1">
+
+            <!-- =============================================
+
+                 CHIEF COMPLAINT LABEL
+
+            ============================================== -->
+
+            <div
+
+                class="
+
+                    mb-0.5
+
+                    text-[9px] font-bold
+
+                    uppercase tracking-[0.08em]
+
+                    text-slate-400
+
+                "
+
+            >
+
+             <!-- =====================================================
+                  CHIEF COMPLAINT
+                ====================================================== -->
+
+                <div
+                    class="
+                        mb-0.5
+                        text-[9px] font-bold
+                        uppercase tracking-[0.08em]
+                        text-slate-400
+                    "
+                >
+                    Chief Complaint
+                </div>
+
+
+                <a
+                    href="{% url 'clinical_notes:detail' note.pk %}"
+                    hx-get="{% url 'clinical_notes:detail' note.pk %}"
+                    hx-target="#clinical-notes-workspace"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                    class="
+                        inline-flex max-w-full
+                        items-center gap-1.5
+                        text-sm font-semibold
+                        text-emerald-800
+                        no-underline
+                        transition
+                        hover:text-emerald-950
+                        hover:underline
+                    "
+                >
+                    <span class="truncate">
+                        {{ note.chief_complaint }}
+                    </span>
+
+                    <svg
+                        class="h-3.5 w-3.5 shrink-0 text-emerald-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 5l7 7-7 7"
+                        />
+                    </svg>
+                </a>
+
+            <!-- =============================================
+
+                 NOTE METADATA
+
+            ============================================== -->
+
+            <div
+
+                class="
+
+                    mt-1.5
+
+                    flex flex-wrap
+
+                    items-center
+
+                    gap-x-2 gap-y-1
+
+                    text-[10px]
+
+                    text-slate-500
+
+                "
+
+            >
+
+                <!-- NOTE TYPE -->
+
+                <span class="font-medium text-slate-700">
+
+                    {{ note.get_note_type_display }}
+
+                </span>
+
+                <span
+
+                    class="
+
+                        h-1 w-1
+
+                        rounded-full bg-slate-300
+
+                    "
+
+                    aria-hidden="true"
+
+                ></span>
+
+                <!-- DATE / TIME -->
+
+                <span>
+
+                    {{ note.created_at|date:"M j, Y" }}
+
+                    at
+
+                    {{ note.created_at|date:"g:i A" }}
+
+                </span>
+
+                <!-- AUTHOR -->
+
+                {% if note.author %}
+
+                    <span
+
+                        class="
+
+                            h-1 w-1
+
+                            rounded-full bg-slate-300
+
+                        "
+
+                        aria-hidden="true"
+
+                    ></span>
+
+                    <span>
+
+                        {{ note.author.get_full_name|default:note.author.username }}
+
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+            <!-- =============================================
+
+                 ENCOUNTER INFORMATION
+
+            ============================================== -->
+
+            {% if note.encounter %}
+
+                <div
+
+                    class="
+
+                        mt-1
+
+                        flex flex-wrap
+
+                        items-center gap-x-2 gap-y-1
+
+                        text-[10px]
+
+                        text-slate-400
+
+                    "
+
+                >
+
+                    <span class="font-medium">
+
+                        Encounter:
+
+                    </span>
+
+                    <span>
+
+                        {{ note.encounter }}
+
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+            <!-- =============================================
+
+                 NOTE PREVIEW
+
+                 Assessment is preferred because it is generally
+
+                 the most useful summary of the clinician's
+
+                 interpretation.
+
+            ============================================== -->
+
+            {% if note.assessment %}
+
+                <p
+
+                    class="
+
+                        mt-2
+
+                        max-w-4xl
+
+                        text-[11px]
+
+                        leading-5
+
+                        text-slate-600
+
+                    "
+
+                >
+
+                    <span class="font-semibold text-slate-500">
+
+                        Assessment:
+
+                    </span>
+
+                    {{ note.assessment|truncatechars:180 }}
+
+                </p>
+
+            {% elif note.subjective %}
+
+                <p
+
+                    class="
+
+                        mt-2
+
+                        max-w-4xl
+
+                        text-[11px]
+
+                        leading-5
+
+                        text-slate-600
+
+                    "
+
+                >
+
+                    {{ note.subjective|truncatechars:180 }}
+
+                </p>
+
+            {% elif note.content %}
+
+                <p
+
+                    class="
+
+                        mt-2
+
+                        max-w-4xl
+
+                        text-[11px]
+
+                        leading-5
+
+                        text-slate-600
+
+                    "
+
+                >
+
+                    {{ note.content|truncatechars:180 }}
+
+                </p>
+
+            {% endif %}
+
+        </div>
+
+        <!-- =================================================
+
+             STATUS / ACTIONS
+
+        ================================================== -->
+
+        <div
+
+            class="
+
+                flex shrink-0
+
+                items-center gap-2
+
+                sm:justify-end
+
+            "
+
+        >
+
+            <!-- =============================================
+
+                 NOTE STATUS
+
+            ============================================== -->
+
+            <span
+
+                class="
+
+                    inline-flex h-6
+
+                    items-center justify-center
+
+                    rounded-full
+
+                    border px-2
+
+                    text-[9px] font-bold
+
+                    uppercase tracking-wide
+
+                    {% if note.status == 'draft' %}
+
+                        border-amber-200
+
+                        bg-amber-50
+
+                        text-amber-700
+
+                    {% elif note.status == 'signed' %}
+
+                        border-emerald-200
+
+                        bg-emerald-50
+
+                        text-emerald-700
+
+                    {% elif note.status == 'amended' %}
+
+                        border-blue-200
+
+                        bg-blue-50
+
+                        text-blue-700
+
+                    {% elif note.status == 'voided' %}
+
+                        border-red-200
+
+                        bg-red-50
+
+                        text-red-700
+
+                    {% else %}
+
+                        border-slate-200
+
+                        bg-slate-50
+
+                        text-slate-600
+
+                    {% endif %}
+
+                "
+
+            >
+
+                {{ note.get_status_display }}
+
+            </span>
+
+            <!-- =============================================
+
+                 VIEW NOTE
+
+            ============================================== -->
+
+            <a
+
+                href="{% url 'clinical_notes:detail' note.pk %}"
+
+                hx-get="{% url 'clinical_notes:detail' note.pk %}"
+
+                hx-target="#clinical-notes-workspace"
+
+                hx-swap="innerHTML"
+
+                hx-push-url="true"
+
+                class="
+
+                    inline-flex h-7
+
+                    items-center justify-center
+
+                    rounded-md
+
+                    border border-slate-300
+
+                    bg-white
+
+                    px-2.5
+
+                    text-[10px] font-semibold
+
+                    text-slate-700
+
+                    no-underline
+
+                    shadow-sm
+
+                    transition
+
+                    hover:border-emerald-300
+
+                    hover:bg-emerald-50
+
+                    hover:text-emerald-800
+
+                "
+
+            >
+
+                View
+
+            </a>
+
+            <!-- =============================================
+
+                 EDIT DRAFT
+
+            ============================================== -->
+
+            {% if note.can_edit %}
+
+                <a
+
+                    href="{% url 'clinical_notes:update' note.pk %}"
+
+                    hx-get="{% url 'clinical_notes:update' note.pk %}"
+
+                    hx-target="#clinical-notes-workspace"
+
+                    hx-swap="innerHTML"
+
+                    hx-push-url="true"
+
+                    class="
+
+                        inline-flex h-7
+
+                        items-center justify-center
+
+                        rounded-md
+
+                        border border-slate-300
+
+                        bg-white
+
+                        px-2.5
+
+                        text-[10px] font-semibold
+
+                        text-slate-700
+
+                        no-underline
+
+                        shadow-sm
+
+                        transition
+
+                        hover:border-emerald-300
+
+                        hover:bg-emerald-50
+
+                        hover:text-emerald-800
+
+                    "
+
+                >
+
+                    Edit
+
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</article>

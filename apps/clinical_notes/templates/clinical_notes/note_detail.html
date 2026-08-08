@@ -1,0 +1,31 @@
+{% extends "layouts/app_shell.html" %}
+
+{% comment %}
+============================================================
+CLINICAL NOTE DETAIL PAGE
+
+File:
+apps/clinical_notes/templates/clinical_notes/note_detail.html
+
+Purpose:
+- Display a single clinical note.
+- Render the reusable detail partial inside the workspace.
+============================================================
+{% endcomment %}
+
+
+{% block title %}
+    Clinical Note | Liberia EHR
+{% endblock %}
+
+
+{% block workspace %}
+
+<div
+    id="clinical-notes-workspace"
+    class="h-full min-h-0 w-full"
+>
+    {% include "clinical_notes/partials/note_detail.html" %}
+</div>
+
+{% endblock %}

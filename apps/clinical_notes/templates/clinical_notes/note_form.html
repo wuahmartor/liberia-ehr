@@ -1,0 +1,31 @@
+{% extends "layouts/app_shell.html" %}
+
+{% comment %}
+============================================================
+CLINICAL NOTE FORM PAGE
+
+File:
+apps/clinical_notes/templates/clinical_notes/note_form.html
+
+Purpose:
+- Display the clinical note create/update form.
+- Render the reusable note form partial inside the workspace.
+============================================================
+{% endcomment %}
+
+
+{% block title %}
+    {{ page_title|default:"Clinical Note" }} | Liberia EHR
+{% endblock %}
+
+
+{% block workspace %}
+
+<div
+    id="clinical-notes-workspace"
+    class="h-full min-h-0 w-full"
+>
+    {% include "clinical_notes/partials/note_form.html" %}
+</div>
+
+{% endblock %}
