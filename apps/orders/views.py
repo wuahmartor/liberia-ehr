@@ -36,10 +36,20 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def order_list(request: HttpRequest) -> HttpResponse:
+    medication_orders = (
+        MedicationOrder.objects.select_related(
+            "patient",
+            "encounter",
+            "medication",
+            "ordered_by",
+        )
+        .order_by("-ordered_at")[:100]
+    )
     return render(
         request,
         "orders/order_list.html",
-        order_context(section="all-orders"),
+        order_context(section="all-orders")
+        | {"medication_orders": medication_orders},
     )
 
 

@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from apps.encounters.models import Encounter
+from apps.orders.models import MedicationOrder
 from apps.patients.models import Patient
 
 from .forms import MedicationAdministrationForm
@@ -36,10 +37,31 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def medication_list(request: HttpRequest) -> HttpResponse:
+    medication_orders = (
+        MedicationOrder.objects.select_related(
+            "patient",
+            "encounter",
+            "medication",
+        )
+        .order_by("-ordered_at")[:50]
+    )
+    administrations = (
+        MedicationAdministration.objects.select_related(
+            "patient",
+            "encounter",
+            "medication",
+            "administered_by",
+        )
+        .order_by("-administered_at")[:50]
+    )
     return render(
         request,
         "medications/medication_list.html",
-        medication_context(section="list"),
+        medication_context(section="list")
+        | {
+            "medication_orders": medication_orders,
+            "administrations": administrations,
+        },
     )
 
 
@@ -57,6 +79,16 @@ def patient_medication_list(
         .order_by("-start_datetime")
         .first()
     )
+    medication_orders = (
+        MedicationOrder.objects.filter(patient=patient)
+        .select_related("encounter", "medication", "ordered_by")
+        .order_by("-ordered_at")
+    )
+    administrations = (
+        MedicationAdministration.objects.filter(patient=patient)
+        .select_related("encounter", "medication", "administered_by")
+        .order_by("-administered_at")
+    )
 
     return render(
         request,
@@ -66,6 +98,10 @@ def patient_medication_list(
             selected_patient=patient,
             active_encounter=active_encounter,
         ),
+        {
+            "medication_orders": medication_orders,
+            "administrations": administrations,
+        },
     )
 
 

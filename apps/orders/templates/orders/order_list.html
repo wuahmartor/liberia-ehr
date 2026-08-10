@@ -1,7 +1,38 @@
 {% extends "layouts/app_shell.html" %}
 
 {% block workspace %}
-<h1 class="text-2xl font-bold">
-    order_list
-</h1>
+<section class="mx-auto max-w-6xl">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <p class="text-sm font-semibold text-emerald-700">Clinical orders</p>
+            <h1 class="mt-1 text-2xl font-bold text-slate-950">Medication Orders</h1>
+            <p class="mt-2 text-sm text-slate-600">Choose a patient with an active encounter to place a new medication order.</p>
+        </div>
+        <a href="{% url 'patients:list' %}" class="rounded-md bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Select Patient</a>
+    </div>
+
+    <section class="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <tr><th class="px-4 py-3">Medication</th><th class="px-4 py-3">Patient</th><th class="px-4 py-3">Directions</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Ordered</th><th class="px-4 py-3"></th></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for medication_order in medication_orders %}
+                        <tr>
+                            <td class="px-4 py-3 font-medium text-slate-900">{{ medication_order.medication.display_name }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ medication_order.patient.display_name }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ medication_order.dose }} · {{ medication_order.route }} · {{ medication_order.frequency }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ medication_order.get_status_display }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ medication_order.ordered_at|date:"M j, Y P" }}</td>
+                            <td class="px-4 py-3">{% if medication_order.encounter.is_open %}<a href="{% url 'orders:medication-order' patient_id=medication_order.patient.pk encounter_id=medication_order.encounter.pk %}" class="font-semibold text-emerald-700 hover:text-emerald-900">Open</a>{% endif %}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No medication orders have been recorded.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
 {% endblock %}
