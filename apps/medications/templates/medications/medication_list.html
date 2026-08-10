@@ -1,7 +1,22 @@
 {% extends "layouts/app_shell.html" %}
 
 {% block workspace %}
-<h1 class="text-2xl font-bold">
-    medication_list
-</h1>
+<section class="mx-auto max-w-5xl">
+    <p class="text-sm font-semibold text-emerald-700">Clinical medications</p>
+    <h1 class="mt-1 text-2xl font-bold text-slate-950">
+        {% if selected_patient %}Medication List{% else %}Medications{% endif %}
+    </h1>
+    {% if selected_patient %}
+        <p class="mt-2 text-sm text-slate-600">{{ selected_patient.display_name }}</p>
+    {% else %}
+        <p class="mt-2 text-sm text-slate-600">Select a patient to review medication history and current therapy.</p>
+    {% endif %}
+
+    <div class="mt-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 class="text-base font-semibold text-slate-900">Medication history</h2>
+        <p class="mt-2 text-sm text-slate-600">
+            Current and historical medication orders will appear here.
+        </p>
+    </div>
+</section>
 {% endblock %}

@@ -329,9 +329,11 @@ Important navigation behavior:
                                  NURSING
                             ================================== -->
                             <a
-                                href="#"
+                                href="{% url 'orders:list' %}"
+                                hx-boost="false"
                                 class="primary-dropdown-link"
                                 role="menuitem"
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
                                     ♡
@@ -346,9 +348,11 @@ Important navigation behavior:
                                  ORDERS
                             ================================== -->
                             <a
-                                href="#"
+                                href="{% url 'medications:list' %}"
+                                hx-boost="false"
                                 class="primary-dropdown-link"
                                 role="menuitem"
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
                                     ☷
@@ -1609,7 +1613,8 @@ Important navigation behavior:
 
                     <!-- Orders -->
                     <a
-                        href="#"
+                        href="{% url 'orders:list' %}"
+                        hx-boost="false"
                         class="mobile-primary-nav-link"
                     >
                         Orders
@@ -1617,7 +1622,8 @@ Important navigation behavior:
 
                     <!-- Medications -->
                     <a
-                        href="#"
+                        href="{% url 'medications:list' %}"
+                        hx-boost="false"
                         class="mobile-primary-nav-link"
                     >
                         Medications

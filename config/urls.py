@@ -66,5 +66,13 @@ urlpatterns = [
     include("apps.clinical_notes.urls"),
     ),
 
-    
+    path(
+        "medications/",
+        include("apps.medications.urls"),
+    ),
+    path(
+        "orders/",
+        include("apps.orders.urls"),
+    ),
+
 ]
