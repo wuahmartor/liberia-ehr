@@ -1,7 +1,723 @@
-{# HTMX list partial for medications #}
+{% comment %}
 
-<div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-    <p class="text-slate-500">
-        No records available.
-    </p>
+============================================================
+
+MEDICATION LIST CONTENT
+
+Expected context:
+
+- medication_orders
+
+- administrations
+
+- selected_patient
+
+- search_query
+
+============================================================
+
+{% endcomment %}
+
+<div
+
+    x-data="{
+
+        tab: 'orders'
+
+    }"
+
+    class="
+
+        flex min-h-0 flex-1
+
+        flex-col
+
+    "
+
+>
+
+    <!-- =====================================================
+
+         TOOLBAR
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            shrink-0
+
+            border-b border-slate-200
+
+            bg-white
+
+            px-4 py-2.5
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex flex-col gap-2
+
+                sm:flex-row
+
+                sm:items-center
+
+                sm:justify-between
+
+            "
+
+        >
+
+            <!-- TABS -->
+
+            <div
+
+                class="
+
+                    inline-flex
+
+                    rounded-md
+
+                    border border-slate-200
+
+                    bg-slate-50
+
+                    p-0.5
+
+                "
+
+            >
+
+                <button
+
+                    type="button"
+
+                    @click="tab = 'orders'"
+
+                    :class="
+
+                        tab === 'orders'
+
+                        ? 'bg-white text-emerald-800 shadow-sm'
+
+                        : 'text-slate-500'
+
+                    "
+
+                    class="
+
+                        rounded px-3 py-1.5
+
+                        text-xs font-medium
+
+                    "
+
+                >
+
+                    Medication Orders
+
+                </button>
+
+                <button
+
+                    type="button"
+
+                    @click="tab = 'administrations'"
+
+                    :class="
+
+                        tab === 'administrations'
+
+                        ? 'bg-white text-emerald-800 shadow-sm'
+
+                        : 'text-slate-500'
+
+                    "
+
+                    class="
+
+                        rounded px-3 py-1.5
+
+                        text-xs font-medium
+
+                    "
+
+                >
+
+                    Administrations
+
+                </button>
+
+            </div>
+
+            <!-- SEARCH -->
+
+            {% if not selected_patient %}
+
+                <form
+
+                    method="get"
+
+                    action="{% url 'medications:list' %}"
+
+                    class="w-full sm:max-w-sm"
+
+                >
+
+                    <input
+
+                        type="search"
+
+                        name="q"
+
+                        value="{{ search_query }}"
+
+                        placeholder="Search medication or MRN..."
+
+                        class="
+
+                            w-full
+
+                            rounded-md
+
+                            border border-slate-300
+
+                            bg-white
+
+                            px-3 py-2
+
+                            text-xs
+
+                            text-slate-900
+
+                            outline-none
+
+                            focus:border-emerald-500
+
+                            focus:ring-2
+
+                            focus:ring-emerald-500/20
+
+                        "
+
+                    >
+
+                </form>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         ORDERS
+
+    ====================================================== -->
+
+    <div
+
+        x-show="tab === 'orders'"
+
+        class="
+
+            min-h-0 flex-1
+
+            overflow-y-auto
+
+            p-4
+
+        "
+
+    >
+
+        <section
+
+            class="
+
+                overflow-hidden
+
+                rounded-lg
+
+                border border-slate-200
+
+                bg-white
+
+            "
+
+        >
+
+            <header
+
+                class="
+
+                    border-b border-slate-200
+
+                    px-4 py-3
+
+                "
+
+            >
+
+                <h2
+
+                    class="
+
+                        text-sm font-semibold
+
+                        text-slate-900
+
+                    "
+
+                >
+
+                    Medication Orders
+
+                </h2>
+
+                <p
+
+                    class="
+
+                        mt-0.5
+
+                        text-xs
+
+                        text-slate-500
+
+                    "
+
+                >
+
+                    Provider-entered medication orders using the pharmacy formulary.
+
+                </p>
+
+            </header>
+
+            <div class="overflow-x-auto">
+
+                <table
+
+                    class="
+
+                        min-w-full
+
+                        text-xs
+
+                    "
+
+                >
+
+                    <thead
+
+                        class="
+
+                            bg-slate-50
+
+                            text-slate-600
+
+                        "
+
+                    >
+
+                        <tr>
+
+                            {% if not selected_patient %}
+
+                                <th class="px-3 py-2 text-left font-semibold">
+
+                                    Patient
+
+                                </th>
+
+                            {% endif %}
+
+                            <th class="px-3 py-2 text-left font-semibold">
+
+                                Medication
+
+                            </th>
+
+                            <th class="px-3 py-2 text-left font-semibold">
+
+                                Route
+
+                            </th>
+
+                            <th class="px-3 py-2 text-left font-semibold">
+
+                                Ordered
+
+                            </th>
+
+                            <th class="px-3 py-2 text-left font-semibold">
+
+                                Prescriber
+
+                            </th>
+
+                            <th class="px-3 py-2 text-left font-semibold">
+
+                                Safety
+
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody class="divide-y divide-slate-100">
+
+                        {% for order in medication_orders %}
+
+                            <tr class="hover:bg-slate-50">
+
+                                {% if not selected_patient %}
+
+                                    <td class="px-3 py-2.5">
+
+                                        <div
+
+                                            class="
+
+                                                font-medium
+
+                                                text-slate-900
+
+                                            "
+
+                                        >
+
+                                            {{ order.patient.display_name }}
+
+                                        </div>
+
+                                        {% if order.patient.mrn %}
+
+                                            <div
+
+                                                class="
+
+                                                    text-[10px]
+
+                                                    text-slate-500
+
+                                                "
+
+                                            >
+
+                                                MRN {{ order.patient.mrn }}
+
+                                            </div>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                {% endif %}
+
+                                <td class="px-3 py-2.5">
+
+                                    <div
+
+                                        class="
+
+                                            font-medium
+
+                                            text-slate-900
+
+                                        "
+
+                                    >
+
+                                        {{ order.medication.display_name }}
+
+                                    </div>
+
+                                    <div
+
+                                        class="
+
+                                            mt-0.5
+
+                                            text-[10px]
+
+                                            text-slate-500
+
+                                        "
+
+                                    >
+
+                                        {{ order.medication.code }}
+
+                                    </div>
+
+                                </td>
+
+                                <td class="px-3 py-2.5 text-slate-600">
+
+                                    {% if order.route %}
+
+                                        {{ order.route }}
+
+                                    {% else %}
+
+                                        {{ order.medication.route|default:"—" }}
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td class="px-3 py-2.5 text-slate-600">
+
+                                    {{ order.ordered_at|date:"m/d/Y H:i" }}
+
+                                </td>
+
+                                <td class="px-3 py-2.5 text-slate-600">
+
+                                    {{ order.ordered_by|default:"—" }}
+
+                                </td>
+
+                                <td class="px-3 py-2.5">
+
+                                    <div class="flex flex-wrap gap-1">
+
+                                        {% if order.medication.is_high_alert %}
+
+                                            <span
+
+                                                class="
+
+                                                    rounded
+
+                                                    bg-red-100
+
+                                                    px-1.5 py-0.5
+
+                                                    text-[9px] font-bold
+
+                                                    text-red-700
+
+                                                "
+
+                                            >
+
+                                                HIGH ALERT
+
+                                            </span>
+
+                                        {% endif %}
+
+                                        {% if order.medication.is_lasa %}
+
+                                            <span
+
+                                                class="
+
+                                                    rounded
+
+                                                    bg-amber-100
+
+                                                    px-1.5 py-0.5
+
+                                                    text-[9px] font-bold
+
+                                                    text-amber-800
+
+                                                "
+
+                                            >
+
+                                                LASA
+
+                                            </span>
+
+                                        {% endif %}
+
+                                        {% if order.medication.is_controlled %}
+
+                                            <span
+
+                                                class="
+
+                                                    rounded
+
+                                                    bg-purple-100
+
+                                                    px-1.5 py-0.5
+
+                                                    text-[9px] font-bold
+
+                                                    text-purple-700
+
+                                                "
+
+                                            >
+
+                                                CONTROLLED
+
+                                            </span>
+
+                                        {% endif %}
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+
+                                    colspan="6"
+
+                                    class="
+
+                                        px-6 py-12
+
+                                        text-center
+
+                                    "
+
+                                >
+
+                                    <p
+
+                                        class="
+
+                                            text-sm font-medium
+
+                                            text-slate-700
+
+                                        "
+
+                                    >
+
+                                        No medication orders
+
+                                    </p>
+
+                                    <p
+
+                                        class="
+
+                                            mt-1
+
+                                            text-xs
+
+                                            text-slate-500
+
+                                        "
+
+                                    >
+
+                                        Medication orders will appear here after they are entered.
+
+                                    </p>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </div>
+
+    <!-- =====================================================
+
+         ADMINISTRATIONS
+
+    ====================================================== -->
+
+    <div
+
+        x-cloak
+
+        x-show="tab === 'administrations'"
+
+        class="
+
+            min-h-0 flex-1
+
+            overflow-y-auto
+
+            p-4
+
+        "
+
+    >
+
+        <section
+
+            class="
+
+                overflow-hidden
+
+                rounded-lg
+
+                border border-slate-200
+
+                bg-white
+
+            "
+
+        >
+
+            <header
+
+                class="
+
+                    border-b border-slate-200
+
+                    px-4 py-3
+
+                "
+
+            >
+
+                <h2
+
+                    class="
+
+                        text-sm font-semibold
+
+                        text-slate-900
+
+                    "
+
+                >
+
+                    Administration History
+
+                </h2>
+
+            </header>
+
+            {% include "medications/partials/table_rows.html" %}
+
+        </section>
+
+    </div>
+
 </div>

@@ -1,63 +1,41 @@
 {% extends "layouts/app_shell.html" %}
 
-{% block workspace %}
-<section class="mx-auto max-w-7xl">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-            <p class="text-sm font-semibold text-emerald-700">Pharmacy formulary</p>
-            <h1 class="mt-1 text-2xl font-bold text-slate-950">Medication Catalog</h1>
-            <p class="mt-2 text-sm text-slate-600">Maintain the active medication list used by medication orders and MARs.</p>
-        </div>
-        <a href="{% url 'pharmacy:medication-catalog-create' %}" class="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Add medication</a>
+{% block title %}
+
+Medication Formulary | Liberia EHR
+
+{% endblock %}
+
+{% block content %}
+
+<section
+
+    class="
+
+        flex h-full min-h-0
+
+        flex-col
+
+        bg-slate-50
+
+    "
+
+>
+
+    {% include "pharmacy/partials/pharmacy_header.html" with page_title="Medication Formulary" page_description="Manage medication terminology, formulary status, medication safety flags, and local catalog records." %}
+
+    <div
+
+        id="pharmacy-workspace"
+
+        class="flex-1 min-h-0"
+
+    >
+
+        {% include "pharmacy/partials/medication_catalog_workspace.html" %}
+
     </div>
 
-    {% if form %}
-        <section class="mt-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 class="text-base font-semibold text-slate-900">
-                {% if form_mode == "update" %}Edit medication{% elif form_mode == "delete" %}Remove medication{% else %}New medication{% endif %}
-            </h2>
-            {% if form_mode == "delete" %}
-                <p class="mt-2 text-sm text-slate-600">Remove {{ object.display_name }} from the catalog?</p>
-                <form method="post" class="mt-4 flex gap-3">{% csrf_token %}<button class="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Remove medication</button><a href="{% url 'pharmacy:medication-catalog' %}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancel</a></form>
-            {% else %}
-                <form method="post" class="mt-4 grid gap-4 sm:grid-cols-2">
-                    {% csrf_token %}
-                    {% for field in form %}
-                        <div {% if field.name == "brand_name" or field.name == "generic_name" %}class="sm:col-span-2"{% endif %}>
-                            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700">{{ field.label }}</label>
-                            {{ field }}
-                            {% for error in field.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-                        </div>
-                    {% endfor %}
-                    <div class="sm:col-span-2"><button class="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">{% if form_mode == "update" %}Save changes{% else %}Add medication{% endif %}</button></div>
-                </form>
-            {% endif %}
-        </section>
-    {% endif %}
-
-    <section class="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
-                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <tr><th class="px-4 py-3">Medication</th><th class="px-4 py-3">Code</th><th class="px-4 py-3">US RxNorm</th><th class="px-4 py-3">Route</th><th class="px-4 py-3">Available</th><th class="px-4 py-3">Status</th><th class="px-4 py-3"></th></tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                    {% for medication in medications %}
-                        <tr>
-                            <td class="px-4 py-3 font-medium text-slate-900">{{ medication.display_name }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ medication.code }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ medication.rxnorm_rxcui|default:"—" }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ medication.route }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ medication.quantity_on_hand }} {{ medication.unit_of_measure }}</td>
-                            <td class="px-4 py-3">{% if medication.is_active %}<span class="text-emerald-700">Active</span>{% else %}<span class="text-slate-500">Inactive</span>{% endif %}</td>
-                            <td class="px-4 py-3 text-right"><a href="{% url 'pharmacy:medication-catalog-update' medication.pk %}" class="text-emerald-700 hover:text-emerald-900">Edit</a> <a href="{% url 'pharmacy:medication-catalog-delete' medication.pk %}" class="ml-3 text-red-700 hover:text-red-900">Remove</a></td>
-                        </tr>
-                    {% empty %}
-                        <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No medications are in the catalog yet.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </section>
 </section>
+
 {% endblock %}

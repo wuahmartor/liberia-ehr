@@ -1,3 +1,491 @@
-{# HTMX form fields partial for medications #}
+{% comment %}
 
-{{ form.as_p }}
+============================================================
+
+MEDICATION ADMINISTRATION FORM FIELDS
+
+Expected:
+
+- form
+
+- Alpine variable: status
+
+============================================================
+
+{% endcomment %}
+
+{% if form.non_field_errors %}
+
+    <div
+
+        class="
+
+            mb-4
+
+            rounded-md
+
+            border border-red-200
+
+            bg-red-50
+
+            px-3 py-2
+
+            text-xs
+
+            text-red-700
+
+        "
+
+    >
+
+        {{ form.non_field_errors }}
+
+    </div>
+
+{% endif %}
+
+<div class="space-y-4">
+
+    <!-- MEDICATION ORDER -->
+
+    <div>
+
+        <label
+
+            for="{{ form.medication_order.id_for_label }}"
+
+            class="
+
+                mb-1 block
+
+                text-xs font-semibold
+
+                text-slate-700
+
+            "
+
+        >
+
+            Medication Order
+
+            <span class="text-red-600">*</span>
+
+        </label>
+
+        {{ form.medication_order }}
+
+        {% for error in form.medication_order.errors %}
+
+            <p class="mt-1 text-[10px] text-red-600">
+
+                {{ error }}
+
+            </p>
+
+        {% endfor %}
+
+    </div>
+
+    <!-- STATUS -->
+
+    <div>
+
+        <label
+
+            for="{{ form.status.id_for_label }}"
+
+            class="
+
+                mb-1 block
+
+                text-xs font-semibold
+
+                text-slate-700
+
+            "
+
+        >
+
+            Administration Status
+
+        </label>
+
+        {{ form.status }}
+
+        {% for error in form.status.errors %}
+
+            <p class="mt-1 text-[10px] text-red-600">
+
+                {{ error }}
+
+            </p>
+
+        {% endfor %}
+
+    </div>
+
+    <!-- ADMINISTERED DETAILS -->
+
+    <div
+
+        x-show="status === 'administered'"
+
+        x-transition
+
+        class="
+
+            rounded-lg
+
+            border border-emerald-200
+
+            bg-emerald-50/40
+
+            p-3
+
+        "
+
+    >
+
+        <h3
+
+            class="
+
+                mb-3
+
+                text-[10px] font-bold
+
+                uppercase tracking-wide
+
+                text-emerald-800
+
+            "
+
+        >
+
+            Actual Administration
+
+        </h3>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+
+            <div>
+
+                <label
+
+                    for="{{ form.dose_administered.id_for_label }}"
+
+                    class="
+
+                        mb-1 block
+
+                        text-xs font-medium
+
+                        text-slate-700
+
+                    "
+
+                >
+
+                    Dose Administered
+
+                </label>
+
+                {{ form.dose_administered }}
+
+                {% for error in form.dose_administered.errors %}
+
+                    <p class="mt-1 text-[10px] text-red-600">
+
+                        {{ error }}
+
+                    </p>
+
+                {% endfor %}
+
+            </div>
+
+            <div>
+
+                <label
+
+                    for="{{ form.route.id_for_label }}"
+
+                    class="
+
+                        mb-1 block
+
+                        text-xs font-medium
+
+                        text-slate-700
+
+                    "
+
+                >
+
+                    Route
+
+                </label>
+
+                {{ form.route }}
+
+                {% for error in form.route.errors %}
+
+                    <p class="mt-1 text-[10px] text-red-600">
+
+                        {{ error }}
+
+                    </p>
+
+                {% endfor %}
+
+            </div>
+
+            <div class="sm:col-span-2">
+
+                <label
+
+                    for="{{ form.administration_site.id_for_label }}"
+
+                    class="
+
+                        mb-1 block
+
+                        text-xs font-medium
+
+                        text-slate-700
+
+                    "
+
+                >
+
+                    Administration Site
+
+                </label>
+
+                {{ form.administration_site }}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- REASON -->
+
+    <div
+
+        x-show="status !== 'administered'"
+
+        x-transition
+
+    >
+
+        <label
+
+            for="{{ form.reason.id_for_label }}"
+
+            class="
+
+                mb-1 block
+
+                text-xs font-semibold
+
+                text-slate-700
+
+            "
+
+        >
+
+            Reason
+
+            <span class="text-red-600">*</span>
+
+        </label>
+
+        {{ form.reason }}
+
+        <p
+
+            class="
+
+                mt-1
+
+                text-[10px]
+
+                text-slate-500
+
+            "
+
+        >
+
+            Required when held, refused, omitted, or not given.
+
+        </p>
+
+        {% for error in form.reason.errors %}
+
+            <p class="mt-1 text-[10px] text-red-600">
+
+                {{ error }}
+
+            </p>
+
+        {% endfor %}
+
+    </div>
+
+    <!-- TIMES -->
+
+    <div class="grid gap-3 sm:grid-cols-2">
+
+        <div>
+
+            <label
+
+                for="{{ form.scheduled_at.id_for_label }}"
+
+                class="
+
+                    mb-1 block
+
+                    text-xs font-medium
+
+                    text-slate-700
+
+                "
+
+            >
+
+                Scheduled Time
+
+            </label>
+
+            {{ form.scheduled_at }}
+
+        </div>
+
+        <div>
+
+            <label
+
+                for="{{ form.administered_at.id_for_label }}"
+
+                class="
+
+                    mb-1 block
+
+                    text-xs font-medium
+
+                    text-slate-700
+
+                "
+
+            >
+
+                Event Time
+
+                <span class="text-red-600">*</span>
+
+            </label>
+
+            {{ form.administered_at }}
+
+            {% for error in form.administered_at.errors %}
+
+                <p class="mt-1 text-[10px] text-red-600">
+
+                    {{ error }}
+
+                </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+    <!-- NOTES -->
+
+    <div>
+
+        <label
+
+            for="{{ form.notes.id_for_label }}"
+
+            class="
+
+                mb-1 block
+
+                text-xs font-medium
+
+                text-slate-700
+
+            "
+
+        >
+
+            Notes
+
+        </label>
+
+        {{ form.notes }}
+
+    </div>
+
+    <!-- WITNESS -->
+
+    <div>
+
+        <label
+
+            for="{{ form.witnessed_by.id_for_label }}"
+
+            class="
+
+                mb-1 block
+
+                text-xs font-medium
+
+                text-slate-700
+
+            "
+
+        >
+
+            Witness
+
+        </label>
+
+        {{ form.witnessed_by }}
+
+        <p
+
+            class="
+
+                mt-1
+
+                text-[10px]
+
+                text-slate-500
+
+            "
+
+        >
+
+            Use when a second clinician witness is required by policy.
+
+        </p>
+
+        {% for error in form.witnessed_by.errors %}
+
+            <p class="mt-1 text-[10px] text-red-600">
+
+                {{ error }}
+
+            </p>
+
+        {% endfor %}
+
+    </div>
+
+</div>

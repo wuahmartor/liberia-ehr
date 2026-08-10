@@ -1,20 +1,47 @@
-
-
-
 {% extends "layouts/app_shell.html" %}
 
 {% block title %}
-    Pharmacy Queue | Liberia EHR
+Pharmacy Queue | Liberia EHR
 {% endblock %}
 
-{% block workspace %}
-<section class="workspace-panel">
-    <h1 class="text-lg font-semibold text-slate-900">
-        Pharmacy Queue
-    </h1>
 
-    <p class="mt-1 text-sm text-slate-600">
-        Prescriptions awaiting pharmacy review will appear here.
-    </p>
+{% block content %}
+
+<section class="flex h-full min-h-0 flex-col bg-slate-50">
+
+    {% include "pharmacy/partials/pharmacy_header.html" with page_title="Pharmacy Queue" page_description="Incoming medication orders awaiting pharmacy workflow assignment." %}
+
+
+    <div class="flex flex-1 items-center justify-center p-6">
+
+        <div class="max-w-md text-center">
+
+            <div
+                class="
+                    mx-auto flex h-12 w-12
+                    items-center justify-center
+                    rounded-full
+                    bg-emerald-50
+                    text-emerald-700
+                "
+            >
+                Rx
+            </div>
+
+            <h2 class="mt-4 text-sm font-semibold text-slate-900">
+                Medication order workflow
+            </h2>
+
+            <p class="mt-2 text-xs leading-5 text-slate-500">
+                This workspace will display newly submitted patient
+                medication orders after the MedicationOrder and pharmacy
+                verification models are connected.
+            </p>
+
+        </div>
+
+    </div>
+
 </section>
+
 {% endblock %}

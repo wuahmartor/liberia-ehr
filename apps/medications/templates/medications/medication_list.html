@@ -1,69 +1,253 @@
 {% extends "layouts/app_shell.html" %}
 
-{% block workspace %}
-<section class="mx-auto max-w-5xl">
-    <p class="text-sm font-semibold text-emerald-700">Clinical medications</p>
-    <h1 class="mt-1 text-2xl font-bold text-slate-950">
-        {% if selected_patient %}Medication List{% else %}Medications{% endif %}
-    </h1>
-    {% if selected_patient %}
-        <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
-            <p class="text-sm text-slate-600">{{ selected_patient.display_name }}</p>
-            {% if active_encounter and active_encounter.is_open %}
-                <div class="flex gap-2">
-                    <a href="{% url 'orders:medication-order' patient_id=selected_patient.pk encounter_id=active_encounter.pk %}" class="rounded-md bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">New Medication Order</a>
-                    <a href="{% url 'medications:mar' encounter_id=active_encounter.pk %}" class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Open MAR</a>
-                </div>
-            {% endif %}
-        </div>
-        {% if not active_encounter or not active_encounter.is_open %}
-            <div class="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                An active encounter is required to create a medication order or record a MAR entry.
-                <a href="{% url 'encounters:create' %}?patient={{ selected_patient.pk }}" class="ml-1 font-semibold underline">Start an encounter</a>.
-            </div>
-        {% endif %}
-    {% else %}
-        <div class="mt-4 flex items-center justify-between gap-3">
-            <p class="text-sm text-slate-600">Select a patient to review medication history and current therapy.</p>
-            <a href="{% url 'patients:list' %}" class="rounded-md bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Select Patient</a>
-        </div>
-    {% endif %}
+{% block title %}
 
-    <div class="mt-6 grid gap-6 lg:grid-cols-2">
-        <section class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 class="text-base font-semibold text-slate-900">Medication orders</h2>
-            <div class="mt-4 space-y-3">
-                {% for medication_order in medication_orders %}
-                    <article class="rounded-md border border-slate-200 p-3">
-                        <div class="flex items-start justify-between gap-3">
-                            <div>
-                                <p class="font-semibold text-slate-900">{{ medication_order.medication.display_name }}</p>
-                                <p class="mt-1 text-sm text-slate-600">{{ medication_order.dose }} · {{ medication_order.route }} · {{ medication_order.frequency }}</p>
-                                {% if not selected_patient %}<p class="mt-1 text-xs text-slate-500">{{ medication_order.patient.display_name }}</p>{% endif %}
-                            </div>
-                            <span class="text-xs font-semibold text-slate-600">{{ medication_order.get_status_display }}</span>
-                        </div>
-                    </article>
-                {% empty %}
-                    <p class="text-sm text-slate-500">No medication orders have been recorded{% if selected_patient %} for this patient{% endif %}.</p>
-                {% endfor %}
-            </div>
-        </section>
+Medications | Liberia EHR
 
-        <section class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 class="text-base font-semibold text-slate-900">Medication administration</h2>
-            <div class="mt-4 space-y-3">
-                {% for administration in administrations %}
-                    <article class="rounded-md border border-slate-200 p-3">
-                        <p class="font-semibold text-slate-900">{{ administration.medication.display_name }}</p>
-                        <p class="mt-1 text-sm text-slate-600">{{ administration.dose_administered }} · {{ administration.route }}</p>
-                        <p class="mt-1 text-xs text-slate-500">{{ administration.get_status_display }} · {{ administration.administered_at|date:"M j, Y P" }}</p>
-                    </article>
-                {% empty %}
-                    <p class="text-sm text-slate-500">No MAR entries have been recorded{% if selected_patient %} for this patient{% endif %}.</p>
-                {% endfor %}
-            </div>
-        </section>
-    </div>
-</section>
 {% endblock %}
+
+{% block workspace %}
+
+<section
+
+    id="medications-workspace"
+
+    class="
+
+        flex h-full min-h-0
+
+        flex-col
+
+        bg-slate-50
+
+    "
+
+    hx-boost="true"
+
+>
+
+    <!-- =====================================================
+
+         HEADER
+
+    ====================================================== -->
+
+    <header
+
+        class="
+
+            shrink-0
+
+            border-b border-slate-200
+
+            bg-white
+
+            px-4 py-3
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex flex-col gap-3
+
+                lg:flex-row
+
+                lg:items-center
+
+                lg:justify-between
+
+            "
+
+        >
+
+            <div>
+
+                <div class="flex items-center gap-2">
+
+                    <div
+
+                        class="
+
+                            flex h-8 w-8
+
+                            items-center justify-center
+
+                            rounded-lg
+
+                            bg-emerald-50
+
+                            text-xs font-bold
+
+                            text-emerald-700
+
+                        "
+
+                    >
+
+                        Rx
+
+                    </div>
+
+                    <div>
+
+                        <h1
+
+                            class="
+
+                                text-base font-semibold
+
+                                text-slate-900
+
+                            "
+
+                        >
+
+                            Medications
+
+                        </h1>
+
+                        <p
+
+                            class="
+
+                                mt-0.5
+
+                                text-xs
+
+                                text-slate-500
+
+                            "
+
+                        >
+
+                            Medication orders and administration history.
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            {% if selected_patient %}
+
+                <div
+
+                    class="
+
+                        flex flex-wrap
+
+                        items-center gap-2
+
+                    "
+
+                >
+
+                    <a
+
+                        href="{% url 'medications:patient-list' patient_id=selected_patient.pk %}"
+
+                        class="
+
+                            rounded-md
+
+                            bg-emerald-50
+
+                            px-3 py-2
+
+                            text-xs font-semibold
+
+                            text-emerald-800
+
+                            hover:bg-emerald-100
+
+                        "
+
+                    >
+
+                        Medication Record
+
+                    </a>
+
+                    <a
+
+                        href="{% url 'medications:reconciliation' patient_id=selected_patient.pk %}"
+
+                        class="
+
+                            rounded-md
+
+                            border border-slate-300
+
+                            bg-white
+
+                            px-3 py-2
+
+                            text-xs font-medium
+
+                            text-slate-700
+
+                            hover:bg-slate-50
+
+                        "
+
+                    >
+
+                        Reconciliation
+
+                    </a>
+
+                    {% if active_encounter and active_encounter.is_open %}
+
+                        <a
+
+                            href="{% url 'medications:mar' encounter_id=active_encounter.pk %}"
+
+                            class="
+
+                                rounded-md
+
+                                bg-emerald-700
+
+                                px-3 py-2
+
+                                text-xs font-semibold
+
+                                text-white
+
+                                hover:bg-emerald-800
+
+                            "
+
+                        >
+
+                            Open MAR
+
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </header>
+
+    <!-- =====================================================
+
+         CONTENT
+
+    ====================================================== -->
+
+    {% include "medications/partials/list_content.html" %}
+
+</section>
+
+{% endblock workspace %}

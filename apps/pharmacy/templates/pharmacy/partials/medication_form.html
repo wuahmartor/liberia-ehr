@@ -1,0 +1,584 @@
+
+
+{% comment %}
+============================================================
+MEDICATION FORMULARY FORM
+============================================================
+{% endcomment %}
+
+
+<section
+    x-data="{
+        controlled: {{ form.is_controlled.value|yesno:'true,false' }},
+        status: '{{ form.formulary_status.value|default:"FORMULARY" }}'
+    }"
+
+    class="
+        mx-auto
+        max-w-6xl
+        overflow-hidden
+        rounded-lg
+        border border-slate-200
+        bg-white
+    "
+>
+
+    <header
+        class="
+            flex items-center
+            justify-between
+            border-b border-slate-200
+            px-4 py-3
+        "
+    >
+
+        <div>
+
+            <h2 class="text-sm font-semibold text-slate-900">
+
+                {% if form_mode == "create" %}
+                    New Medication
+                {% elif form_mode == "update" %}
+                    Edit Medication
+                {% else %}
+                    Retire Medication
+                {% endif %}
+
+            </h2>
+
+
+            {% if object %}
+                <p class="mt-0.5 text-xs text-slate-500">
+                    {{ object.display_name }}
+                </p>
+            {% endif %}
+
+        </div>
+
+
+        <a
+            href="{% url 'pharmacy:medication-catalog' %}"
+
+            hx-get="{% url 'pharmacy:medication-catalog' %}"
+            hx-target="#pharmacy-workspace"
+            hx-swap="innerHTML"
+
+            class="
+                rounded-md
+                border border-slate-300
+                px-2.5 py-1.5
+                text-xs font-medium
+                text-slate-700
+                hover:bg-slate-50
+            "
+        >
+            Back
+        </a>
+
+    </header>
+
+
+    {% if form_mode == "delete" %}
+
+        <form
+            method="post"
+
+            hx-post="{{ request.path }}"
+            hx-target="#pharmacy-workspace"
+            hx-swap="innerHTML"
+
+            class="p-4"
+        >
+
+            {% csrf_token %}
+
+            <div
+                class="
+                    rounded-md
+                    border border-amber-200
+                    bg-amber-50
+                    p-4
+                "
+            >
+
+                <h3 class="text-sm font-semibold text-amber-900">
+                    Retire formulary medication?
+                </h3>
+
+                <p class="mt-2 text-xs leading-5 text-amber-800">
+                    Historical medication records should be preserved.
+                    Retiring prevents routine new selection while maintaining
+                    the clinical history.
+                </p>
+
+            </div>
+
+
+            <div
+                class="
+                    mt-4
+                    flex justify-end gap-2
+                "
+            >
+
+                <a
+                    href="{% url 'pharmacy:medication-catalog' %}"
+
+                    hx-get="{% url 'pharmacy:medication-catalog' %}"
+                    hx-target="#pharmacy-workspace"
+
+                    class="
+                        rounded-md
+                        border border-slate-300
+                        px-3 py-2
+                        text-xs font-medium
+                        text-slate-700
+                    "
+                >
+                    Cancel
+                </a>
+
+
+                <button
+                    type="submit"
+
+                    class="
+                        rounded-md
+                        bg-red-700
+                        px-3 py-2
+                        text-xs font-semibold
+                        text-white
+                        hover:bg-red-800
+                    "
+                >
+                    Retire Medication
+                </button>
+
+            </div>
+
+        </form>
+
+
+    {% else %}
+
+        <form
+            method="post"
+
+            action="{{ request.path }}"
+
+            hx-post="{{ request.path }}"
+            hx-target="#pharmacy-workspace"
+            hx-swap="innerHTML"
+            hx-disabled-elt="#medication-submit"
+
+            class="
+                flex flex-col
+            "
+        >
+
+            {% csrf_token %}
+
+
+            {% if form.non_field_errors %}
+
+                <div
+                    class="
+                        border-b border-red-200
+                        bg-red-50
+                        px-4 py-3
+                        text-xs text-red-700
+                    "
+                >
+                    {{ form.non_field_errors }}
+                </div>
+
+            {% endif %}
+
+
+            <div
+                class="
+                    grid gap-5
+                    p-4
+                    xl:grid-cols-2
+                "
+            >
+
+                <!-- =========================================
+                     IDENTIFICATION
+                ========================================== -->
+
+                <fieldset
+                    class="
+                        rounded-lg
+                        border border-slate-200
+                        p-3
+                    "
+                >
+
+                    <legend
+                        class="
+                            px-1
+                            text-xs font-semibold
+                            uppercase tracking-wide
+                            text-slate-600
+                        "
+                    >
+                        Medication Identification
+                    </legend>
+
+
+                    <div
+                        class="
+                            mt-2
+                            grid gap-3
+                            sm:grid-cols-2
+                        "
+                    >
+
+                        {% include "components/form_field.html" with field=form.code %}
+
+                        {% include "components/form_field.html" with field=form.terminology_source %}
+
+                        <div class="sm:col-span-2">
+                            {% include "components/form_field.html" with field=form.rxnorm_rxcui %}
+                        </div>
+
+                    </div>
+
+                </fieldset>
+
+
+                <!-- =========================================
+                     FORMULARY
+                ========================================== -->
+
+                <fieldset
+                    class="
+                        rounded-lg
+                        border border-slate-200
+                        p-3
+                    "
+                >
+
+                    <legend
+                        class="
+                            px-1
+                            text-xs font-semibold
+                            uppercase tracking-wide
+                            text-slate-600
+                        "
+                    >
+                        Formulary
+                    </legend>
+
+
+                    <div class="mt-2">
+
+                        {% include "components/form_field.html" with field=form.formulary_status %}
+
+
+                        <div
+                            class="
+                                mt-3
+                                grid gap-2
+                                sm:grid-cols-2
+                            "
+                        >
+
+                            <label
+                                class="
+                                    flex items-center gap-2
+                                    rounded-md
+                                    border border-slate-200
+                                    px-3 py-2
+                                    text-xs text-slate-700
+                                "
+                            >
+                                {{ form.is_active }}
+                                Active
+                            </label>
+
+
+                            <label
+                                class="
+                                    flex items-center gap-2
+                                    rounded-md
+                                    border border-slate-200
+                                    px-3 py-2
+                                    text-xs text-slate-700
+                                "
+                            >
+                                {{ form.requires_prescription }}
+                                Prescription required
+                            </label>
+
+                        </div>
+
+                    </div>
+
+                </fieldset>
+
+
+                <!-- =========================================
+                     CLINICAL DESCRIPTION
+                ========================================== -->
+
+                <fieldset
+                    class="
+                        rounded-lg
+                        border border-slate-200
+                        p-3
+                        xl:col-span-2
+                    "
+                >
+
+                    <legend
+                        class="
+                            px-1
+                            text-xs font-semibold
+                            uppercase tracking-wide
+                            text-slate-600
+                        "
+                    >
+                        Medication Description
+                    </legend>
+
+
+                    <div
+                        class="
+                            mt-2
+                            grid gap-3
+                            sm:grid-cols-2
+                            lg:grid-cols-3
+                        "
+                    >
+
+                        {% include "components/form_field.html" with field=form.generic_name %}
+
+                        {% include "components/form_field.html" with field=form.brand_name %}
+
+                        {% include "components/form_field.html" with field=form.strength %}
+
+                        {% include "components/form_field.html" with field=form.dosage_form %}
+
+                        {% include "components/form_field.html" with field=form.route %}
+
+                        {% include "components/form_field.html" with field=form.therapeutic_class %}
+
+                    </div>
+
+                </fieldset>
+
+
+                <!-- =========================================
+                     SAFETY
+                ========================================== -->
+
+                <fieldset
+                    class="
+                        rounded-lg
+                        border border-slate-200
+                        p-3
+                    "
+                >
+
+                    <legend
+                        class="
+                            px-1
+                            text-xs font-semibold
+                            uppercase tracking-wide
+                            text-slate-600
+                        "
+                    >
+                        Medication Safety
+                    </legend>
+
+
+                    <div
+                        class="
+                            mt-2
+                            grid gap-2
+                            sm:grid-cols-2
+                        "
+                    >
+
+                        <label
+                            class="
+                                flex items-center gap-2
+                                rounded-md
+                                border border-slate-200
+                                px-3 py-2
+                                text-xs
+                            "
+                        >
+                            {{ form.is_high_alert }}
+                            High-alert
+                        </label>
+
+
+                        <label
+                            class="
+                                flex items-center gap-2
+                                rounded-md
+                                border border-slate-200
+                                px-3 py-2
+                                text-xs
+                            "
+                        >
+                            {{ form.is_lasa }}
+                            Look-alike / sound-alike
+                        </label>
+
+
+                        <label
+                            class="
+                                flex items-center gap-2
+                                rounded-md
+                                border border-slate-200
+                                px-3 py-2
+                                text-xs
+                                sm:col-span-2
+                            "
+                        >
+                            {{ form.is_controlled }}
+                            Controlled medication
+                        </label>
+
+                    </div>
+
+
+                    <div class="mt-3">
+
+                        {% include "components/form_field.html" with field=form.controlled_substance_class %}
+
+                    </div>
+
+
+                    <div class="mt-3">
+
+                        {% include "components/form_field.html" with field=form.safety_notes %}
+
+                    </div>
+
+                </fieldset>
+
+
+                <!-- =========================================
+                     INVENTORY
+                ========================================== -->
+
+                <fieldset
+                    class="
+                        rounded-lg
+                        border border-slate-200
+                        p-3
+                    "
+                >
+
+                    <legend
+                        class="
+                            px-1
+                            text-xs font-semibold
+                            uppercase tracking-wide
+                            text-slate-600
+                        "
+                    >
+                        Current Inventory
+                    </legend>
+
+
+                    <div
+                        class="
+                            mt-2
+                            grid gap-3
+                            sm:grid-cols-3
+                        "
+                    >
+
+                        {% include "components/form_field.html" with field=form.unit_of_measure %}
+
+                        {% include "components/form_field.html" with field=form.quantity_on_hand %}
+
+                        {% include "components/form_field.html" with field=form.reorder_level %}
+
+                    </div>
+
+
+                    <p
+                        class="
+                            mt-3
+                            text-[11px]
+                            leading-5
+                            text-slate-500
+                        "
+                    >
+                        Aggregate inventory is temporary. Facility,
+                        pharmacy location, lot, expiration, receipt,
+                        transfer, dispensing and waste tracking should
+                        eventually use dedicated inventory records.
+                    </p>
+
+                </fieldset>
+
+            </div>
+
+
+            <footer
+                class="
+                    sticky bottom-0
+                    flex items-center
+                    justify-end gap-2
+                    border-t border-slate-200
+                    bg-white/95
+                    px-4 py-3
+                    backdrop-blur
+                "
+            >
+
+                <a
+                    href="{% url 'pharmacy:medication-catalog' %}"
+
+                    hx-get="{% url 'pharmacy:medication-catalog' %}"
+                    hx-target="#pharmacy-workspace"
+                    hx-swap="innerHTML"
+
+                    class="
+                        rounded-md
+                        border border-slate-300
+                        px-3 py-2
+                        text-xs font-medium
+                        text-slate-700
+                    "
+                >
+                    Cancel
+                </a>
+
+
+                <button
+                    id="medication-submit"
+                    type="submit"
+
+                    class="
+                        rounded-md
+                        bg-emerald-700
+                        px-4 py-2
+                        text-xs font-semibold
+                        text-white
+                        hover:bg-emerald-800
+                        disabled:opacity-50
+                    "
+                >
+                    {% if form_mode == "update" %}
+                        Save Changes
+                    {% else %}
+                        Add Medication
+                    {% endif %}
+                </button>
+
+            </footer>
+
+        </form>
+
+    {% endif %}
+
+</section>

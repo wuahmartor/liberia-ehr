@@ -1,0 +1,348 @@
+
+
+
+{% comment %}
+
+============================================================
+
+PHARMACY WORKSPACE HEADER
+
+File:
+
+apps/pharmacy/templates/pharmacy/partials/pharmacy_header.html
+
+Expected context:
+
+- page_title
+
+- page_description
+
+- active_clinical_section
+
+============================================================
+
+{% endcomment %}
+
+<header
+
+    class="
+
+        shrink-0
+
+        border-b border-slate-200
+
+        bg-white
+
+        px-4 py-3
+
+    "
+
+>
+
+    <div
+
+        class="
+
+            flex flex-col gap-3
+
+            lg:flex-row
+
+            lg:items-center
+
+            lg:justify-between
+
+        "
+
+    >
+
+        <div class="min-w-0">
+
+            <div class="flex items-center gap-2">
+
+                <div
+
+                    class="
+
+                        flex h-8 w-8 shrink-0
+
+                        items-center justify-center
+
+                        rounded-lg
+
+                        bg-emerald-50
+
+                        text-emerald-700
+
+                    "
+
+                >
+
+                    <svg
+
+                        xmlns="http://www.w3.org/2000/svg"
+
+                        viewBox="0 0 24 24"
+
+                        fill="none"
+
+                        stroke="currentColor"
+
+                        stroke-width="1.8"
+
+                        class="h-4 w-4"
+
+                    >
+
+                        <path
+
+                            stroke-linecap="round"
+
+                            stroke-linejoin="round"
+
+                            d="M10.5 6.75h3m-4.5 3h6m-7.5 3h9m-8.25 3h7.5M6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6A2.25 2.25 0 0 1 6 3.75Z"
+
+                        />
+
+                    </svg>
+
+                </div>
+
+                <div class="min-w-0">
+
+                    <h1
+
+                        class="
+
+                            truncate
+
+                            text-base font-semibold
+
+                            text-slate-900
+
+                        "
+
+                    >
+
+                        {{ page_title|default:"Pharmacy" }}
+
+                    </h1>
+
+                    {% if page_description %}
+
+                        <p
+
+                            class="
+
+                                mt-0.5
+
+                                text-xs
+
+                                text-slate-500
+
+                            "
+
+                        >
+
+                            {{ page_description }}
+
+                        </p>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <nav
+
+            class="
+
+                flex flex-wrap
+
+                items-center
+
+                gap-1
+
+                text-xs
+
+            "
+
+            aria-label="Pharmacy navigation"
+
+        >
+
+            <a
+
+                href="{% url 'pharmacy:queue' %}"
+
+                class="
+
+                    rounded-md px-2.5 py-1.5
+
+                    font-medium
+
+                    {% if active_clinical_section == 'queue' %}
+
+                        bg-emerald-100 text-emerald-800
+
+                    {% else %}
+
+                        text-slate-600 hover:bg-slate-100 hover:text-slate-900
+
+                    {% endif %}
+
+                "
+
+            >
+
+                Queue
+
+            </a>
+
+            <a
+
+                href="{% url 'pharmacy:pending-review' %}"
+
+                class="
+
+                    rounded-md px-2.5 py-1.5
+
+                    font-medium
+
+                    {% if active_clinical_section == 'pending-review' %}
+
+                        bg-emerald-100 text-emerald-800
+
+                    {% else %}
+
+                        text-slate-600 hover:bg-slate-100 hover:text-slate-900
+
+                    {% endif %}
+
+                "
+
+            >
+
+                Review
+
+            </a>
+
+            <a
+
+                href="{% url 'pharmacy:verified' %}"
+
+                class="
+
+                    rounded-md px-2.5 py-1.5
+
+                    font-medium
+
+                    {% if active_clinical_section == 'verified' %}
+
+                        bg-emerald-100 text-emerald-800
+
+                    {% else %}
+
+                        text-slate-600 hover:bg-slate-100 hover:text-slate-900
+
+                    {% endif %}
+
+                "
+
+            >
+
+                Verified
+
+            </a>
+
+            <a
+
+                href="{% url 'pharmacy:dispensing' %}"
+
+                class="
+
+                    rounded-md px-2.5 py-1.5
+
+                    font-medium
+
+                    {% if active_clinical_section == 'dispensing' %}
+
+                        bg-emerald-100 text-emerald-800
+
+                    {% else %}
+
+                        text-slate-600 hover:bg-slate-100 hover:text-slate-900
+
+                    {% endif %}
+
+                "
+
+            >
+
+                Dispensing
+
+            </a>
+
+            <a
+
+                href="{% url 'pharmacy:inventory' %}"
+
+                class="
+
+                    rounded-md px-2.5 py-1.5
+
+                    font-medium
+
+                    {% if active_clinical_section == 'inventory' %}
+
+                        bg-emerald-100 text-emerald-800
+
+                    {% else %}
+
+                        text-slate-600 hover:bg-slate-100 hover:text-slate-900
+
+                    {% endif %}
+
+                "
+
+            >
+
+                Inventory
+
+            </a>
+
+            <a
+
+                href="{% url 'pharmacy:medication-catalog' %}"
+
+                class="
+
+                    rounded-md px-2.5 py-1.5
+
+                    font-medium
+
+                    {% if active_clinical_section == 'medication-catalog' %}
+
+                        bg-emerald-100 text-emerald-800
+
+                    {% else %}
+
+                        text-slate-600 hover:bg-slate-100 hover:text-slate-900
+
+                    {% endif %}
+
+                "
+
+            >
+
+                Formulary
+
+            </a>
+
+        </nav>
+
+    </div>
+
+</header>

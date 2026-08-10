@@ -1,0 +1,434 @@
+
+
+
+{% comment %}
+============================================================
+MEDICATION FORMULARY TABLE
+============================================================
+{% endcomment %}
+
+
+<section
+    class="
+        overflow-hidden
+        rounded-lg
+        border border-slate-200
+        bg-white
+    "
+>
+
+    <div class="overflow-x-auto">
+
+        <table class="min-w-full text-xs">
+
+            <thead
+                class="
+                    border-b border-slate-200
+                    bg-slate-50
+                    text-slate-600
+                "
+            >
+
+                <tr>
+
+                    <th class="px-3 py-2 text-left font-semibold">
+                        Medication
+                    </th>
+
+                    <th class="px-3 py-2 text-left font-semibold">
+                        Route
+                    </th>
+
+                    <th class="px-3 py-2 text-left font-semibold">
+                        Formulary
+                    </th>
+
+                    <th class="px-3 py-2 text-center font-semibold">
+                        Safety
+                    </th>
+
+                    <th class="px-3 py-2 text-right font-semibold">
+                        Stock
+                    </th>
+
+                    <th class="px-3 py-2 text-right font-semibold">
+                        Actions
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody class="divide-y divide-slate-100">
+
+                {% for medication in medications %}
+
+                    <tr
+                        class="
+                            hover:bg-slate-50/70
+
+                            {% if not medication.is_active %}
+                                opacity-60
+                            {% endif %}
+                        "
+                    >
+
+                        <td class="px-3 py-2.5">
+
+                            <div
+                                class="
+                                    font-medium
+                                    text-slate-900
+                                "
+                            >
+                                {{ medication.display_name }}
+                            </div>
+
+                            <div
+                                class="
+                                    mt-0.5
+                                    flex flex-wrap
+                                    gap-x-2
+                                    text-[11px]
+                                    text-slate-500
+                                "
+                            >
+
+                                <span>
+                                    {{ medication.code }}
+                                </span>
+
+                                {% if medication.rxnorm_rxcui %}
+                                    <span>
+                                        RxCUI {{ medication.rxnorm_rxcui }}
+                                    </span>
+                                {% endif %}
+
+                            </div>
+
+                        </td>
+
+
+                        <td class="px-3 py-2.5 text-slate-700">
+                            {{ medication.route|default:"—" }}
+                        </td>
+
+
+                        <td class="px-3 py-2.5">
+
+                            {% if medication.formulary_status == "FORMULARY" %}
+
+                                <span
+                                    class="
+                                        rounded-full
+                                        bg-emerald-50
+                                        px-2 py-1
+                                        text-[11px] font-medium
+                                        text-emerald-700
+                                    "
+                                >
+                                    Formulary
+                                </span>
+
+                            {% elif medication.formulary_status == "RESTRICTED" %}
+
+                                <span
+                                    class="
+                                        rounded-full
+                                        bg-amber-50
+                                        px-2 py-1
+                                        text-[11px] font-medium
+                                        text-amber-700
+                                    "
+                                >
+                                    Restricted
+                                </span>
+
+                            {% elif medication.formulary_status == "NON_FORMULARY" %}
+
+                                <span
+                                    class="
+                                        rounded-full
+                                        bg-slate-100
+                                        px-2 py-1
+                                        text-[11px] font-medium
+                                        text-slate-700
+                                    "
+                                >
+                                    Non-formulary
+                                </span>
+
+                            {% else %}
+
+                                <span
+                                    class="
+                                        rounded-full
+                                        bg-red-50
+                                        px-2 py-1
+                                        text-[11px] font-medium
+                                        text-red-700
+                                    "
+                                >
+                                    Retired
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td class="px-3 py-2.5">
+
+                            <div
+                                class="
+                                    flex flex-wrap
+                                    justify-center gap-1
+                                "
+                            >
+
+                                {% if medication.is_high_alert %}
+                                    <span
+                                        class="
+                                            rounded
+                                            bg-red-100
+                                            px-1.5 py-0.5
+                                            text-[10px] font-semibold
+                                            text-red-700
+                                        "
+                                    >
+                                        HIGH ALERT
+                                    </span>
+                                {% endif %}
+
+
+                                {% if medication.is_lasa %}
+                                    <span
+                                        class="
+                                            rounded
+                                            bg-amber-100
+                                            px-1.5 py-0.5
+                                            text-[10px] font-semibold
+                                            text-amber-800
+                                        "
+                                    >
+                                        LASA
+                                    </span>
+                                {% endif %}
+
+
+                                {% if medication.is_controlled %}
+                                    <span
+                                        class="
+                                            rounded
+                                            bg-purple-100
+                                            px-1.5 py-0.5
+                                            text-[10px] font-semibold
+                                            text-purple-700
+                                        "
+                                    >
+                                        CONTROLLED
+                                    </span>
+                                {% endif %}
+
+
+                                {% if not medication.is_high_alert and not medication.is_lasa and not medication.is_controlled %}
+                                    <span class="text-slate-400">
+                                        —
+                                    </span>
+                                {% endif %}
+
+                            </div>
+
+                        </td>
+
+
+                        <td class="px-3 py-2.5 text-right">
+
+                            <div
+                                class="
+                                    font-semibold
+
+                                    {% if medication.quantity_on_hand <= 0 %}
+                                        text-red-700
+                                    {% elif medication.quantity_on_hand <= medication.reorder_level %}
+                                        text-amber-700
+                                    {% else %}
+                                        text-slate-800
+                                    {% endif %}
+                                "
+                            >
+                                {{ medication.quantity_on_hand }}
+                            </div>
+
+                            <div class="text-[10px] text-slate-500">
+                                {{ medication.unit_of_measure }}
+                            </div>
+
+                        </td>
+
+
+                        <td class="px-3 py-2.5">
+
+                            {% if can_manage_catalog %}
+
+                                <div
+                                    class="
+                                        flex justify-end
+                                        gap-1
+                                    "
+                                >
+
+                                    <a
+                                        href="{% url 'pharmacy:medication-catalog-update' medication.pk %}"
+
+                                        hx-get="{% url 'pharmacy:medication-catalog-update' medication.pk %}"
+                                        hx-target="#pharmacy-workspace"
+                                        hx-swap="innerHTML"
+
+                                        class="
+                                            rounded
+                                            border border-slate-300
+                                            bg-white
+                                            px-2 py-1
+                                            font-medium
+                                            text-slate-700
+                                            hover:bg-slate-50
+                                        "
+                                    >
+                                        Edit
+                                    </a>
+
+
+                                    <a
+                                        href="{% url 'pharmacy:medication-catalog-delete' medication.pk %}"
+
+                                        hx-get="{% url 'pharmacy:medication-catalog-delete' medication.pk %}"
+                                        hx-target="#pharmacy-workspace"
+                                        hx-swap="innerHTML"
+
+                                        class="
+                                            rounded
+                                            border border-red-200
+                                            bg-white
+                                            px-2 py-1
+                                            font-medium
+                                            text-red-700
+                                            hover:bg-red-50
+                                        "
+                                    >
+                                        Retire
+                                    </a>
+
+                                </div>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="6"
+                            class="
+                                px-6 py-12
+                                text-center
+                            "
+                        >
+
+                            <p class="text-sm font-medium text-slate-700">
+                                No medications found
+                            </p>
+
+                            <p class="mt-1 text-xs text-slate-500">
+                                Change the search filters or add a medication.
+                            </p>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    {% if is_paginated %}
+
+        <footer
+            class="
+                flex items-center
+                justify-between
+                border-t border-slate-200
+                bg-slate-50
+                px-3 py-2
+                text-xs
+            "
+        >
+
+            <span class="text-slate-500">
+                Page {{ page_obj.number }}
+                of {{ page_obj.paginator.num_pages }}
+            </span>
+
+
+            <div class="flex gap-1">
+
+                {% if page_obj.has_previous %}
+
+                    <a
+                        href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&status={{ status_filter }}"
+
+                        hx-get="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&status={{ status_filter }}"
+                        hx-target="#pharmacy-workspace"
+                        hx-swap="innerHTML"
+                        hx-push-url="true"
+
+                        class="
+                            rounded border border-slate-300
+                            bg-white px-2 py-1
+                            text-slate-700
+                        "
+                    >
+                        Previous
+                    </a>
+
+                {% endif %}
+
+
+                {% if page_obj.has_next %}
+
+                    <a
+                        href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&status={{ status_filter }}"
+
+                        hx-get="?page={{ page_obj.next_page_number }}&q={{ search_query }}&status={{ status_filter }}"
+                        hx-target="#pharmacy-workspace"
+                        hx-swap="innerHTML"
+                        hx-push-url="true"
+
+                        class="
+                            rounded border border-slate-300
+                            bg-white px-2 py-1
+                            text-slate-700
+                        "
+                    >
+                        Next
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        </footer>
+
+    {% endif %}
+
+</section>

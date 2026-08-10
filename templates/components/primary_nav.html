@@ -212,7 +212,7 @@ Important navigation behavior:
             {% with active=active_primary_nav %}
 
                 <!-- =========================================
-                     DESKTOP CLINICAL MENU
+                    DESKTOP CLINICAL MENU
                 ========================================== -->
                 <div
                     class="relative"
@@ -267,7 +267,7 @@ Important navigation behavior:
                         <div class="primary-dropdown-list">
 
                             <!-- =================================
-                                 CLINICAL DASHBOARD
+                                CLINICAL DASHBOARD
                             ================================== -->
                             <a
                                 href="{% url 'core:clinical_dashboard' %}"
@@ -286,7 +286,7 @@ Important navigation behavior:
                             </a>
 
                             <!-- =================================
-                                 PATIENTS
+                                PATIENTS
                             ================================== -->
                             <a
                                 href="{% url 'patients:list' %}"
@@ -305,7 +305,7 @@ Important navigation behavior:
                             </a>
 
                             <!-- =================================
-                                 ENCOUNTERS
+                                ENCOUNTERS
                             ================================== -->
                             <a
                                 href="{% url 'encounters:list' %}"
@@ -326,14 +326,16 @@ Important navigation behavior:
                             <div class="primary-dropdown-divider"></div>
 
                             <!-- =================================
-                                 NURSING
+                                NURSING
+                                Disabled until nursing app landing route exists.
                             ================================== -->
-                            <a
-                                href="{% url 'orders:list' %}"
-                                hx-boost="false"
-                                class="primary-dropdown-link"
-                                role="menuitem"
-                                @click="openMenu = null"
+                            <span
+                                class="
+                                    primary-dropdown-link
+                                    cursor-not-allowed
+                                    opacity-50
+                                "
+                                aria-disabled="true"
                             >
                                 <span class="primary-dropdown-icon">
                                     ♡
@@ -342,16 +344,24 @@ Important navigation behavior:
                                 <span class="primary-dropdown-label">
                                     Nursing
                                 </span>
-                            </a>
+                            </span>
 
                             <!-- =================================
-                                 ORDERS
+                                ORDERS
                             ================================== -->
                             <a
-                                href="{% url 'medications:list' %}"
+                                href="{% url 'orders:list' %}"
                                 hx-boost="false"
-                                class="primary-dropdown-link"
+                                class="
+                                    primary-dropdown-link
+                                    {% if active_clinical_module == 'orders' %}
+                                        primary-dropdown-link-active
+                                    {% endif %}
+                                "
                                 role="menuitem"
+                                {% if active_clinical_module == "orders" %}
+                                    aria-current="page"
+                                {% endif %}
                                 @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
@@ -364,12 +374,22 @@ Important navigation behavior:
                             </a>
 
                             <!-- =================================
-                                 MEDICATIONS
+                                MEDICATIONS
                             ================================== -->
                             <a
-                                href="#"
-                                class="primary-dropdown-link"
+                                href="{% url 'medications:list' %}"
+                                hx-boost="false"
+                                class="
+                                    primary-dropdown-link
+                                    {% if active_clinical_module == 'medications' %}
+                                        primary-dropdown-link-active
+                                    {% endif %}
+                                "
                                 role="menuitem"
+                                {% if active_clinical_module == "medications" %}
+                                    aria-current="page"
+                                {% endif %}
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
                                     ◇
@@ -381,17 +401,25 @@ Important navigation behavior:
                             </a>
 
                             <!-- =================================
-                                 PHARMACY
+                                PHARMACY
                             ================================== -->
                             <a
                                 href="{% url 'pharmacy:dashboard' %}"
                                 hx-boost="false"
-                                class="primary-dropdown-link"
+                                class="
+                                    primary-dropdown-link
+                                    {% if active_clinical_module == 'pharmacy' %}
+                                        primary-dropdown-link-active
+                                    {% endif %}
+                                "
                                 role="menuitem"
+                                {% if active_clinical_module == "pharmacy" %}
+                                    aria-current="page"
+                                {% endif %}
                                 @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
-                                    ⌂
+                                    Rx
                                 </span>
 
                                 <span class="primary-dropdown-label">
@@ -400,12 +428,16 @@ Important navigation behavior:
                             </a>
 
                             <!-- =================================
-                                 CARE MANAGEMENT
+                                CARE MANAGEMENT
+                                Disabled until app route exists.
                             ================================== -->
-                            <a
-                                href="#"
-                                class="primary-dropdown-link"
-                                role="menuitem"
+                            <span
+                                class="
+                                    primary-dropdown-link
+                                    cursor-not-allowed
+                                    opacity-50
+                                "
+                                aria-disabled="true"
                             >
                                 <span class="primary-dropdown-icon">
                                     ⇄
@@ -414,7 +446,8 @@ Important navigation behavior:
                                 <span class="primary-dropdown-label">
                                     Care Management
                                 </span>
-                            </a>
+                            </span>
+
                         </div>
                     </div>
                 </div>
@@ -1539,115 +1572,151 @@ Important navigation behavior:
         >
 
             <!-- =============================================
-                 MOBILE CLINICAL MENU
-            ============================================== -->
-            <div
-                x-data="{
-                    expanded:
-                        '{{ active_primary_nav }}' === 'clinical'
-                }"
-            >
-                <button
-                    type="button"
-                    class="
-                        mobile-primary-nav-button
-                        {% if active_primary_nav == 'clinical' %}
-                            mobile-primary-nav-button-active
-                        {% endif %}
-                    "
-                    @click="expanded = !expanded"
-                    :aria-expanded="expanded.toString()"
-                >
-                    <span>Clinical</span>
-
-                    <span
-                        class="transition-transform"
-                        :class="{ 'rotate-180': expanded }"
-                    >
-                        ▾
-                    </span>
-                </button>
-
+                    MOBILE CLINICAL MENU
+                ============================================== -->
                 <div
-                    x-cloak
-                    x-show="expanded"
-                    class="mobile-primary-nav-panel"
+                    x-data="{
+                        expanded:
+                            '{{ active_primary_nav }}' === 'clinical'
+                    }"
                 >
-                    <!-- Clinical dashboard -->
-                    <a
-                        href="{% url 'core:clinical_dashboard' %}"
-                        hx-boost="false"
-                        class="mobile-primary-nav-link"
-                        @click="mobileMenuOpen = false"
+                    <button
+                        type="button"
+                        class="
+                            mobile-primary-nav-button
+                            {% if active_primary_nav == 'clinical' %}
+                                mobile-primary-nav-button-active
+                            {% endif %}
+                        "
+                        @click="expanded = !expanded"
+                        :aria-expanded="expanded.toString()"
                     >
-                        Clinical Dashboard
-                    </a>
+                        <span>Clinical</span>
 
-                    <!-- Patients -->
-                    <a
-                        href="{% url 'patients:list' %}"
-                        hx-boost="false"
-                        class="mobile-primary-nav-link"
-                        @click="mobileMenuOpen = false"
-                    >
-                        Patients
-                    </a>
+                        <span
+                            class="transition-transform"
+                            :class="{ 'rotate-180': expanded }"
+                        >
+                            ▾
+                        </span>
+                    </button>
 
-                    <!-- Encounters -->
-                    <a
-                        href="{% url 'encounters:list' %}"
-                        hx-boost="false"
-                        class="mobile-primary-nav-link"
-                        @click="mobileMenuOpen = false"
+                    <div
+                        x-cloak
+                        x-show="expanded"
+                        class="mobile-primary-nav-panel"
                     >
-                        Encounters
-                    </a>
 
-                    <!-- Nursing -->
-                    <a
-                        href="#"
-                        class="mobile-primary-nav-link"
-                    >
-                        Nursing
-                    </a>
+                        <!-- Clinical dashboard -->
+                        <a
+                            href="{% url 'core:clinical_dashboard' %}"
+                            hx-boost="false"
+                            class="mobile-primary-nav-link"
+                            @click="mobileMenuOpen = false"
+                        >
+                            Clinical Dashboard
+                        </a>
 
-                    <!-- Orders -->
-                    <a
-                        href="{% url 'orders:list' %}"
-                        hx-boost="false"
-                        class="mobile-primary-nav-link"
-                    >
-                        Orders
-                    </a>
+                        <!-- Patients -->
+                        <a
+                            href="{% url 'patients:list' %}"
+                            hx-boost="false"
+                            class="mobile-primary-nav-link"
+                            @click="mobileMenuOpen = false"
+                        >
+                            Patients
+                        </a>
 
-                    <!-- Medications -->
-                    <a
-                        href="{% url 'medications:list' %}"
-                        hx-boost="false"
-                        class="mobile-primary-nav-link"
-                    >
-                        Medications
-                    </a>
+                        <!-- Encounters -->
+                        <a
+                            href="{% url 'encounters:list' %}"
+                            hx-boost="false"
+                            class="mobile-primary-nav-link"
+                            @click="mobileMenuOpen = false"
+                        >
+                            Encounters
+                        </a>
 
-                    <!-- Pharmacy -->
-                    <a
-                        href="{% url 'pharmacy:dashboard' %}"
-                        hx-boost="false"
-                        class="mobile-primary-nav-link"
-                        @click="mobileMenuOpen = false"
-                    >
-                        Pharmacy
-                    </a>
+                        <!-- Nursing -->
+                        <span
+                            class="
+                                mobile-primary-nav-link
+                                cursor-not-allowed
+                                opacity-50
+                            "
+                            aria-disabled="true"
+                        >
+                            Nursing
+                        </span>
 
-                    <!-- Care management -->
-                    <a
-                        href="#"
-                        class="mobile-primary-nav-link"
-                    >
-                        Care Management
-                    </a>
+                        <!-- Orders -->
+                        <a
+                            href="{% url 'orders:list' %}"
+                            hx-boost="false"
+                            class="
+                                mobile-primary-nav-link
+                                {% if active_clinical_module == 'orders' %}
+                                    mobile-primary-nav-link-active
+                                {% endif %}
+                            "
+                            {% if active_clinical_module == "orders" %}
+                                aria-current="page"
+                            {% endif %}
+                            @click="mobileMenuOpen = false"
+                        >
+                            Orders
+                        </a>
+
+                        <!-- Medications -->
+                        <a
+                            href="{% url 'medications:list' %}"
+                            hx-boost="false"
+                            class="
+                                mobile-primary-nav-link
+                                {% if active_clinical_module == 'medications' %}
+                                    mobile-primary-nav-link-active
+                                {% endif %}
+                            "
+                            {% if active_clinical_module == "medications" %}
+                                aria-current="page"
+                            {% endif %}
+                            @click="mobileMenuOpen = false"
+                        >
+                            Medications
+                        </a>
+
+                        <!-- Pharmacy -->
+                        <a
+                            href="{% url 'pharmacy:dashboard' %}"
+                            hx-boost="false"
+                            class="
+                                mobile-primary-nav-link
+                                {% if active_clinical_module == 'pharmacy' %}
+                                    mobile-primary-nav-link-active
+                                {% endif %}
+                            "
+                            {% if active_clinical_module == "pharmacy" %}
+                                aria-current="page"
+                            {% endif %}
+                            @click="mobileMenuOpen = false"
+                        >
+                            Pharmacy
+                        </a>
+
+                        <!-- Care management -->
+                        <span
+                            class="
+                                mobile-primary-nav-link
+                                cursor-not-allowed
+                                opacity-50
+                            "
+                            aria-disabled="true"
+                        >
+                            Care Management
+                        </span>
+
+                    </div>
                 </div>
-            </div>
 
 
                         <!-- =============================================

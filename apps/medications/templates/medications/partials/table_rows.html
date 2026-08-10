@@ -1,1 +1,229 @@
 {# HTMX table rows partial for medications #}
+
+
+{% comment %}
+============================================================
+MEDICATION ADMINISTRATION TABLE
+============================================================
+{% endcomment %}
+
+
+<div class="overflow-x-auto">
+
+    <table class="min-w-full text-xs">
+
+        <thead class="bg-slate-50 text-slate-600">
+
+            <tr>
+
+                {% if not selected_patient %}
+                    <th class="px-3 py-2 text-left font-semibold">
+                        Patient
+                    </th>
+                {% endif %}
+
+                <th class="px-3 py-2 text-left font-semibold">
+                    Medication
+                </th>
+
+                <th class="px-3 py-2 text-left font-semibold">
+                    Dose
+                </th>
+
+                <th class="px-3 py-2 text-left font-semibold">
+                    Route
+                </th>
+
+                <th class="px-3 py-2 text-left font-semibold">
+                    Status
+                </th>
+
+                <th class="px-3 py-2 text-left font-semibold">
+                    Time
+                </th>
+
+                <th class="px-3 py-2 text-left font-semibold">
+                    Clinician
+                </th>
+
+            </tr>
+
+        </thead>
+
+
+        <tbody class="divide-y divide-slate-100">
+
+            {% for administration in administrations %}
+
+                <tr class="hover:bg-slate-50">
+
+                    {% if not selected_patient %}
+
+                        <td class="px-3 py-2.5">
+
+                            <div class="font-medium text-slate-900">
+                                {{ administration.patient.display_name }}
+                            </div>
+
+                            {% if administration.patient.mrn %}
+                                <div class="text-[10px] text-slate-500">
+                                    MRN {{ administration.patient.mrn }}
+                                </div>
+                            {% endif %}
+
+                        </td>
+
+                    {% endif %}
+
+
+                    <td class="px-3 py-2.5">
+
+                        <div class="font-medium text-slate-900">
+                            {{ administration.medication.display_name }}
+                        </div>
+
+                        {% if administration.medication_order %}
+                            <div class="text-[10px] text-slate-500">
+                                Ordered medication
+                            </div>
+                        {% endif %}
+
+                    </td>
+
+
+                    <td class="px-3 py-2.5 text-slate-700">
+                        {{ administration.dose_administered|default:"—" }}
+                    </td>
+
+
+                    <td class="px-3 py-2.5 text-slate-700">
+                        {{ administration.route|default:"—" }}
+                    </td>
+
+
+                    <td class="px-3 py-2.5">
+
+                        {% if administration.status == "administered" %}
+
+                            <span
+                                class="
+                                    rounded-full
+                                    bg-emerald-100
+                                    px-2 py-1
+                                    text-[10px] font-semibold
+                                    text-emerald-800
+                                "
+                            >
+                                Administered
+                            </span>
+
+                        {% elif administration.status == "held" %}
+
+                            <span
+                                class="
+                                    rounded-full
+                                    bg-amber-100
+                                    px-2 py-1
+                                    text-[10px] font-semibold
+                                    text-amber-800
+                                "
+                            >
+                                Held
+                            </span>
+
+                        {% elif administration.status == "refused" %}
+
+                            <span
+                                class="
+                                    rounded-full
+                                    bg-orange-100
+                                    px-2 py-1
+                                    text-[10px] font-semibold
+                                    text-orange-800
+                                "
+                            >
+                                Refused
+                            </span>
+
+                        {% else %}
+
+                            <span
+                                class="
+                                    rounded-full
+                                    bg-slate-100
+                                    px-2 py-1
+                                    text-[10px] font-semibold
+                                    text-slate-700
+                                "
+                            >
+                                {{ administration.get_status_display }}
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td class="px-3 py-2.5 text-slate-600">
+                        {{ administration.administered_at|date:"m/d/Y H:i" }}
+                    </td>
+
+
+                    <td class="px-3 py-2.5 text-slate-600">
+                        {{ administration.administered_by }}
+                    </td>
+
+                </tr>
+
+
+                {% if administration.reason %}
+
+                    <tr class="bg-amber-50/40">
+
+                        <td
+                            colspan="7"
+                            class="
+                                px-4 py-2
+                                text-[10px]
+                                text-slate-600
+                            "
+                        >
+                            <strong>Reason:</strong>
+                            {{ administration.reason }}
+                        </td>
+
+                    </tr>
+
+                {% endif %}
+
+            {% empty %}
+
+                <tr>
+
+                    <td
+                        colspan="7"
+                        class="
+                            px-6 py-12
+                            text-center
+                        "
+                    >
+
+                        <p class="text-sm font-medium text-slate-700">
+                            No administrations recorded
+                        </p>
+
+                        <p class="mt-1 text-xs text-slate-500">
+                            Medication administration events will appear here.
+                        </p>
+
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>

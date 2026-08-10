@@ -1,7 +1,165 @@
-{# HTMX detail partial for medications #}
+{% comment %}
+Expected context:
+- administration
+{% endcomment %}
 
-<div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-    <p class="text-slate-500">
-        Record details will appear here.
-    </p>
+
+<div class="p-4">
+
+    <div
+        class="
+            grid gap-4
+            sm:grid-cols-2
+            lg:grid-cols-3
+        "
+    >
+
+        <div>
+            <p class="text-[10px] font-semibold uppercase text-slate-500">
+                Medication
+            </p>
+
+            <p class="mt-1 text-xs font-semibold text-slate-900">
+                {{ administration.medication.display_name }}
+            </p>
+        </div>
+
+
+        <div>
+            <p class="text-[10px] font-semibold uppercase text-slate-500">
+                Patient
+            </p>
+
+            <p class="mt-1 text-xs text-slate-800">
+                {{ administration.patient.display_name }}
+            </p>
+        </div>
+
+
+        <div>
+            <p class="text-[10px] font-semibold uppercase text-slate-500">
+                Status
+            </p>
+
+            <p class="mt-1 text-xs text-slate-800">
+                {{ administration.get_status_display }}
+            </p>
+        </div>
+
+
+        <div>
+            <p class="text-[10px] font-semibold uppercase text-slate-500">
+                Dose
+            </p>
+
+            <p class="mt-1 text-xs text-slate-800">
+                {{ administration.dose_administered|default:"—" }}
+            </p>
+        </div>
+
+
+        <div>
+            <p class="text-[10px] font-semibold uppercase text-slate-500">
+                Route
+            </p>
+
+            <p class="mt-1 text-xs text-slate-800">
+                {{ administration.route|default:"—" }}
+            </p>
+        </div>
+
+
+        <div>
+            <p class="text-[10px] font-semibold uppercase text-slate-500">
+                Site
+            </p>
+
+            <p class="mt-1 text-xs text-slate-800">
+                {{ administration.administration_site|default:"—" }}
+            </p>
+        </div>
+
+
+        <div>
+            <p class="text-[10px] font-semibold uppercase text-slate-500">
+                Event Time
+            </p>
+
+            <p class="mt-1 text-xs text-slate-800">
+                {{ administration.administered_at|date:"m/d/Y H:i" }}
+            </p>
+        </div>
+
+
+        <div>
+            <p class="text-[10px] font-semibold uppercase text-slate-500">
+                Administered By
+            </p>
+
+            <p class="mt-1 text-xs text-slate-800">
+                {{ administration.administered_by }}
+            </p>
+        </div>
+
+
+        <div>
+            <p class="text-[10px] font-semibold uppercase text-slate-500">
+                Witness
+            </p>
+
+            <p class="mt-1 text-xs text-slate-800">
+                {{ administration.witnessed_by|default:"—" }}
+            </p>
+        </div>
+
+    </div>
+
+
+    {% if administration.reason %}
+
+        <div
+            class="
+                mt-4
+                rounded-md
+                border border-amber-200
+                bg-amber-50
+                px-3 py-2
+            "
+        >
+
+            <p class="text-[10px] font-semibold uppercase text-amber-800">
+                Reason
+            </p>
+
+            <p class="mt-1 text-xs text-amber-900">
+                {{ administration.reason }}
+            </p>
+
+        </div>
+
+    {% endif %}
+
+
+    {% if administration.notes %}
+
+        <div class="mt-4">
+
+            <p class="text-[10px] font-semibold uppercase text-slate-500">
+                Notes
+            </p>
+
+            <p
+                class="
+                    mt-1 whitespace-pre-line
+                    text-xs leading-5
+                    text-slate-700
+                "
+            >
+                {{ administration.notes }}
+            </p>
+
+        </div>
+
+    {% endif %}
+
 </div>

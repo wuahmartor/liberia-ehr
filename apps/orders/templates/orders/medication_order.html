@@ -1,62 +1,1335 @@
 {% extends "layouts/app_shell.html" %}
 
-{% block workspace %}
-<section class="mx-auto max-w-5xl">
-    <div class="flex items-start justify-between gap-4">
-        <div>
-            <p class="text-sm font-semibold text-emerald-700">Clinical orders</p>
-            <h1 class="mt-1 text-2xl font-bold text-slate-950">Medication Order</h1>
-            <p class="mt-2 text-sm text-slate-600">
-                {{ selected_patient.display_name }} · {{ active_encounter.encounter_number }}
-            </p>
-        </div>
-        <a
-            href="{% url 'medications:mar' encounter_id=active_encounter.pk %}"
-            class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-        >View MAR</a>
-    </div>
+{% block title %}
 
-    <div class="mt-6 grid gap-6 lg:grid-cols-2">
-        <form method="post" class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            {% csrf_token %}
-            <h2 class="text-base font-semibold text-slate-900">New medication order</h2>
-            <p class="mt-1 text-sm text-slate-600">Choose an active medication from the pharmacy catalog.</p>
+Medication Order | Liberia EHR
 
-            <div class="mt-5 space-y-4">
-                <div data-medication-picker>
-                    <label for="medication-search" class="block text-sm font-medium text-slate-700">Search medication</label>
-                    <input id="medication-search" data-medication-search type="search" class="mt-1 w-full rounded-md border-slate-300 text-sm" placeholder="Name, strength, or code">
-                    <label for="{{ form.medication.id_for_label }}" class="mt-3 block text-sm font-medium text-slate-700">Medication</label>
-                    {{ form.medication }}
-                    {% for error in form.medication.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
-                    <p data-medication-status class="mt-1 text-xs text-slate-500"></p>
-                </div>
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div><label for="{{ form.dose.id_for_label }}" class="block text-sm font-medium text-slate-700">Dose</label>{{ form.dose }}</div>
-                    <div><label for="{{ form.route.id_for_label }}" class="block text-sm font-medium text-slate-700">Route</label>{{ form.route }}</div>
-                    <div><label for="{{ form.frequency.id_for_label }}" class="block text-sm font-medium text-slate-700">Frequency</label>{{ form.frequency }}</div>
-                    <div><label for="{{ form.quantity.id_for_label }}" class="block text-sm font-medium text-slate-700">Quantity</label>{{ form.quantity }}</div>
-                </div>
-                <div><label for="{{ form.instructions.id_for_label }}" class="block text-sm font-medium text-slate-700">Instructions</label>{{ form.instructions }}</div>
-                <button type="submit" class="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Save medication order</button>
-            </div>
-        </form>
-
-        <section class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 class="text-base font-semibold text-slate-900">Encounter medication orders</h2>
-            <div class="mt-4 space-y-3">
-                {% for medication_order in medication_orders %}
-                    <article class="rounded-md border border-slate-200 p-3">
-                        <p class="font-semibold text-slate-900">{{ medication_order.medication.display_name }}</p>
-                        <p class="mt-1 text-sm text-slate-600">{{ medication_order.dose }} · {{ medication_order.route }} · {{ medication_order.frequency }}</p>
-                        <p class="mt-1 text-xs text-slate-500">{{ medication_order.get_status_display }} · Ordered by {{ medication_order.ordered_by.get_full_name|default:medication_order.ordered_by.username }}</p>
-                    </article>
-                {% empty %}
-                    <p class="text-sm text-slate-500">No medication orders have been recorded for this encounter.</p>
-                {% endfor %}
-            </div>
-        </section>
-    </div>
-</section>
-{% include "components/medication_picker_script.html" %}
 {% endblock %}
+
+{% block workspace %}
+
+<section
+
+    id="medication-order-workspace"
+
+    x-data="{
+
+        submitting: false
+
+    }"
+
+    class="
+
+        flex h-full min-h-0
+
+        flex-col
+
+        bg-slate-50
+
+    "
+
+>
+
+    <!-- =====================================================
+
+         HEADER
+
+    ====================================================== -->
+
+    <header
+
+        class="
+
+            shrink-0
+
+            border-b border-slate-200
+
+            bg-white
+
+            px-4 py-3
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex flex-col gap-3
+
+                sm:flex-row
+
+                sm:items-center
+
+                sm:justify-between
+
+            "
+
+        >
+
+            <div class="min-w-0">
+
+                <div class="flex flex-wrap items-center gap-2">
+
+                    <h1
+
+                        class="
+
+                            text-base font-semibold
+
+                            text-slate-900
+
+                        "
+
+                    >
+
+                        Medication Order
+
+                    </h1>
+
+                    {% if active_encounter.is_open %}
+
+                        <span
+
+                            class="
+
+                                rounded-full
+
+                                bg-emerald-100
+
+                                px-2 py-0.5
+
+                                text-[10px] font-semibold
+
+                                text-emerald-800
+
+                            "
+
+                        >
+
+                            Open Encounter
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+                <div
+
+                    class="
+
+                        mt-1
+
+                        flex flex-wrap
+
+                        items-center gap-x-2
+
+                        text-[11px]
+
+                        text-slate-500
+
+                    "
+
+                >
+
+                    <span class="font-medium text-slate-700">
+
+                        {{ selected_patient.display_name }}
+
+                    </span>
+
+                    {% if selected_patient.mrn %}
+
+                        <span>· MRN {{ selected_patient.mrn }}</span>
+
+                    {% endif %}
+
+                    {% if active_encounter.encounter_number %}
+
+                        <span>
+
+                            · Encounter {{ active_encounter.encounter_number }}
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <div class="flex items-center gap-2">
+
+                <a
+
+                    href="{% url 'medications:patient-list' patient_id=selected_patient.pk %}"
+
+                    hx-boost="false"
+
+                    class="
+
+                        rounded-md
+
+                        border border-slate-300
+
+                        bg-white
+
+                        px-3 py-2
+
+                        text-xs font-medium
+
+                        text-slate-700
+
+                        hover:bg-slate-50
+
+                    "
+
+                >
+
+                    Medication Record
+
+                </a>
+
+                <a
+
+                    href="{% url 'medications:mar' encounter_id=active_encounter.pk %}"
+
+                    hx-boost="false"
+
+                    class="
+
+                        rounded-md
+
+                        bg-emerald-700
+
+                        px-3 py-2
+
+                        text-xs font-semibold
+
+                        text-white
+
+                        hover:bg-emerald-800
+
+                    "
+
+                >
+
+                    View MAR
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </header>
+
+    <!-- =====================================================
+
+         CONTENT
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            min-h-0 flex-1
+
+            overflow-y-auto
+
+            p-4
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                grid gap-4
+
+                xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]
+
+            "
+
+        >
+
+            <!-- =================================================
+
+                 NEW MEDICATION ORDER
+
+            ================================================== -->
+
+            <section
+
+                class="
+
+                    overflow-hidden
+
+                    rounded-lg
+
+                    border border-slate-200
+
+                    bg-white
+
+                "
+
+            >
+
+                <header
+
+                    class="
+
+                        border-b border-slate-200
+
+                        px-4 py-3
+
+                    "
+
+                >
+
+                    <h2
+
+                        class="
+
+                            text-sm font-semibold
+
+                            text-slate-900
+
+                        "
+
+                    >
+
+                        New Medication Order
+
+                    </h2>
+
+                    <p
+
+                        class="
+
+                            mt-0.5
+
+                            text-[11px]
+
+                            text-slate-500
+
+                        "
+
+                    >
+
+                        Select a medication from the active pharmacy formulary.
+
+                    </p>
+
+                </header>
+
+                <form
+
+                    method="post"
+
+                    action="{{ request.path }}"
+
+                    @submit="submitting = true"
+
+                    class="p-4"
+
+                >
+
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+
+                        <div
+
+                            class="
+
+                                mb-4
+
+                                rounded-md
+
+                                border border-red-200
+
+                                bg-red-50
+
+                                px-3 py-2
+
+                                text-xs
+
+                                text-red-700
+
+                            "
+
+                        >
+
+                            {{ form.non_field_errors }}
+
+                        </div>
+
+                    {% endif %}
+
+                    <div class="space-y-4">
+
+                        <!-- =====================================
+
+                             MEDICATION
+
+                        ====================================== -->
+
+                        <div>
+
+                            <label
+
+                                for="{{ form.medication.id_for_label }}"
+
+                                class="
+
+                                    mb-1 block
+
+                                    text-xs font-semibold
+
+                                    text-slate-700
+
+                                "
+
+                            >
+
+                                Medication
+
+                                <span class="text-red-600">*</span>
+
+                            </label>
+
+                            {{ form.medication }}
+
+                            {% for error in form.medication.errors %}
+
+                                <p
+
+                                    class="
+
+                                        mt-1
+
+                                        text-[10px]
+
+                                        font-medium
+
+                                        text-red-600
+
+                                    "
+
+                                >
+
+                                    {{ error }}
+
+                                </p>
+
+                            {% endfor %}
+
+                            <p
+
+                                class="
+
+                                    mt-1
+
+                                    text-[10px]
+
+                                    text-slate-500
+
+                                "
+
+                            >
+
+                                Medication choices are supplied by the Pharmacy formulary.
+
+                            </p>
+
+                        </div>
+
+                        <!-- =====================================
+
+                             ORDER DETAILS
+
+                        ====================================== -->
+
+                        <div
+
+                            class="
+
+                                grid gap-3
+
+                                sm:grid-cols-2
+
+                            "
+
+                        >
+
+                            <div>
+
+                                <label
+
+                                    for="{{ form.dose.id_for_label }}"
+
+                                    class="
+
+                                        mb-1 block
+
+                                        text-xs font-medium
+
+                                        text-slate-700
+
+                                    "
+
+                                >
+
+                                    Dose
+
+                                </label>
+
+                                {{ form.dose }}
+
+                                {% for error in form.dose.errors %}
+
+                                    <p class="mt-1 text-[10px] text-red-600">
+
+                                        {{ error }}
+
+                                    </p>
+
+                                {% endfor %}
+
+                            </div>
+
+                            <div>
+
+                                <label
+
+                                    for="{{ form.route.id_for_label }}"
+
+                                    class="
+
+                                        mb-1 block
+
+                                        text-xs font-medium
+
+                                        text-slate-700
+
+                                    "
+
+                                >
+
+                                    Route
+
+                                </label>
+
+                                {{ form.route }}
+
+                                {% for error in form.route.errors %}
+
+                                    <p class="mt-1 text-[10px] text-red-600">
+
+                                        {{ error }}
+
+                                    </p>
+
+                                {% endfor %}
+
+                            </div>
+
+                            <div>
+
+                                <label
+
+                                    for="{{ form.frequency.id_for_label }}"
+
+                                    class="
+
+                                        mb-1 block
+
+                                        text-xs font-medium
+
+                                        text-slate-700
+
+                                    "
+
+                                >
+
+                                    Frequency
+
+                                </label>
+
+                                {{ form.frequency }}
+
+                                {% for error in form.frequency.errors %}
+
+                                    <p class="mt-1 text-[10px] text-red-600">
+
+                                        {{ error }}
+
+                                    </p>
+
+                                {% endfor %}
+
+                            </div>
+
+                            {% if form.quantity %}
+
+                                <div>
+
+                                    <label
+
+                                        for="{{ form.quantity.id_for_label }}"
+
+                                        class="
+
+                                            mb-1 block
+
+                                            text-xs font-medium
+
+                                            text-slate-700
+
+                                        "
+
+                                    >
+
+                                        Quantity
+
+                                    </label>
+
+                                    {{ form.quantity }}
+
+                                    {% for error in form.quantity.errors %}
+
+                                        <p class="mt-1 text-[10px] text-red-600">
+
+                                            {{ error }}
+
+                                        </p>
+
+                                    {% endfor %}
+
+                                </div>
+
+                            {% endif %}
+
+                            {% if form.priority %}
+
+                                <div>
+
+                                    <label
+
+                                        for="{{ form.priority.id_for_label }}"
+
+                                        class="
+
+                                            mb-1 block
+
+                                            text-xs font-medium
+
+                                            text-slate-700
+
+                                        "
+
+                                    >
+
+                                        Priority
+
+                                    </label>
+
+                                    {{ form.priority }}
+
+                                </div>
+
+                            {% endif %}
+
+                            {% if form.start_datetime %}
+
+                                <div>
+
+                                    <label
+
+                                        for="{{ form.start_datetime.id_for_label }}"
+
+                                        class="
+
+                                            mb-1 block
+
+                                            text-xs font-medium
+
+                                            text-slate-700
+
+                                        "
+
+                                    >
+
+                                        Start
+
+                                    </label>
+
+                                    {{ form.start_datetime }}
+
+                                </div>
+
+                            {% endif %}
+
+                            {% if form.end_datetime %}
+
+                                <div>
+
+                                    <label
+
+                                        for="{{ form.end_datetime.id_for_label }}"
+
+                                        class="
+
+                                            mb-1 block
+
+                                            text-xs font-medium
+
+                                            text-slate-700
+
+                                        "
+
+                                    >
+
+                                        End
+
+                                    </label>
+
+                                    {{ form.end_datetime }}
+
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                        <!-- =====================================
+
+                             PRN
+
+                        ====================================== -->
+
+                        {% if form.is_prn %}
+
+                            <div
+
+                                x-data="{
+
+                                    prn:
+
+                                        {% if form.is_prn.value %}
+
+                                            true
+
+                                        {% else %}
+
+                                            false
+
+                                        {% endif %}
+
+                                }"
+
+                            >
+
+                                <label
+
+                                    class="
+
+                                        flex items-center gap-2
+
+                                        rounded-md
+
+                                        border border-slate-200
+
+                                        bg-slate-50
+
+                                        px-3 py-2
+
+                                        text-xs font-medium
+
+                                        text-slate-700
+
+                                    "
+
+                                >
+
+                                    <span @click="prn = !prn">
+
+                                        {{ form.is_prn }}
+
+                                    </span>
+
+                                    <span>
+
+                                        PRN / As Needed
+
+                                    </span>
+
+                                </label>
+
+                                {% if form.prn_indication %}
+
+                                    <div
+
+                                        x-show="prn"
+
+                                        x-transition
+
+                                        class="mt-3"
+
+                                    >
+
+                                        <label
+
+                                            for="{{ form.prn_indication.id_for_label }}"
+
+                                            class="
+
+                                                mb-1 block
+
+                                                text-xs font-medium
+
+                                                text-slate-700
+
+                                            "
+
+                                        >
+
+                                            PRN Indication
+
+                                        </label>
+
+                                        {{ form.prn_indication }}
+
+                                    </div>
+
+                                {% endif %}
+
+                            </div>
+
+                        {% endif %}
+
+                        <!-- =====================================
+
+                             INSTRUCTIONS
+
+                        ====================================== -->
+
+                        {% if form.instructions %}
+
+                            <div>
+
+                                <label
+
+                                    for="{{ form.instructions.id_for_label }}"
+
+                                    class="
+
+                                        mb-1 block
+
+                                        text-xs font-medium
+
+                                        text-slate-700
+
+                                    "
+
+                                >
+
+                                    Instructions
+
+                                </label>
+
+                                {{ form.instructions }}
+
+                                {% for error in form.instructions.errors %}
+
+                                    <p class="mt-1 text-[10px] text-red-600">
+
+                                        {{ error }}
+
+                                    </p>
+
+                                {% endfor %}
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                    <!-- =========================================
+
+                         ACTIONS
+
+                    ========================================== -->
+
+                    <footer
+
+                        class="
+
+                            mt-5
+
+                            flex items-center
+
+                            justify-end gap-2
+
+                            border-t border-slate-200
+
+                            pt-3
+
+                        "
+
+                    >
+
+                        <a
+
+                            href="{% url 'encounters:detail' active_encounter.pk %}"
+
+                            hx-boost="false"
+
+                            class="
+
+                                rounded-md
+
+                                border border-slate-300
+
+                                bg-white
+
+                                px-3 py-2
+
+                                text-xs font-medium
+
+                                text-slate-700
+
+                                hover:bg-slate-50
+
+                            "
+
+                        >
+
+                            Cancel
+
+                        </a>
+
+                        <button
+
+                            type="submit"
+
+                            :disabled="submitting"
+
+                            class="
+
+                                rounded-md
+
+                                bg-emerald-700
+
+                                px-4 py-2
+
+                                text-xs font-semibold
+
+                                text-white
+
+                                hover:bg-emerald-800
+
+                                disabled:cursor-not-allowed
+
+                                disabled:opacity-50
+
+                            "
+
+                        >
+
+                            <span x-show="!submitting">
+
+                                Place Medication Order
+
+                            </span>
+
+                            <span
+
+                                x-cloak
+
+                                x-show="submitting"
+
+                            >
+
+                                Saving...
+
+                            </span>
+
+                        </button>
+
+                    </footer>
+
+                </form>
+
+            </section>
+
+            <!-- =================================================
+
+                 ENCOUNTER MEDICATION ORDERS
+
+            ================================================== -->
+
+            <section
+
+                class="
+
+                    overflow-hidden
+
+                    rounded-lg
+
+                    border border-slate-200
+
+                    bg-white
+
+                "
+
+            >
+
+                <header
+
+                    class="
+
+                        flex items-center
+
+                        justify-between
+
+                        border-b border-slate-200
+
+                        px-4 py-3
+
+                    "
+
+                >
+
+                    <div>
+
+                        <h2
+
+                            class="
+
+                                text-sm font-semibold
+
+                                text-slate-900
+
+                            "
+
+                        >
+
+                            Encounter Medication Orders
+
+                        </h2>
+
+                        <p
+
+                            class="
+
+                                mt-0.5
+
+                                text-[11px]
+
+                                text-slate-500
+
+                            "
+
+                        >
+
+                            Orders entered during this encounter.
+
+                        </p>
+
+                    </div>
+
+                    <span
+
+                        class="
+
+                            rounded-full
+
+                            bg-slate-100
+
+                            px-2 py-1
+
+                            text-[10px] font-semibold
+
+                            text-slate-600
+
+                        "
+
+                    >
+
+                        {{ medication_orders|length }}
+
+                    </span>
+
+                </header>
+
+                {% if medication_orders %}
+
+                    <div class="overflow-x-auto">
+
+                        <table class="min-w-full text-xs">
+
+                            <thead
+
+                                class="
+
+                                    bg-slate-50
+
+                                    text-slate-600
+
+                                "
+
+                            >
+
+                                <tr>
+
+                                    <th class="px-3 py-2 text-left font-semibold">
+
+                                        Medication
+
+                                    </th>
+
+                                    <th class="px-3 py-2 text-left font-semibold">
+
+                                        Order
+
+                                    </th>
+
+                                    <th class="px-3 py-2 text-left font-semibold">
+
+                                        Status
+
+                                    </th>
+
+                                    <th class="px-3 py-2 text-left font-semibold">
+
+                                        Safety
+
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody class="divide-y divide-slate-100">
+
+                                {% for medication_order in medication_orders %}
+
+                                    <tr class="hover:bg-slate-50">
+
+                                        <!-- MEDICATION -->
+
+                                        <td class="px-3 py-2.5">
+
+                                            <div
+
+                                                class="
+
+                                                    font-semibold
+
+                                                    text-slate-900
+
+                                                "
+
+                                            >
+
+                                                {{ medication_order.medication.display_name }}
+
+                                            </div>
+
+                                            <div
+
+                                                class="
+
+                                                    mt-0.5
+
+                                                    text-[10px]
+
+                                                    text-slate-500
+
+                                                "
+
+                                            >
+
+                                                {{ medication_order.medication.code }}
+
+                                                {% if medication_order.medication.rxnorm_rxcui %}
+
+                                                    · RxCUI
+
+                                                    {{ medication_order.medication.rxnorm_rxcui }}
+
+                                                {% endif %}
+
+                                            </div>
+
+                                        </td>
+
+                                        <!-- ORDER -->
+
+                                        <td class="px-3 py-2.5">
+
+                                            <div class="text-slate-800">
+
+                                                {% if medication_order.dose %}
+
+                                                    {{ medication_order.dose }}
+
+                                                {% endif %}
+
+                                                {% if medication_order.route %}
+
+                                                    · {{ medication_order.route }}
+
+                                                {% endif %}
+
+                                                {% if medication_order.frequency %}
+
+                                                    · {{ medication_order.frequency }}
+
+                                                {% endif %}
+
+                                            </div>
+
+                                            <div
+
+                                                class="
+
+                                                    mt-0.5
+
+                                                    text-[10px]
+
+                                                    text-slate-500
+
+                                                "
+
+                                            >
+
+                                                {{ medication_order.ordered_at|date:"m/d/Y H:i" }}
+
+                                                {% if medication_order.ordered_by %}
+
+                                                    ·
+
+                                                    {{ medication_order.ordered_by.get_full_name|default:medication_order.ordered_by.username }}
+
+                                                {% endif %}
+
+                                            </div>
+
+                                        </td>
+
+                                        <!-- STATUS -->
+
+                                        <td class="px-3 py-2.5">
+
+                                            <span
+
+                                                class="
+
+                                                    rounded-full
+
+                                                    bg-slate-100
+
+                                                    px-2 py-1
+
+                                                    text-[10px] font-semibold
+
+                                                    text-slate-700
+
+                                                "
+
+                                            >
+
+                                                {{ medication_order.get_status_display }}
+
+                                            </span>
+
+                                        </td>
+
+                                        <!-- SAFETY -->
+
+                                        <td class="px-3 py-2.5">
+
+                                            {% include "medications/components/safety_badges.html" with medication=medication_order.medication %}
+
+                                        </td>
+
+                                    </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                {% else %}
+
+                    <div
+
+                        class="
+
+                            px-6 py-12
+
+                            text-center
+
+                        "
+
+                    >
+
+                        <p
+
+                            class="
+
+                                text-sm font-medium
+
+                                text-slate-700
+
+                            "
+
+                        >
+
+                            No medication orders
+
+                        </p>
+
+                        <p
+
+                            class="
+
+                                mt-1
+
+                                text-xs
+
+                                text-slate-500
+
+                            "
+
+                        >
+
+                            No medication orders have been entered for this encounter.
+
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+            </section>
+
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock workspace %}

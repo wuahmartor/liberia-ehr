@@ -1,0 +1,169 @@
+{% comment %}
+
+============================================================
+
+MEDICATION SAFETY BADGES
+
+File:
+
+apps/medications/templates/medications/components/
+
+safety_badges.html
+
+Purpose:
+
+- Display medication safety attributes supplied by Pharmacy.
+
+- Reuse the same badges in Orders, Medications, and MAR views.
+
+Expected context:
+
+- medication
+
+============================================================
+
+{% endcomment %}
+
+<div class="flex flex-wrap items-center gap-1">
+
+    {% if medication.is_high_alert %}
+
+        <span
+
+            class="
+
+                rounded
+
+                bg-red-100
+
+                px-1.5 py-0.5
+
+                text-[9px] font-bold
+
+                text-red-700
+
+            "
+
+        >
+
+            HIGH ALERT
+
+        </span>
+
+    {% endif %}
+
+    {% if medication.is_lasa %}
+
+        <span
+
+            class="
+
+                rounded
+
+                bg-amber-100
+
+                px-1.5 py-0.5
+
+                text-[9px] font-bold
+
+                text-amber-800
+
+            "
+
+        >
+
+            LASA
+
+        </span>
+
+    {% endif %}
+
+    {% if medication.is_controlled %}
+
+        <span
+
+            class="
+
+                rounded
+
+                bg-purple-100
+
+                px-1.5 py-0.5
+
+                text-[9px] font-bold
+
+                text-purple-700
+
+            "
+
+        >
+
+            CONTROLLED
+
+        </span>
+
+    {% endif %}
+
+    {% if medication.formulary_status == "RESTRICTED" %}
+
+        <span
+
+            class="
+
+                rounded
+
+                bg-orange-100
+
+                px-1.5 py-0.5
+
+                text-[9px] font-bold
+
+                text-orange-700
+
+            "
+
+        >
+
+            RESTRICTED
+
+        </span>
+
+    {% endif %}
+
+    {% if medication.formulary_status == "NON_FORMULARY" %}
+
+        <span
+
+            class="
+
+                rounded
+
+                bg-slate-100
+
+                px-1.5 py-0.5
+
+                text-[9px] font-semibold
+
+                text-slate-600
+
+            "
+
+        >
+
+            NON-FORMULARY
+
+        </span>
+
+    {% endif %}
+
+    {% if not medication.is_high_alert and not medication.is_lasa and not medication.is_controlled and medication.formulary_status != "RESTRICTED" and medication.formulary_status != "NON_FORMULARY" %}
+
+        <span class="text-[10px] text-slate-400">
+
+            —
+
+        </span>
+
+    {% endif %}
+
+</div>
