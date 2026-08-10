@@ -72,6 +72,111 @@ class VitalObservation(models.Model):
         OTHER = "other", "Other"
         NOT_RECORDED = "not_recorded", "Not recorded"
 
+    class BloodPressureLocation(models.TextChoices):
+        LEFT_UPPER_ARM = "left_upper_arm", "Left upper arm"
+        RIGHT_UPPER_ARM = "right_upper_arm", "Right upper arm"
+        LEFT_FOREARM = "left_forearm", "Left forearm"
+        RIGHT_FOREARM = "right_forearm", "Right forearm"
+        LEFT_THIGH = "left_thigh", "Left thigh"
+        RIGHT_THIGH = "right_thigh", "Right thigh"
+        LEFT_CALF = "left_calf", "Left calf"
+        RIGHT_CALF = "right_calf", "Right calf"
+        LEFT_WRIST = "left_wrist", "Left wrist"
+        RIGHT_WRIST = "right_wrist", "Right wrist"
+        LEFT_ANKLE = "left_ankle", "Left ankle"
+        RIGHT_ANKLE = "right_ankle", "Right ankle"
+        OTHER = "other", "Other"
+        NOT_RECORDED = "not_recorded", "Not recorded"
+
+    class PainLocation(models.TextChoices):
+        GENERALIZED = "generalized", "Generalized"
+        SCALP = "scalp", "Scalp"
+        OCCIPUT = "occiput", "Back of head"
+        FOREHEAD = "forehead", "Forehead"
+        HEAD = "head", "Head"
+        FACE = "face", "Face"
+        LEFT_EYE = "left_eye", "Left eye"
+        RIGHT_EYE = "right_eye", "Right eye"
+        LEFT_EAR = "left_ear", "Left ear"
+        RIGHT_EAR = "right_ear", "Right ear"
+        NOSE = "nose", "Nose"
+        LEFT_CHEEK = "left_cheek", "Left cheek"
+        RIGHT_CHEEK = "right_cheek", "Right cheek"
+        JAW = "jaw", "Jaw"
+        MOUTH = "mouth", "Mouth"
+        NECK = "neck", "Neck"
+        THROAT = "throat", "Throat"
+        LEFT_CLAVICLE = "left_clavicle", "Left clavicle"
+        RIGHT_CLAVICLE = "right_clavicle", "Right clavicle"
+        LEFT_AXILLA = "left_axilla", "Left axilla"
+        RIGHT_AXILLA = "right_axilla", "Right axilla"
+        LEFT_SHOULDER = "left_shoulder", "Left shoulder"
+        RIGHT_SHOULDER = "right_shoulder", "Right shoulder"
+        LEFT_CHEST = "left_chest", "Left chest"
+        RIGHT_CHEST = "right_chest", "Right chest"
+        STERNUM = "sternum", "Sternum"
+        LEFT_RIBS = "left_ribs", "Left ribs"
+        RIGHT_RIBS = "right_ribs", "Right ribs"
+        UPPER_ABDOMEN = "upper_abdomen", "Upper abdomen"
+        LEFT_UPPER_QUADRANT = "left_upper_quadrant", "Left upper quadrant"
+        RIGHT_UPPER_QUADRANT = "right_upper_quadrant", "Right upper quadrant"
+        UMBILICUS = "umbilicus", "Umbilicus"
+        LEFT_LOWER_QUADRANT = "left_lower_quadrant", "Left lower quadrant"
+        RIGHT_LOWER_QUADRANT = "right_lower_quadrant", "Right lower quadrant"
+        LOWER_ABDOMEN = "lower_abdomen", "Lower abdomen"
+        LEFT_FLANK = "left_flank", "Left flank"
+        RIGHT_FLANK = "right_flank", "Right flank"
+        PELVIC = "pelvic", "Pelvic region"
+        UPPER_BACK = "upper_back", "Upper back"
+        CERVICAL_SPINE = "cervical_spine", "Cervical spine"
+        THORACIC_SPINE = "thoracic_spine", "Thoracic spine"
+        LUMBAR_SPINE = "lumbar_spine", "Lumbar spine"
+        SACRUM = "sacrum", "Sacrum"
+        COCCYX = "coccyx", "Coccyx"
+        LEFT_SCAPULA = "left_scapula", "Left shoulder blade"
+        RIGHT_SCAPULA = "right_scapula", "Right shoulder blade"
+        LEFT_GLUTEAL = "left_gluteal", "Left buttock"
+        RIGHT_GLUTEAL = "right_gluteal", "Right buttock"
+        LOWER_BACK = "lower_back", "Lower back"
+        LEFT_UPPER_ARM = "left_upper_arm", "Left upper arm"
+        RIGHT_UPPER_ARM = "right_upper_arm", "Right upper arm"
+        LEFT_BICEP = "left_bicep", "Left bicep"
+        RIGHT_BICEP = "right_bicep", "Right bicep"
+        LEFT_TRICEP = "left_tricep", "Left tricep"
+        RIGHT_TRICEP = "right_tricep", "Right tricep"
+        LEFT_ELBOW = "left_elbow", "Left elbow"
+        RIGHT_ELBOW = "right_elbow", "Right elbow"
+        LEFT_FOREARM = "left_forearm", "Left forearm"
+        RIGHT_FOREARM = "right_forearm", "Right forearm"
+        LEFT_WRIST = "left_wrist", "Left wrist"
+        RIGHT_WRIST = "right_wrist", "Right wrist"
+        LEFT_HAND = "left_hand", "Left hand"
+        RIGHT_HAND = "right_hand", "Right hand"
+        PELVIS = "pelvis", "Pelvis"
+        LEFT_HIP = "left_hip", "Left hip"
+        RIGHT_HIP = "right_hip", "Right hip"
+        GROIN = "groin", "Groin"
+        LEFT_THIGH = "left_thigh", "Left thigh"
+        RIGHT_THIGH = "right_thigh", "Right thigh"
+        LEFT_INNER_THIGH = "left_inner_thigh", "Left inner thigh"
+        RIGHT_INNER_THIGH = "right_inner_thigh", "Right inner thigh"
+        LEFT_CALF = "left_calf", "Left calf"
+        RIGHT_CALF = "right_calf", "Right calf"
+        LEFT_KNEE = "left_knee", "Left knee"
+        RIGHT_KNEE = "right_knee", "Right knee"
+        LEFT_LOWER_LEG = "left_lower_leg", "Left lower leg"
+        RIGHT_LOWER_LEG = "right_lower_leg", "Right lower leg"
+        LEFT_ANKLE = "left_ankle", "Left ankle"
+        RIGHT_ANKLE = "right_ankle", "Right ankle"
+        LEFT_FOOT = "left_foot", "Left foot"
+        RIGHT_FOOT = "right_foot", "Right foot"
+        OTHER = "other", "Other"
+
+    class PainStatus(models.TextChoices):
+        YES = "yes", "Yes"
+        NO = "no", "No / denies pain"
+        NOT_ASSESSED = "not_assessed", "Not assessed"
+
     class TemperatureSite(models.TextChoices):
         ORAL = "oral", "Oral"
         AXILLARY = "axillary", "Axillary"
@@ -154,12 +259,38 @@ class VitalObservation(models.Model):
         ],
     )
 
+    temperature_fahrenheit = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(Decimal("77.0")),
+            MaxValueValidator(Decimal("113.0")),
+        ],
+        help_text="Canonical stored temperature in degrees Fahrenheit.",
+    )
+
     temperature_site = models.CharField(
         max_length=20,
         choices=TemperatureSite.choices,
         default=TemperatureSite.NOT_RECORDED,
         blank=True,
     )
+
+    class HeartRhythm(models.TextChoices):
+        REGULAR = "regular", "Regular"
+        IRREGULAR = "irregular", "Irregular"
+        IRREGULARLY_IRREGULAR = "irregularly_irregular", "Irregularly irregular"
+        NOT_ASSESSED = "not_assessed", "Not assessed"
+
+    class HeartRateMethod(models.TextChoices):
+        RADIAL = "radial", "Radial pulse"
+        APICAL = "apical", "Apical"
+        MONITOR = "monitor", "Cardiac monitor"
+        PULSE_OXIMETER = "pulse_oximeter", "Pulse oximeter"
+        OTHER = "other", "Other"
+        NOT_RECORDED = "not_recorded", "Not recorded"
 
     heart_rate = models.PositiveSmallIntegerField(
         null=True,
@@ -169,6 +300,20 @@ class VitalObservation(models.Model):
             MaxValueValidator(300),
         ],
         help_text="Heart rate in beats per minute.",
+    )
+
+    heart_rhythm = models.CharField(
+        max_length=30,
+        choices=HeartRhythm.choices,
+        default=HeartRhythm.NOT_ASSESSED,
+        blank=True,
+    )
+
+    heart_rate_method = models.CharField(
+        max_length=30,
+        choices=HeartRateMethod.choices,
+        default=HeartRateMethod.NOT_RECORDED,
+        blank=True,
     )
 
     respiratory_rate = models.PositiveSmallIntegerField(
@@ -197,6 +342,13 @@ class VitalObservation(models.Model):
             MinValueValidator(10),
             MaxValueValidator(200),
         ],
+    )
+
+    blood_pressure_location = models.CharField(
+        max_length=20,
+        choices=BloodPressureLocation.choices,
+        default=BloodPressureLocation.NOT_RECORDED,
+        blank=True,
     )
 
     oxygen_saturation = models.DecimalField(
@@ -230,6 +382,13 @@ class VitalObservation(models.Model):
         help_text="Supplemental oxygen flow in liters per minute.",
     )
 
+    pain_status = models.CharField(
+        max_length=20,
+        choices=PainStatus.choices,
+        default=PainStatus.NOT_ASSESSED,
+        blank=True,
+    )
+
     pain_score = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
@@ -237,6 +396,15 @@ class VitalObservation(models.Model):
             MinValueValidator(0),
             MaxValueValidator(10),
         ],
+    )
+
+    pain_location = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+
+    pain_characteristics = models.TextField(
+        blank=True,
     )
 
     height_cm = models.DecimalField(
@@ -438,9 +606,19 @@ class VitalObservation(models.Model):
         )
 
     @property
+    def temperature_fahrenheit_display(self):
+        if self.temperature_fahrenheit is not None:
+            return self.temperature_fahrenheit
+
+        if self.temperature_celsius is None:
+            return None
+
+        return ((self.temperature_celsius * Decimal("9")) / Decimal("5") + Decimal("32")).quantize(Decimal("0.1"))
+
+    @property
     def has_measurements(self):
         fields = (
-            self.temperature_celsius,
+            self.temperature_fahrenheit_display,
             self.heart_rate,
             self.respiratory_rate,
             self.systolic_blood_pressure,
@@ -458,31 +636,33 @@ class VitalObservation(models.Model):
     def abnormal_findings(self):
         findings = []
 
-        if self.temperature_celsius is not None:
-            if self.temperature_celsius < Decimal("35.0"):
+        temperature = self.temperature_fahrenheit_display
+
+        if temperature is not None:
+            if temperature < Decimal("95.0"):
                 findings.append(
                     {
                         "field": "temperature",
                         "label": "Low temperature",
-                        "value": f"{self.temperature_celsius} °C",
+                        "value": f"{temperature} °F",
                         "severity": "critical",
                     }
                 )
-            elif self.temperature_celsius >= Decimal("39.0"):
+            elif temperature >= Decimal("102.2"):
                 findings.append(
                     {
                         "field": "temperature",
                         "label": "High temperature",
-                        "value": f"{self.temperature_celsius} °C",
+                        "value": f"{temperature} °F",
                         "severity": "critical",
                     }
                 )
-            elif self.temperature_celsius >= Decimal("37.5"):
+            elif temperature >= Decimal("99.5"):
                 findings.append(
                     {
                         "field": "temperature",
                         "label": "Elevated temperature",
-                        "value": f"{self.temperature_celsius} °C",
+                        "value": f"{temperature} °F",
                         "severity": "abnormal",
                     }
                 )
@@ -708,6 +888,19 @@ class VitalObservation(models.Model):
                 "Systolic pressure must be greater than "
                 "diastolic pressure."
             )
+
+        if self.pain_status == self.PainStatus.YES:
+            if not self.pain_location.strip():
+                errors["pain_location"] = (
+                    "Record the pain location when pain is present."
+                )
+            if not self.pain_characteristics.strip():
+                errors["pain_characteristics"] = (
+                    "Record the pain characteristics when pain is present."
+                )
+        else:
+            self.pain_location = ""
+            self.pain_characteristics = ""
 
         if (
             self.oxygen_delivery_method

@@ -1,5 +1,7 @@
 from django import forms
 
+from decimal import Decimal, ROUND_HALF_UP
+
 from django.core.exceptions import ValidationError
 
 from django.utils import timezone
@@ -126,6 +128,51 @@ class VitalObservationForm(forms.ModelForm):
 
     """
 
+    temperature_unit = forms.ChoiceField(
+        choices=(
+            ("F", "°F"),
+            ("C", "°C"),
+        ),
+        initial="F",
+        required=False,
+        widget=forms.Select(
+            attrs={
+                "class": SELECT_CLASS,
+                "aria-label": "Temperature unit",
+            },
+        ),
+    )
+
+    temperature_fahrenheit = forms.DecimalField(
+        required=False,
+        max_digits=5,
+        decimal_places=1,
+        widget=forms.NumberInput(
+            attrs={
+                "class": CELL_CLASS,
+                "step": "0.1",
+                "min": "25",
+                "max": "113",
+                "inputmode": "decimal",
+                "placeholder": "—",
+                "autocomplete": "off",
+                "aria-label": "Temperature value",
+            },
+        ),
+    )
+
+    pain_location = forms.ChoiceField(
+        choices=VitalObservation.PainLocation.choices,
+        required=False,
+        widget=forms.Select(
+            attrs={
+                "class": SELECT_CLASS,
+                "aria-label": "Pain location",
+                "x-model": "painLocation",
+            },
+        ),
+    )
+
     class Meta:
 
         model = VitalObservation
@@ -138,11 +185,15 @@ class VitalObservationForm(forms.ModelForm):
 
             "position",
 
-            "temperature_celsius",
+            "temperature_fahrenheit",
 
             "temperature_site",
 
             "heart_rate",
+
+            "heart_rhythm",
+
+            "heart_rate_method",
 
             "respiratory_rate",
 
@@ -150,13 +201,21 @@ class VitalObservationForm(forms.ModelForm):
 
             "diastolic_blood_pressure",
 
+            "blood_pressure_location",
+
             "oxygen_saturation",
 
             "oxygen_delivery_method",
 
             "oxygen_flow_lpm",
 
+            "pain_status",
+
             "pain_score",
+
+            "pain_location",
+
+            "pain_characteristics",
 
             "height_cm",
 
@@ -174,11 +233,15 @@ class VitalObservationForm(forms.ModelForm):
 
             "position": "Position",
 
-            "temperature_celsius": "Temperature",
+            "temperature_fahrenheit": "Temperature",
 
             "temperature_site": "Temperature site",
 
-            "heart_rate": "Pulse",
+            "heart_rate": "Pulse rate",
+
+            "heart_rhythm": "Rhythm",
+
+            "heart_rate_method": "Pulse method",
 
             "respiratory_rate": "Respirations",
 
@@ -186,13 +249,21 @@ class VitalObservationForm(forms.ModelForm):
 
             "diastolic_blood_pressure": "Diastolic BP",
 
+            "blood_pressure_location": "BP location",
+
             "oxygen_saturation": "SpO₂",
 
             "oxygen_delivery_method": "Oxygen delivery",
 
             "oxygen_flow_lpm": "O₂ flow",
 
-            "pain_score": "Pain",
+            "pain_status": "Pain present",
+
+            "pain_score": "Pain score",
+
+            "pain_location": "Pain location",
+
+            "pain_characteristics": "Pain characteristics",
 
             "height_cm": "Height",
 
@@ -208,9 +279,13 @@ class VitalObservationForm(forms.ModelForm):
 
         help_texts = {
 
-            "temperature_celsius": "°C",
+            "temperature_fahrenheit": "°F stored",
 
             "heart_rate": "bpm",
+
+            "heart_rhythm": "regularity",
+
+            "heart_rate_method": "method",
 
             "respiratory_rate": "/min",
 
@@ -258,7 +333,7 @@ class VitalObservationForm(forms.ModelForm):
 
             # ----------------------------------------------------
 
-            "temperature_celsius": forms.NumberInput(
+            "temperature_fahrenheit": forms.NumberInput(
 
                 attrs={
 
@@ -268,7 +343,7 @@ class VitalObservationForm(forms.ModelForm):
 
                     "min": "25",
 
-                    "max": "45",
+                    "max": "113",
 
                     "inputmode": "decimal",
 
@@ -276,7 +351,7 @@ class VitalObservationForm(forms.ModelForm):
 
                     "autocomplete": "off",
 
-                    "aria-label": "Temperature Celsius",
+                    "aria-label": "Temperature value",
 
                 },
 
@@ -319,6 +394,30 @@ class VitalObservationForm(forms.ModelForm):
                     "autocomplete": "off",
 
                     "aria-label": "Heart rate",
+
+                },
+
+            ),
+
+            "heart_rhythm": forms.Select(
+
+                attrs={
+
+                    "class": SELECT_CLASS,
+
+                    "aria-label": "Heart rhythm",
+
+                },
+
+            ),
+
+            "heart_rate_method": forms.Select(
+
+                attrs={
+
+                    "class": SELECT_CLASS,
+
+                    "aria-label": "Pulse method",
 
                 },
 
@@ -402,6 +501,18 @@ class VitalObservationForm(forms.ModelForm):
 
             ),
 
+            "blood_pressure_location": forms.Select(
+
+                attrs={
+
+                    "class": SELECT_CLASS,
+
+                    "aria-label": "Blood pressure location",
+
+                },
+
+            ),
+
             "oxygen_saturation": forms.NumberInput(
 
                 attrs={
@@ -434,6 +545,10 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Oxygen delivery method",
 
+                    "x-model": "oxygenMethod",
+
+                    "@change": "if (oxygenMethod === 'room_air') $refs.oxygenFlow.value = ''",
+
                 },
 
             ),
@@ -456,6 +571,8 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Oxygen flow",
 
+                    "x-ref": "oxygenFlow",
+
                 },
 
             ),
@@ -465,6 +582,54 @@ class VitalObservationForm(forms.ModelForm):
             # PAIN
 
             # ----------------------------------------------------
+
+            "pain_status": forms.Select(
+
+                attrs={
+
+                    "class": SELECT_CLASS,
+
+                    "aria-label": "Pain status",
+
+                    "x-model": "painPresent",
+
+                },
+
+            ),
+
+            "pain_location": forms.TextInput(
+
+                attrs={
+
+                    "class": CELL_CLASS,
+
+                    "placeholder": "Select body region",
+
+                    "autocomplete": "off",
+
+                    "aria-label": "Pain location",
+
+                    "x-model": "painLocation",
+
+                },
+
+            ),
+
+            "pain_characteristics": forms.Textarea(
+
+                attrs={
+
+                    "class": TEXTAREA_CLASS,
+
+                    "rows": 2,
+
+                    "placeholder": "Describe quality, onset, and pattern",
+
+                    "aria-label": "Pain characteristics",
+
+                },
+
+            ),
 
             "pain_score": forms.NumberInput(
 
@@ -664,6 +829,12 @@ class VitalObservationForm(forms.ModelForm):
 
         self.is_update = not self.instance._state.adding
 
+        if self.is_update and self.instance.temperature_celsius is not None and self.instance.temperature_fahrenheit is None:
+            self.fields["temperature_unit"].initial = "C"
+            self.initial["temperature_fahrenheit"] = self.instance.temperature_celsius
+        else:
+            self.fields["temperature_unit"].initial = "F"
+
         # --------------------------------------------------------
 
         # CONTEXT PASSED FROM VIEW
@@ -748,11 +919,15 @@ class VitalObservationForm(forms.ModelForm):
 
             "position",
 
-            "temperature_celsius",
+            "temperature_fahrenheit",
 
             "temperature_site",
 
             "heart_rate",
+
+            "heart_rhythm",
+
+            "heart_rate_method",
 
             "respiratory_rate",
 
@@ -766,7 +941,13 @@ class VitalObservationForm(forms.ModelForm):
 
             "oxygen_flow_lpm",
 
+            "pain_status",
+
             "pain_score",
+
+            "pain_location",
+
+            "pain_characteristics",
 
             "height_cm",
 
@@ -805,6 +986,15 @@ class VitalObservationForm(forms.ModelForm):
                 "oxygen_delivery_method"
 
             ].empty_label = "—"
+
+        for field_name in (
+            "heart_rhythm",
+            "heart_rate_method",
+            "blood_pressure_location",
+            "pain_status",
+        ):
+            if field_name in self.fields:
+                self.fields[field_name].empty_label = "—"
 
         # --------------------------------------------------------
 
@@ -918,6 +1108,29 @@ class VitalObservationForm(forms.ModelForm):
 
         cleaned_data = super().clean()
 
+        temperature = cleaned_data.get("temperature_fahrenheit")
+        temperature_unit = cleaned_data.get("temperature_unit") or "F"
+
+        if temperature is not None:
+            if temperature_unit == "C":
+                if not Decimal("25.0") <= temperature <= Decimal("45.0"):
+                    self.add_error(
+                        "temperature_fahrenheit",
+                        "Enter a Celsius temperature between 25.0 and 45.0.",
+                    )
+                else:
+                    temperature = ((temperature * Decimal("9")) / Decimal("5") + Decimal("32"))
+            elif not Decimal("77.0") <= temperature <= Decimal("113.0"):
+                self.add_error(
+                    "temperature_fahrenheit",
+                    "Enter a Fahrenheit temperature between 77.0 and 113.0.",
+                )
+
+            cleaned_data["temperature_fahrenheit"] = temperature.quantize(
+                Decimal("0.1"),
+                rounding=ROUND_HALF_UP,
+            )
+
         # --------------------------------------------------------
 
         # PATIENT CONTEXT REQUIRED
@@ -974,7 +1187,7 @@ class VitalObservationForm(forms.ModelForm):
 
         measurement_fields = [
 
-            "temperature_celsius",
+            "temperature_fahrenheit",
 
             "heart_rate",
 
@@ -1079,6 +1292,29 @@ class VitalObservationForm(forms.ModelForm):
                 ),
 
             )
+
+        # --------------------------------------------------------
+
+        # PAIN VALIDATION
+
+        # --------------------------------------------------------
+
+        pain_status = cleaned_data.get("pain_status")
+
+        if pain_status == VitalObservation.PainStatus.YES:
+            if not (cleaned_data.get("pain_location") or "").strip():
+                self.add_error(
+                    "pain_location",
+                    "Select or enter the pain location.",
+                )
+            if not (cleaned_data.get("pain_characteristics") or "").strip():
+                self.add_error(
+                    "pain_characteristics",
+                    "Describe the pain characteristics.",
+                )
+        else:
+            cleaned_data["pain_location"] = ""
+            cleaned_data["pain_characteristics"] = ""
 
         # --------------------------------------------------------
 

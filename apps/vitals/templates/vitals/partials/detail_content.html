@@ -589,10 +589,10 @@ Expected context:
                 </p>
 
                 <p class="mt-1 text-xl font-bold text-slate-900">
-                    {% if vital.temperature_celsius is not None %}
-                        {{ vital.temperature_celsius }}
+                    {% if vital.temperature_fahrenheit_display is not None %}
+                        {{ vital.temperature_fahrenheit_display }}
                         <span class="text-xs font-semibold text-slate-500">
-                            °C
+                            °F
                         </span>
                     {% else %}
                         <span class="text-sm font-medium text-slate-400">
@@ -601,7 +601,7 @@ Expected context:
                     {% endif %}
                 </p>
 
-                {% if vital.temperature_celsius is not None %}
+                {% if vital.temperature_fahrenheit_display is not None %}
                     <p class="mt-1 text-[10px] text-slate-500">
                         {{ vital.get_temperature_site_display }}
                     </p>
@@ -632,6 +632,12 @@ Expected context:
                         </span>
                     {% endif %}
                 </p>
+
+                {% if vital.heart_rate %}
+                    <p class="mt-1 text-[10px] text-slate-500">
+                        {{ vital.get_heart_rhythm_display }} · {{ vital.get_heart_rate_method_display }}
+                    </p>
+                {% endif %}
             </article>
 
 

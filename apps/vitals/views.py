@@ -468,6 +468,23 @@ class VitalFormMixin:
             .first()
         )
 
+    def get_previous_vitals(self):
+        patient = self.get_patient()
+        if not patient:
+            return []
+
+        queryset = (
+            VitalObservation.objects.active()
+            .select_related("recorded_by", "encounter")
+            .filter(patient=patient)
+            .order_by("-recorded_at", "-created_at")
+        )
+
+        if getattr(self, "object", None) is not None:
+            queryset = queryset.exclude(pk=self.object.pk)
+
+        return queryset[:3]
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
 
@@ -516,6 +533,7 @@ class VitalCreateView(
                     else patient
                 ),
                 "active_encounter": encounter,
+                "previous_vitals": self.get_previous_vitals(),
             }
         )
 
@@ -578,6 +596,7 @@ class VitalUpdateView(
                 "vital": self.object,
                 "selected_patient": self.object.patient,
                 "active_encounter": self.object.encounter,
+                "previous_vitals": self.get_previous_vitals(),
             }
         )
 

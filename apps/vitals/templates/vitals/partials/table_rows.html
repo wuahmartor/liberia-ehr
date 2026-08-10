@@ -39,8 +39,8 @@
         </td>
 
         <td class="px-3 py-2 text-xs text-slate-900">
-            {% if vital.temperature_celsius %}
-                {{ vital.temperature_celsius }} °C
+            {% if vital.temperature_fahrenheit_display %}
+                {{ vital.temperature_fahrenheit_display }} °F
             {% else %}
                 —
             {% endif %}

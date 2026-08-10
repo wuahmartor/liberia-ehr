@@ -236,7 +236,43 @@ Expected context:
 
         >
 
-            {% include "vitals/partials/form_fields.html" %}
+            <div class="vitals-intake-layout">
+                <div class="vitals-intake-fields">
+                    {% include "vitals/partials/form_fields.html" %}
+                </div>
+
+                <aside class="vitals-comparison-panel" aria-labelledby="vitals-comparison-title">
+                    <div class="vitals-comparison-header">
+                        <div>
+                            <h2 id="vitals-comparison-title" class="vitals-comparison-title">Previous vitals</h2>
+                            <p class="vitals-comparison-description">Use recent observations for comparison.</p>
+                        </div>
+                    </div>
+
+                    {% if previous_vitals %}
+                        <div class="vitals-comparison-list">
+                            {% for previous in previous_vitals %}
+                                <article class="vitals-comparison-card">
+                                    <header class="vitals-comparison-card-header">
+                                        <time datetime="{{ previous.recorded_at|date:'c' }}">{{ previous.recorded_at|date:"M j, Y · g:i A" }}</time>
+                                        <span>{% firstof previous.recorded_by.get_full_name previous.recorded_by.username %}</span>
+                                    </header>
+                                    <dl class="vitals-comparison-grid">
+                                        <div><dt>BP</dt><dd>{{ previous.blood_pressure_display }}</dd></div>
+                                        <div><dt>HR</dt><dd>{% if previous.heart_rate %}{{ previous.heart_rate }} bpm{% else %}—{% endif %}</dd></div>
+                                        <div><dt>RR</dt><dd>{% if previous.respiratory_rate %}{{ previous.respiratory_rate }}/min{% else %}—{% endif %}</dd></div>
+                                        <div><dt>Temp</dt><dd>{% if previous.temperature_fahrenheit_display %}{{ previous.temperature_fahrenheit_display }} °F{% else %}—{% endif %}</dd></div>
+                                        <div><dt>SpO₂</dt><dd>{% if previous.oxygen_saturation is not None %}{{ previous.oxygen_saturation }}%{% else %}—{% endif %}</dd></div>
+                                        <div><dt>Pain</dt><dd>{% if previous.pain_score is not None %}{{ previous.pain_score }}/10{% else %}—{% endif %}</dd></div>
+                                    </dl>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="vitals-comparison-empty">No previous vital observations.</p>
+                    {% endif %}
+                </aside>
+            </div>
 
         </div>
 

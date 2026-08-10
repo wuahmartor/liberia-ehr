@@ -13,7 +13,7 @@ class VitalObservationAdmin(admin.ModelAdmin):
         "heart_rate",
         "respiratory_rate",
         "oxygen_saturation",
-        "temperature_celsius",
+        "temperature_fahrenheit",
         "clinical_status_value",
         "status",
         "recorded_by",
@@ -83,19 +83,25 @@ class VitalObservationAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     (
+                        "temperature_fahrenheit",
                         "temperature_celsius",
                         "temperature_site",
                     ),
                     (
                         "heart_rate",
-                        "respiratory_rate",
+                        "heart_rhythm",
+                        "heart_rate_method",
                     ),
+                    "respiratory_rate",
                     (
                         "oxygen_saturation",
                         "oxygen_delivery_method",
                         "oxygen_flow_lpm",
                     ),
+                    "pain_status",
                     "pain_score",
+                    "pain_location",
+                    "pain_characteristics",
                 )
             },
         ),
@@ -106,6 +112,7 @@ class VitalObservationAdmin(admin.ModelAdmin):
                     (
                         "systolic_blood_pressure",
                         "diastolic_blood_pressure",
+                        "blood_pressure_location",
                     ),
                     (
                         "mean_arterial_pressure_value",
