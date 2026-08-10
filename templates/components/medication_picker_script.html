@@ -1,2045 +1,1991 @@
 {% comment %}
-
 ============================================================
-
 MEDICATION PICKER SCRIPT
 
 File:
-
 templates/components/medication_picker_script.html
 
 Purpose:
-
 - Search after 4 typed characters.
-
 - Search local Pharmacy medications and RxNorm.
-
-- Allow local formulary medications to be selected immediately.
-
+- Display medication strength, dosage form, and route.
+- Allow local medications to be selected immediately.
 - Allow RxNorm medications to be imported and selected.
-
-- Preserve the hidden Django MedicationOrderForm.medication
-
-  field as the submitted local Medication foreign key.
-
+- Store the selected local pharmacy.Medication ID in the
+  hidden Django MedicationOrderForm.medication field.
 ============================================================
-
 {% endcomment %}
 
+
 <script>
-
 (function () {
-
     "use strict";
 
     const MIN_SEARCH_LENGTH = 4;
-
     const SEARCH_DELAY = 250;
+
 
     function initializeMedicationPickers(root = document) {
 
         root
-
             .querySelectorAll("[data-medication-picker]")
-
             .forEach((picker) => {
 
                 if (
-
                     picker.dataset.medicationPickerInitialized === "true"
-
                 ) {
-
                     return;
-
                 }
 
                 picker.dataset.medicationPickerInitialized = "true";
 
-                // =================================================
-
-                // DOM
-
-                // =================================================
 
                 const searchInput =
-
                     picker.querySelector(
-
                         "[data-medication-search]"
-
                     );
 
                 const select =
-
                     picker.querySelector(
-
                         "[data-medication-select]"
-
                     );
 
                 const resultsContainer =
-
                     picker.querySelector(
-
                         "[data-medication-results]"
-
                     );
 
                 const loadingIndicator =
-
                     picker.querySelector(
-
                         "[data-medication-loading]"
-
                     );
 
                 const selectedPanel =
-
                     picker.querySelector(
-
                         "[data-medication-selected]"
-
                     );
 
                 const selectedName =
-
                     picker.querySelector(
-
                         "[data-medication-selected-name]"
-
                     );
 
                 const selectedDetail =
-
                     picker.querySelector(
-
                         "[data-medication-selected-detail]"
-
                     );
 
                 const clearButton =
-
                     picker.querySelector(
-
                         "[data-medication-clear]"
-
                     );
 
                 const form =
-
                     picker.closest("form");
 
                 const routeField =
-
                     form
-
                         ? form.querySelector(
-
                             "[data-medication-route]"
-
                         )
-
                         : null;
 
+
                 if (
-
                     !searchInput ||
-
                     !select ||
-
                     !resultsContainer
-
                 ) {
-
                     console.warn(
-
                         "Medication picker missing required elements."
-
                     );
 
                     return;
-
                 }
 
-                // =================================================
-
-                // API URLS
-
-                // =================================================
 
                 const localApi =
-
                     select.dataset.medicationApi;
 
                 const usApi =
-
                     select.dataset.usMedicationApi;
 
                 const importApi =
-
                     select.dataset.usMedicationImportApi;
 
+
                 if (!localApi) {
-
                     console.warn(
-
                         "Local medication API is not configured."
-
                     );
 
                     return;
-
                 }
 
-                let searchTimer = null;
 
+                let searchTimer = null;
                 let controller = null;
 
-                // =================================================
-
-                // HELPERS
-
-                // =================================================
 
                 function escapeHtml(value) {
 
                     const element =
-
                         document.createElement("div");
 
                     element.textContent =
-
                         value == null
-
                             ? ""
-
                             : String(value);
 
                     return element.innerHTML;
-
                 }
+
 
                 function setLoading(isLoading) {
 
                     if (!loadingIndicator) {
-
                         return;
-
                     }
 
                     loadingIndicator.classList.toggle(
-
                         "hidden",
-
                         !isLoading
-
                     );
 
                     loadingIndicator.classList.toggle(
-
                         "flex",
-
                         isLoading
-
                     );
-
                 }
+
 
                 function openResults() {
 
                     resultsContainer.classList.remove(
-
                         "hidden"
-
                     );
-
                 }
+
 
                 function closeResults() {
 
                     resultsContainer.innerHTML = "";
 
                     resultsContainer.classList.add(
-
                         "hidden"
-
                     );
-
                 }
 
-                function showMessage(message, type = "neutral") {
 
-                    let classes =
+                function showMessage(
+                    message,
+                    type = "neutral"
+                ) {
 
-                        "text-slate-500";
-
-                    if (type === "error") {
-
-                        classes = "text-red-600";
-
-                    }
+                    const textClass =
+                        type === "error"
+                            ? "text-red-600"
+                            : "text-slate-500";
 
                     resultsContainer.innerHTML = `
-
                         <div
-
                             class="
-
                                 px-3 py-4
-
                                 text-center
-
                                 text-[11px]
-
-                                ${classes}
-
+                                ${textClass}
                             "
-
                         >
-
                             ${escapeHtml(message)}
-
                         </div>
-
                     `;
 
                     openResults();
-
                 }
+
 
                 function getCsrfToken() {
 
                     if (!form) {
-
                         return "";
-
                     }
 
                     const token =
-
                         form.querySelector(
-
                             'input[name="csrfmiddlewaretoken"]'
-
                         );
 
                     return token
-
                         ? token.value
-
                         : "";
-
                 }
+
+
+                function normalizeValue(value) {
+
+                    if (
+                        value === null ||
+                        value === undefined
+                    ) {
+                        return null;
+                    }
+
+                    const cleaned =
+                        String(value)
+                            .trim();
+
+                    if (!cleaned) {
+                        return null;
+                    }
+
+                    const lowered =
+                        cleaned.toLowerCase();
+
+                    if (
+                        lowered === "unspecified" ||
+                        lowered === "unknown" ||
+                        lowered === "none" ||
+                        lowered === "null"
+                    ) {
+                        return null;
+                    }
+
+                    return cleaned;
+                }
+
+
+                function normalizeStrength(value) {
+
+                    const cleaned =
+                        normalizeValue(value);
+
+                    if (!cleaned) {
+                        return null;
+                    }
+
+                    return cleaned
+                        .replace(
+                            /\bMCG\b/gi,
+                            "mcg"
+                        )
+                        .replace(
+                            /\bMG\b/gi,
+                            "mg"
+                        )
+                        .replace(
+                            /\bML\b/gi,
+                            "mL"
+                        )
+                        .replace(
+                            /\bMEQ\b/gi,
+                            "mEq"
+                        )
+                        .replace(
+                            /\bMMOL\b/gi,
+                            "mmol"
+                        )
+                        .replace(
+                            /\bUNITS\b/gi,
+                            "units"
+                        )
+                        .replace(
+                            /\bUNIT\b/gi,
+                            "unit"
+                        )
+                        .replace(
+                            /\s*\/\s*/g,
+                            "/"
+                        );
+                }
+
+
+                function extractStrengthFromName(name) {
+
+                    const text =
+                        String(name || "")
+                            .trim();
+
+                    if (!text) {
+                        return null;
+                    }
+
+
+                    const patterns = [
+
+                        /\b\d+(?:\.\d+)?\s*(?:mcg|mg|g|unit|units|meq|mmol)\s*\/\s*\d+(?:\.\d+)?\s*(?:ml|l|dose|actuat)\b/i,
+
+                        /\b\d+(?:\.\d+)?\s*(?:mcg|mg|g|unit|units|meq|mmol)\s*\/\s*(?:ml|l|dose|actuat)\b/i,
+
+                        /\b\d+(?:\.\d+)?\s*(?:mcg|mg|g|unit|units|meq|mmol)\b/i,
+
+                        /\b\d+(?:\.\d+)?\s*%\b/i
+                    ];
+
+
+                    for (const pattern of patterns) {
+
+                        const match =
+                            text.match(pattern);
+
+                        if (match) {
+                            return normalizeStrength(
+                                match[0]
+                            );
+                        }
+                    }
+
+                    return null;
+                }
+
+
+                function extractDosageFormFromName(name) {
+
+                    const text =
+                        String(name || "")
+                            .toLowerCase();
+
+
+                    const forms = [
+
+                        [
+                            "extended release oral tablet",
+                            "Extended Release Tablet"
+                        ],
+
+                        [
+                            "extended release tablet",
+                            "Extended Release Tablet"
+                        ],
+
+                        [
+                            "delayed release oral tablet",
+                            "Delayed Release Tablet"
+                        ],
+
+                        [
+                            "delayed release tablet",
+                            "Delayed Release Tablet"
+                        ],
+
+                        [
+                            "orally disintegrating tablet",
+                            "Orally Disintegrating Tablet"
+                        ],
+
+                        [
+                            "chewable tablet",
+                            "Chewable Tablet"
+                        ],
+
+                        [
+                            "sublingual tablet",
+                            "Sublingual Tablet"
+                        ],
+
+                        [
+                            "oral tablet",
+                            "Tablet"
+                        ],
+
+                        [
+                            "tablet",
+                            "Tablet"
+                        ],
+
+                        [
+                            "oral capsule",
+                            "Capsule"
+                        ],
+
+                        [
+                            "capsule",
+                            "Capsule"
+                        ],
+
+                        [
+                            "oral suspension",
+                            "Suspension"
+                        ],
+
+                        [
+                            "suspension",
+                            "Suspension"
+                        ],
+
+                        [
+                            "oral solution",
+                            "Solution"
+                        ],
+
+                        [
+                            "solution",
+                            "Solution"
+                        ],
+
+                        [
+                            "syrup",
+                            "Syrup"
+                        ],
+
+                        [
+                            "ophthalmic solution",
+                            "Ophthalmic Solution"
+                        ],
+
+                        [
+                            "ophthalmic drops",
+                            "Ophthalmic Drops"
+                        ],
+
+                        [
+                            "otic solution",
+                            "Otic Solution"
+                        ],
+
+                        [
+                            "otic drops",
+                            "Otic Drops"
+                        ],
+
+                        [
+                            "inhalation solution",
+                            "Inhalation Solution"
+                        ],
+
+                        [
+                            "metered dose inhaler",
+                            "Inhaler"
+                        ],
+
+                        [
+                            "inhaler",
+                            "Inhaler"
+                        ],
+
+                        [
+                            "injectable solution",
+                            "Injection"
+                        ],
+
+                        [
+                            "injection",
+                            "Injection"
+                        ],
+
+                        [
+                            "transdermal patch",
+                            "Patch"
+                        ],
+
+                        [
+                            "patch",
+                            "Patch"
+                        ],
+
+                        [
+                            "nasal spray",
+                            "Nasal Spray"
+                        ],
+
+                        [
+                            "spray",
+                            "Spray"
+                        ],
+
+                        [
+                            "cream",
+                            "Cream"
+                        ],
+
+                        [
+                            "ointment",
+                            "Ointment"
+                        ],
+
+                        [
+                            "gel",
+                            "Gel"
+                        ],
+
+                        [
+                            "suppository",
+                            "Suppository"
+                        ],
+
+                        [
+                            "lozenge",
+                            "Lozenge"
+                        ],
+
+                        [
+                            "powder",
+                            "Powder"
+                        ]
+                    ];
+
+
+                    for (
+                        const [
+                            token,
+                            label
+                        ] of forms
+                    ) {
+                        if (
+                            text.includes(token)
+                        ) {
+                            return label;
+                        }
+                    }
+
+                    return null;
+                }
+
+
+                function extractRouteFromName(name) {
+
+                    const text =
+                        String(name || "")
+                            .toLowerCase();
+
+
+                    const routes = [
+
+                        [
+                            "intravenous",
+                            "Intravenous"
+                        ],
+
+                        [
+                            "intramuscular",
+                            "Intramuscular"
+                        ],
+
+                        [
+                            "subcutaneous",
+                            "Subcutaneous"
+                        ],
+
+                        [
+                            "sublingual",
+                            "Sublingual"
+                        ],
+
+                        [
+                            "transdermal",
+                            "Transdermal"
+                        ],
+
+                        [
+                            "ophthalmic",
+                            "Ophthalmic"
+                        ],
+
+                        [
+                            "otic",
+                            "Otic"
+                        ],
+
+                        [
+                            "nasal",
+                            "Nasal"
+                        ],
+
+                        [
+                            "inhalation",
+                            "Inhalation"
+                        ],
+
+                        [
+                            "rectal",
+                            "Rectal"
+                        ],
+
+                        [
+                            "vaginal",
+                            "Vaginal"
+                        ],
+
+                        [
+                            "topical",
+                            "Topical"
+                        ],
+
+                        [
+                            "oral",
+                            "Oral"
+                        ]
+                    ];
+
+
+                    for (
+                        const [
+                            token,
+                            label
+                        ] of routes
+                    ) {
+                        if (
+                            text.includes(token)
+                        ) {
+                            return label;
+                        }
+                    }
+
+                    return null;
+                }
+
+
+                function medicationSourceName(
+                    medication
+                ) {
+
+                    return (
+                        medication.display_name ||
+                        medication.name ||
+                        medication.generic_name ||
+                        ""
+                    );
+                }
+
+
+                function getMedicationStrength(
+                    medication
+                ) {
+
+                    return (
+                        normalizeStrength(
+                            medication.strength
+                        )
+                        ||
+                        extractStrengthFromName(
+                            medicationSourceName(
+                                medication
+                            )
+                        )
+                    );
+                }
+
+
+                function getMedicationDosageForm(
+                    medication
+                ) {
+
+                    return (
+                        normalizeValue(
+                            medication.dosage_form
+                        )
+                        ||
+                        normalizeValue(
+                            medication.dose_form
+                        )
+                        ||
+                        extractDosageFormFromName(
+                            medicationSourceName(
+                                medication
+                            )
+                        )
+                    );
+                }
+
+
+                function getMedicationRoute(
+                    medication
+                ) {
+
+                    return (
+                        normalizeValue(
+                            medication.route
+                        )
+                        ||
+                        extractRouteFromName(
+                            medicationSourceName(
+                                medication
+                            )
+                        )
+                    );
+                }
+
+
+                function medicationDetails(
+                    medication
+                ) {
+
+                    return [
+                        getMedicationStrength(
+                            medication
+                        ),
+
+                        getMedicationDosageForm(
+                            medication
+                        ),
+
+                        getMedicationRoute(
+                            medication
+                        )
+                    ].filter(Boolean);
+                }
+
+
+                function getMedicationRxCui(
+                    medication
+                ) {
+
+                    return (
+                        medication.rxnorm_rxcui ||
+                        medication.rxcui ||
+                        null
+                    );
+                }
+
+
+                function getMedicationDisplayName(
+                    medication
+                ) {
+
+                    const genericName =
+                        normalizeValue(
+                            medication.generic_name
+                        );
+
+                    const strength =
+                        getMedicationStrength(
+                            medication
+                        );
+
+                    const dosageForm =
+                        getMedicationDosageForm(
+                            medication
+                        );
+
+
+                    if (genericName) {
+
+                        const pieces = [
+                            genericName,
+                            strength,
+                            dosageForm
+                        ].filter(Boolean);
+
+                        return pieces.join(" ");
+                    }
+
+
+                    return (
+                        normalizeValue(
+                            medication.display_name
+                        )
+                        ||
+                        normalizeValue(
+                            medication.name
+                        )
+                        ||
+                        "Medication"
+                    );
+                }
+
 
                 function findOption(id) {
 
                     return Array
-
                         .from(select.options)
-
                         .find(
-
                             (option) =>
-
-                                String(option.value) ===
-
+                                String(
+                                    option.value
+                                )
+                                ===
                                 String(id)
-
                         );
-
                 }
 
-                function ensureOption(medication) {
+
+                function ensureOption(
+                    medication
+                ) {
 
                     let option =
+                        findOption(
+                            medication.id
+                        );
 
-                        findOption(medication.id);
+
+                    const displayName =
+                        getMedicationDisplayName(
+                            medication
+                        );
+
 
                     if (!option) {
 
                         option =
-
                             new Option(
-
-                                medication.display_name,
-
+                                displayName,
                                 medication.id,
-
                                 false,
-
                                 false
-
                             );
 
                         select.add(option);
 
+                    } else {
+
+                        option.textContent =
+                            displayName;
                     }
+
 
                     return option;
-
                 }
 
-                // =================================================
 
-                // DISPLAY NORMALIZATION
-
-                // =================================================
-
-                function normalizeValue(value) {
-
-                    if (!value) {
-
-                        return null;
-
-                    }
-
-                    const cleaned =
-
-                        String(value).trim();
+                function selectMedication(
+                    medication
+                ) {
 
                     if (
-
-                        !cleaned ||
-
-                        cleaned.toLowerCase() === "unspecified"
-
-                    ) {
-
-                        return null;
-
-                    }
-
-                    return cleaned;
-
-                }
-
-                function medicationDetails(medication) {
-
-                    return [
-
-                        normalizeValue(
-
-                            medication.strength
-
-                        ),
-
-                        normalizeValue(
-
-                            medication.dosage_form
-
-                        ),
-
-                        normalizeValue(
-
-                            medication.route
-
-                        )
-
-                    ].filter(Boolean);
-
-                }
-
-                // =================================================
-
-                // SELECT LOCAL MEDICATION
-
-                // =================================================
-
-                function selectMedication(medication) {
-
-                    if (
-
                         !medication ||
-
                         medication.id == null
-
                     ) {
-
                         throw new Error(
-
                             "Selected medication has no local medication ID."
+                        );
+                    }
 
+
+                    const strength =
+                        getMedicationStrength(
+                            medication
                         );
 
-                    }
+                    const dosageForm =
+                        getMedicationDosageForm(
+                            medication
+                        );
+
+                    const route =
+                        getMedicationRoute(
+                            medication
+                        );
+
+                    const rxcui =
+                        getMedicationRxCui(
+                            medication
+                        );
+
+                    const displayName =
+                        getMedicationDisplayName(
+                            medication
+                        );
+
+
+                    const normalizedMedication = {
+                        ...medication,
+
+                        display_name:
+                            displayName,
+
+                        strength:
+                            strength || "",
+
+                        dosage_form:
+                            dosageForm || "",
+
+                        route:
+                            route || "",
+
+                        rxnorm_rxcui:
+                            rxcui || ""
+                    };
+
 
                     const option =
+                        ensureOption(
+                            normalizedMedication
+                        );
 
-                        ensureOption(medication);
 
                     Array
-
                         .from(select.options)
-
                         .forEach(
-
                             (item) => {
-
-                                item.selected = false;
-
+                                item.selected =
+                                    false;
                             }
-
                         );
+
 
                     option.selected = true;
 
                     select.value =
+                        String(
+                            normalizedMedication.id
+                        );
 
-                        String(medication.id);
 
                     select.dispatchEvent(
-
                         new Event(
-
                             "change",
-
                             {
-
                                 bubbles: true
-
                             }
-
                         )
-
                     );
+
 
                     if (selectedName) {
 
                         selectedName.textContent =
-
-                            medication.display_name || "";
-
+                            displayName;
                     }
+
 
                     if (selectedDetail) {
 
                         const details = [
+                            strength,
+                            dosageForm,
+                            route,
 
-                            normalizeValue(
-
-                                medication.code
-
-                            ),
-
-                            ...medicationDetails(
-
-                                medication
-
-                            ),
-
-                            medication.rxnorm_rxcui
-
-                                ? `RxCUI ${medication.rxnorm_rxcui}`
-
+                            rxcui
+                                ? `RxCUI ${rxcui}`
                                 : null
-
                         ].filter(Boolean);
 
+
                         selectedDetail.textContent =
-
                             details.join(" · ");
-
                     }
+
 
                     if (selectedPanel) {
 
                         selectedPanel.classList.remove(
-
                             "hidden"
-
                         );
-
                     }
 
-                    const normalizedRoute =
-
-                        normalizeValue(
-
-                            medication.route
-
-                        );
 
                     if (
-
                         routeField &&
-
                         !routeField.value &&
-
-                        normalizedRoute
-
+                        route
                     ) {
-
                         routeField.value =
-
-                            normalizedRoute;
-
+                            route;
                     }
+
 
                     searchInput.value = "";
 
                     closeResults();
-
                 }
 
-                // =================================================
 
-                // LOCAL RESULT
-
-                // =================================================
-
-                function createLocalResult(medication) {
+                function createLocalResult(
+                    medication
+                ) {
 
                     const button =
-
-                        document.createElement("button");
+                        document.createElement(
+                            "button"
+                        );
 
                     button.type = "button";
 
                     button.className =
-
                         "block w-full " +
-
                         "border-b border-slate-100 " +
-
                         "px-3 py-2 text-left " +
-
                         "last:border-b-0 " +
-
                         "hover:bg-emerald-50 " +
-
                         "focus:bg-emerald-50 " +
-
                         "focus:outline-none";
 
-                    const details =
 
-                        medicationDetails(
-
+                    const displayName =
+                        getMedicationDisplayName(
                             medication
-
                         );
 
+                    const details =
+                        medicationDetails(
+                            medication
+                        );
+
+                    const rxcui =
+                        getMedicationRxCui(
+                            medication
+                        );
+
+
                     button.innerHTML = `
-
                         <div
-
                             class="
-
                                 flex items-start
-
                                 justify-between
-
                                 gap-3
-
                             "
-
                         >
-
                             <div class="min-w-0">
 
                                 <div
-
                                     class="
-
-                                        truncate
-
-                                        text-xs font-semibold
-
+                                        text-xs
+                                        font-semibold
                                         text-slate-900
-
                                     "
-
                                 >
-
                                     ${escapeHtml(
-
-                                        medication.display_name || ""
-
+                                        displayName
                                     )}
-
                                 </div>
 
                                 ${
-
                                     details.length
-
                                         ? `
-
                                             <div
-
                                                 class="
-
                                                     mt-0.5
-
-                                                    truncate
-
                                                     text-[10px]
-
-                                                    text-slate-500
-
+                                                    font-medium
+                                                    text-slate-600
                                                 "
-
                                             >
-
                                                 ${escapeHtml(
-
-                                                    details.join(" · ")
-
+                                                    details.join(
+                                                        " · "
+                                                    )
                                                 )}
-
                                             </div>
-
                                         `
-
                                         : ""
-
                                 }
 
                                 <div
-
                                     class="
-
                                         mt-0.5
-
                                         text-[9px]
-
                                         text-slate-400
-
                                     "
-
                                 >
-
                                     ${
-
                                         medication.code
-
                                             ? escapeHtml(
-
                                                 medication.code
-
-                                              )
-
+                                            )
                                             : ""
-
                                     }
 
                                     ${
-
-                                        medication.rxnorm_rxcui
-
+                                        rxcui
                                             ? " · RxCUI " +
-
                                               escapeHtml(
-
-                                                medication.rxnorm_rxcui
-
+                                                  rxcui
                                               )
-
                                             : ""
-
                                     }
-
                                 </div>
 
                             </div>
 
                             <div
-
                                 class="
-
                                     flex shrink-0
-
                                     flex-col
-
-                                    items-end gap-1
-
+                                    items-end
+                                    gap-1
                                 "
-
                             >
-
                                 <span
-
                                     class="
-
                                         rounded-full
-
                                         bg-emerald-100
-
                                         px-2 py-0.5
-
-                                        text-[9px] font-semibold
-
+                                        text-[9px]
+                                        font-semibold
                                         text-emerald-700
-
                                     "
-
                                 >
-
                                     Select
-
                                 </span>
 
                                 ${
-
                                     medication.low_stock
-
                                         ? `
-
                                             <span
-
                                                 class="
-
                                                     text-[9px]
-
                                                     font-medium
-
                                                     text-amber-600
-
                                                 "
-
                                             >
-
                                                 Low stock
-
                                             </span>
-
                                         `
-
                                         : ""
-
                                 }
-
                             </div>
-
                         </div>
-
                     `;
 
+
                     button.addEventListener(
-
                         "click",
-
                         function () {
-
                             selectMedication(
-
                                 medication
-
                             );
-
                         }
-
                     );
 
-                    return button;
 
+                    return button;
                 }
 
-                // =================================================
-
-                // IMPORT RXNORM MEDICATION
-
-                // =================================================
 
                 async function importRxNormMedication(
-
                     medication
-
                 ) {
 
                     if (!importApi) {
-
                         throw new Error(
-
                             "RxNorm import API is not configured."
-
                         );
-
                     }
 
-                    if (!medication.rxcui) {
 
+                    const rxcui =
+                        getMedicationRxCui(
+                            medication
+                        );
+
+
+                    if (!rxcui) {
                         throw new Error(
-
                             "Selected RxNorm result has no RxCUI."
-
                         );
-
                     }
+
 
                     const body =
-
                         new URLSearchParams();
 
                     body.append(
-
                         "rxcui",
-
-                        medication.rxcui
-
+                        rxcui
                     );
 
+
                     const response =
-
                         await fetch(
-
                             importApi,
-
                             {
-
                                 method: "POST",
 
                                 headers: {
-
                                     "Accept":
-
                                         "application/json",
 
                                     "Content-Type":
-
                                         "application/x-www-form-urlencoded",
 
                                     "X-CSRFToken":
-
                                         getCsrfToken()
-
                                 },
 
                                 body:
-
                                     body.toString()
-
                             }
-
                         );
 
-                    let data = null;
+
+                    let data;
+
 
                     try {
 
                         data =
-
                             await response.json();
 
                     } catch (error) {
 
                         throw new Error(
-
                             "Medication import returned an invalid response."
-
                         );
-
                     }
+
 
                     if (
-
                         !response.ok ||
-
                         !data.success
-
                     ) {
-
                         throw new Error(
-
                             data.error ||
-
                             "Medication could not be imported."
-
                         );
-
                     }
 
-                    if (!data.medication) {
 
+                    if (
+                        !data.medication ||
+                        data.medication.id == null
+                    ) {
                         throw new Error(
-
-                            "Import API did not return a medication."
-
+                            "Import API did not return a valid medication."
                         );
-
                     }
+
 
                     return data.medication;
-
                 }
 
-                // =================================================
 
-                // RXNORM RESULT
-
-                // =================================================
-
-                function createRxNormResult(medication) {
+                function createRxNormResult(
+                    medication
+                ) {
 
                     const button =
-
-                        document.createElement("button");
+                        document.createElement(
+                            "button"
+                        );
 
                     button.type = "button";
 
                     button.className =
-
                         "block w-full " +
-
                         "border-b border-blue-100 " +
-
                         "bg-white px-3 py-2 text-left " +
-
                         "last:border-b-0 " +
-
                         "hover:bg-blue-50 " +
-
                         "focus:bg-blue-50 " +
-
                         "focus:outline-none";
 
-                    const displayDetails = [
 
+                    const displayName =
+                        getMedicationDisplayName(
+                            medication
+                        );
+
+                    const strength =
+                        getMedicationStrength(
+                            medication
+                        );
+
+                    const dosageForm =
+                        getMedicationDosageForm(
+                            medication
+                        );
+
+                    const route =
+                        getMedicationRoute(
+                            medication
+                        );
+
+                    const termType =
                         normalizeValue(
-
-                            medication.strength
-
-                        ),
-
-                        normalizeValue(
-
-                            medication.dosage_form
-
-                        ),
-
-                        normalizeValue(
-
-                            medication.route
-
-                        ),
-
-                        normalizeValue(
-
                             medication.term_type
+                        );
 
-                        )
+                    const rxcui =
+                        getMedicationRxCui(
+                            medication
+                        );
 
+
+                    const clinicalDetails = [
+                        strength,
+                        dosageForm,
+                        route
                     ].filter(Boolean);
 
+
                     button.innerHTML = `
-
                         <div
-
                             class="
-
                                 flex items-start
-
                                 justify-between
-
                                 gap-3
-
                             "
-
                         >
-
                             <div class="min-w-0">
 
                                 <div
-
                                     class="
-
-                                        text-xs font-semibold
-
+                                        text-xs
+                                        font-semibold
                                         text-slate-900
-
                                     "
-
                                 >
-
                                     ${escapeHtml(
-
-                                        medication.display_name || ""
-
+                                        displayName
                                     )}
-
                                 </div>
 
                                 ${
-
-                                    displayDetails.length
-
+                                    clinicalDetails.length
                                         ? `
-
                                             <div
-
                                                 class="
-
                                                     mt-0.5
-
                                                     text-[10px]
-
-                                                    text-slate-500
-
+                                                    font-medium
+                                                    text-slate-600
                                                 "
-
                                             >
-
                                                 ${escapeHtml(
-
-                                                    displayDetails.join(" · ")
-
+                                                    clinicalDetails.join(
+                                                        " · "
+                                                    )
                                                 )}
-
                                             </div>
-
                                         `
-
                                         : ""
-
                                 }
 
                                 <div
-
                                     class="
-
                                         mt-0.5
-
                                         text-[9px]
-
                                         text-slate-400
-
                                     "
-
                                 >
-
                                     RxNorm
 
                                     ${
-
-                                        medication.rxcui
-
+                                        rxcui
                                             ? " · RxCUI " +
-
                                               escapeHtml(
-
-                                                medication.rxcui
-
+                                                  rxcui
                                               )
-
                                             : ""
-
                                     }
 
+                                    ${
+                                        termType
+                                            ? " · " +
+                                              escapeHtml(
+                                                  termType
+                                              )
+                                            : ""
+                                    }
                                 </div>
 
                             </div>
 
                             <span
-
                                 data-rxnorm-action
-
                                 class="
-
                                     shrink-0
-
                                     rounded-full
-
                                     bg-blue-100
-
                                     px-2 py-0.5
-
-                                    text-[9px] font-semibold
-
+                                    text-[9px]
+                                    font-semibold
                                     text-blue-700
-
                                 "
-
                             >
-
                                 Select
-
                             </span>
-
                         </div>
-
                     `;
 
+
                     button.addEventListener(
-
                         "click",
-
                         async function () {
 
                             const actionLabel =
-
                                 button.querySelector(
-
                                     "[data-rxnorm-action]"
-
                                 );
+
 
                             button.disabled = true;
 
+
                             if (actionLabel) {
-
                                 actionLabel.textContent =
-
                                     "Selecting...";
-
                             }
+
 
                             try {
 
                                 const localMedication =
-
                                     await importRxNormMedication(
-
                                         medication
-
                                     );
 
+
                                 selectMedication(
-
                                     localMedication
-
                                 );
+
 
                             } catch (error) {
 
                                 console.error(
-
                                     "RxNorm selection failed:",
-
                                     error
-
                                 );
+
 
                                 if (actionLabel) {
-
                                     actionLabel.textContent =
-
                                         "Error";
-
                                 }
 
+
                                 alert(
-
                                     error.message ||
-
                                     "Medication could not be selected."
-
                                 );
+
 
                             } finally {
 
-                                button.disabled = false;
+                                button.disabled =
+                                    false;
 
+
+                                if (
+                                    actionLabel &&
+                                    actionLabel.textContent !==
+                                    "Error"
+                                ) {
+                                    actionLabel.textContent =
+                                        "Select";
+                                }
                             }
-
                         }
-
                     );
 
-                    return button;
 
+                    return button;
                 }
 
-                // =================================================
 
-                // LOCAL SEARCH
-
-                // =================================================
-
-                async function searchLocal(query) {
+                async function searchLocal(
+                    query
+                ) {
 
                     const url =
-
                         `${localApi}?q=${
-
-                            encodeURIComponent(query)
-
+                            encodeURIComponent(
+                                query
+                            )
                         }`;
 
+
                     const response =
-
                         await fetch(
-
                             url,
-
                             {
-
                                 headers: {
-
                                     "Accept":
-
                                         "application/json"
-
                                 },
 
                                 signal:
-
                                     controller.signal
-
                             }
-
                         );
+
 
                     if (!response.ok) {
-
                         throw new Error(
-
-                            `Local medication API returned ${
-
-                                response.status
-
-                            }.`
-
+                            `Local medication API returned ${response.status}.`
                         );
-
                     }
+
 
                     return await response.json();
-
                 }
 
-                // =================================================
 
-                // RXNORM SEARCH
-
-                // =================================================
-
-                async function searchRxNorm(query) {
+                async function searchRxNorm(
+                    query
+                ) {
 
                     if (!usApi) {
-
                         return {
-
                             results: []
-
                         };
-
                     }
 
+
                     const url =
-
                         `${usApi}?q=${
-
-                            encodeURIComponent(query)
-
+                            encodeURIComponent(
+                                query
+                            )
                         }`;
+
 
                     try {
 
                         const response =
-
                             await fetch(
-
                                 url,
-
                                 {
-
                                     headers: {
-
                                         "Accept":
-
                                             "application/json"
-
                                     },
 
                                     signal:
-
                                         controller.signal
-
                                 }
-
                             );
+
 
                         if (!response.ok) {
 
                             console.warn(
-
                                 "RxNorm API returned",
-
                                 response.status
-
                             );
 
                             return {
-
                                 results: []
-
                             };
-
                         }
 
+
                         return await response.json();
+
 
                     } catch (error) {
 
                         if (
-
                             error.name ===
-
                             "AbortError"
-
                         ) {
-
                             throw error;
-
                         }
 
+
                         console.warn(
-
                             "RxNorm search failed:",
-
                             error
-
                         );
 
+
                         return {
-
                             results: []
-
                         };
-
                     }
-
                 }
 
-                // =================================================
 
-                // SEARCH
-
-                // =================================================
-
-                async function runSearch(query) {
+                async function runSearch(
+                    query
+                ) {
 
                     if (
-
                         query.length <
-
                         MIN_SEARCH_LENGTH
-
                     ) {
-
                         closeResults();
 
                         return;
-
                     }
+
 
                     if (controller) {
-
                         controller.abort();
-
                     }
 
-                    controller =
 
+                    controller =
                         new AbortController();
 
+
                     setLoading(true);
+
 
                     try {
 
                         const [
-
                             localData,
-
                             rxNormData
-
                         ] =
-
                             await Promise.all([
+                                searchLocal(
+                                    query
+                                ),
 
-                                searchLocal(query),
-
-                                searchRxNorm(query)
-
+                                searchRxNorm(
+                                    query
+                                )
                             ]);
 
-                        resultsContainer.innerHTML = "";
+
+                        resultsContainer.innerHTML =
+                            "";
+
 
                         const localResults =
-
                             Array.isArray(
-
                                 localData.results
-
                             )
-
                                 ? localData.results
-
                                 : [];
+
 
                         const rxResults =
-
                             Array.isArray(
-
                                 rxNormData.results
-
                             )
-
                                 ? rxNormData.results
-
                                 : [];
 
-                        // =========================================
 
-                        // LOCAL
-
-                        // =========================================
-
-                        if (localResults.length) {
+                        if (
+                            localResults.length
+                        ) {
 
                             const heading =
-
                                 document.createElement(
-
                                     "div"
-
                                 );
 
                             heading.className =
-
                                 "sticky top-0 z-10 " +
-
                                 "border-b border-emerald-100 " +
-
                                 "bg-emerald-50 " +
-
                                 "px-3 py-1.5 " +
-
                                 "text-[9px] font-bold " +
-
                                 "uppercase tracking-wide " +
-
                                 "text-emerald-700";
 
                             heading.textContent =
-
-                                `Local Formulary (${
-
-                                    localResults.length
-
-                                })`;
+                                `Local Medications (${localResults.length})`;
 
                             resultsContainer.appendChild(
-
                                 heading
-
                             );
+
 
                             localResults.forEach(
-
-                                function (medication) {
+                                function (
+                                    medication
+                                ) {
 
                                     resultsContainer
-
                                         .appendChild(
-
                                             createLocalResult(
-
                                                 medication
-
                                             )
-
                                         );
-
                                 }
-
                             );
-
                         }
 
-                        // =========================================
 
-                        // RXNORM
-
-                        // =========================================
-
-                        if (rxResults.length) {
+                        if (
+                            rxResults.length
+                        ) {
 
                             const heading =
-
                                 document.createElement(
-
                                     "div"
-
                                 );
 
                             heading.className =
-
                                 "border-y border-blue-100 " +
-
                                 "bg-blue-50 " +
-
                                 "px-3 py-1.5 " +
-
                                 "text-[9px] font-bold " +
-
                                 "uppercase tracking-wide " +
-
                                 "text-blue-700";
 
                             heading.textContent =
-
-                                `RxNorm Matches (${
-
-                                    rxResults.length
-
-                                })`;
+                                `RxNorm Matches (${rxResults.length})`;
 
                             resultsContainer.appendChild(
-
                                 heading
-
                             );
 
+
                             rxResults
-
                                 .slice(0, 25)
-
                                 .forEach(
-
                                     function (
-
                                         medication
-
                                     ) {
 
                                         resultsContainer
-
                                             .appendChild(
-
                                                 createRxNormResult(
-
                                                     medication
-
                                                 )
-
                                             );
-
                                     }
-
                                 );
-
                         }
 
+
                         if (
-
                             !localResults.length &&
-
                             !rxResults.length
-
                         ) {
-
                             showMessage(
-
                                 "No matching medications found."
-
                             );
 
                             return;
-
                         }
 
+
                         openResults();
+
 
                     } catch (error) {
 
                         if (
-
                             error.name !==
-
                             "AbortError"
-
                         ) {
 
                             console.error(
-
                                 "Medication search error:",
-
                                 error
-
                             );
 
                             showMessage(
-
                                 "Medication search could not be completed.",
-
                                 "error"
-
                             );
-
                         }
+
 
                     } finally {
 
                         setLoading(false);
-
                     }
-
                 }
 
-                // =================================================
-
-                // INPUT
-
-                // =================================================
 
                 searchInput.addEventListener(
-
                     "input",
-
                     function () {
 
                         const query =
-
                             searchInput.value
-
                                 .trim();
 
+
                         clearTimeout(
-
                             searchTimer
-
                         );
 
+
                         if (
-
                             query.length <
-
                             MIN_SEARCH_LENGTH
-
                         ) {
-
                             closeResults();
 
                             return;
-
                         }
 
+
                         searchTimer =
-
                             setTimeout(
-
                                 function () {
 
                                     runSearch(
-
                                         query
-
                                     );
-
                                 },
 
                                 SEARCH_DELAY
-
                             );
-
                     }
-
                 );
 
-                // =================================================
-
-                // KEYBOARD
-
-                // =================================================
 
                 searchInput.addEventListener(
-
                     "keydown",
-
                     function (event) {
 
                         if (
-
                             event.key ===
-
                             "Escape"
-
                         ) {
-
                             closeResults();
 
                             searchInput.blur();
-
                         }
-
                     }
-
                 );
 
-                // =================================================
-
-                // CLEAR
-
-                // =================================================
 
                 if (clearButton) {
 
                     clearButton.addEventListener(
-
                         "click",
-
                         function () {
 
                             select.value = "";
 
+
                             Array
-
-                                .from(select.options)
-
+                                .from(
+                                    select.options
+                                )
                                 .forEach(
-
                                     function (
-
                                         option
-
                                     ) {
-
                                         option.selected =
-
                                             false;
-
                                     }
-
                                 );
 
+
                             if (
-
                                 select.options.length
-
                             ) {
-
                                 select.options[0]
-
                                     .selected = true;
-
                             }
+
 
                             select.dispatchEvent(
-
                                 new Event(
-
                                     "change",
-
                                     {
-
                                         bubbles: true
-
                                     }
-
                                 )
-
                             );
 
+
                             if (selectedPanel) {
-
                                 selectedPanel
-
                                     .classList
-
                                     .add(
-
                                         "hidden"
-
                                     );
-
                             }
+
 
                             if (selectedName) {
-
                                 selectedName.textContent =
-
                                     "";
-
                             }
+
 
                             if (selectedDetail) {
-
                                 selectedDetail.textContent =
-
                                     "";
-
                             }
+
 
                             searchInput.value = "";
 
                             closeResults();
 
                             searchInput.focus();
-
                         }
-
                     );
-
                 }
 
-                // =================================================
-
-                // EXISTING VALUE
-
-                // =================================================
 
                 if (select.value) {
 
                     const option =
-
                         select.options[
-
                             select.selectedIndex
-
                         ];
 
+
                     if (
-
                         option &&
-
                         option.value
-
                     ) {
 
                         if (selectedName) {
-
                             selectedName.textContent =
-
-                                option.textContent.trim();
-
+                                option.textContent
+                                    .trim();
                         }
+
 
                         if (selectedPanel) {
-
                             selectedPanel
-
                                 .classList
-
                                 .remove(
-
                                     "hidden"
-
                                 );
-
                         }
-
                     }
-
                 }
 
-                // =================================================
-
-                // CLOSE OUTSIDE
-
-                // =================================================
 
                 document.addEventListener(
-
                     "click",
-
                     function (event) {
 
                         if (
-
                             !picker.contains(
-
                                 event.target
-
                             )
-
                         ) {
-
                             closeResults();
-
                         }
-
                     }
-
                 );
-
             });
-
     }
 
-    // =========================================================
-
-    // PAGE LOAD
-
-    // =========================================================
 
     if (
-
         document.readyState ===
-
         "loading"
-
     ) {
 
         document.addEventListener(
-
             "DOMContentLoaded",
-
             function () {
 
                 initializeMedicationPickers(
-
                     document
-
                 );
-
             }
-
         );
 
     } else {
 
         initializeMedicationPickers(
-
             document
-
         );
-
     }
 
-    // =========================================================
-
-    // HTMX
-
-    // =========================================================
 
     document.addEventListener(
-
         "htmx:afterSwap",
-
         function (event) {
 
             initializeMedicationPickers(
-
                 event.detail.target ||
-
                 document
-
             );
-
         }
-
     );
 
+
     document.addEventListener(
-
         "htmx:load",
-
         function (event) {
 
             initializeMedicationPickers(
-
                 event.detail.elt ||
-
                 document
-
             );
-
         }
-
     );
 
 })();
-
 </script>

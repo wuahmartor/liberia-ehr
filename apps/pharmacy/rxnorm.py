@@ -38,7 +38,7 @@ class RxNormUnavailable(RxNormError):
 
     """
 
-    Raised when the external RxNorm service cannot complete a request.
+    Raised when RxNorm cannot complete a request.
 
     """
 
@@ -46,7 +46,7 @@ class RxNormNotFound(RxNormError):
 
     """
 
-    Raised when a requested RxNorm concept does not exist or is unavailable.
+    Raised when a requested RxNorm concept does not exist.
 
     """
 
@@ -54,41 +54,29 @@ class RxNormInvalidRequest(RxNormError):
 
     """
 
-    Raised when invalid data is supplied to the RxNorm client.
+    Raised when invalid input is supplied to the client.
 
     """
 
 # ============================================================
 
-# DATA OBJECTS
+# DATA OBJECT
 
 # ============================================================
 
-@dataclass(frozen=True, slots=True)
+@dataclass(
+
+    frozen=True,
+
+    slots=True,
+
+)
 
 class RxNormMedication:
 
     """
 
-    Normalized representation of an RxNorm medication concept.
-
-    Fields:
-
-    - rxcui
-
-    - name
-
-    - term_type
-
-    - generic_name
-
-    - brand_name
-
-    - strength
-
-    - dosage_form
-
-    - route
+    Normalized medication product returned by RxNorm.
 
     """
 
@@ -114,11 +102,11 @@ class RxNormMedication:
 
         """
 
-        Return a clean clinical display value.
+        Clean provider-facing medication label.
 
         """
 
-        parts = [
+        pieces = [
 
             self.generic_name or self.name,
 
@@ -130,13 +118,13 @@ class RxNormMedication:
 
         return " ".join(
 
-            part.strip()
+            value
 
-            for part in parts
+            for value in pieces
 
-            if part and part.strip()
+            if value
 
-        )
+        ).strip()
 
     @property
 
@@ -144,7 +132,9 @@ class RxNormMedication:
 
         """
 
-        Return True for common prescribable drug/product term types.
+        Return True for product-level concepts suitable
+
+        for medication selection.
 
         """
 
@@ -154,23 +144,11 @@ class RxNormMedication:
 
             "SBD",
 
-            "SCDF",
-
-            "SBDF",
-
-            "SCDG",
-
-            "SBDG",
-
-            "GPCK",
-
-            "BPCK",
-
         }
 
 # ============================================================
 
-# RXNORM CLIENT
+# CLIENT
 
 # ============================================================
 
@@ -178,35 +156,33 @@ class RxNormClient:
 
     """
 
-    Small client for the National Library of Medicine RxNorm API.
+    RxNorm medication terminology client.
 
-    This service is used for medication terminology normalization
+    Provider ordering search intentionally favors product-level
 
-    and lookup.
+    medication concepts containing useful prescribing details
 
-    RxNorm results should not be interpreted as:
-
-    - local formulary approval
-
-    - medication availability
-
-    - inventory status
-
-    - clinical appropriateness
-
-    - prescribing authorization
+    such as strength and dosage form.
 
     """
 
     DEFAULT_TIMEOUT_SECONDS = 5
 
-    DEFAULT_SEARCH_LIMIT = 20
+    DEFAULT_SEARCH_LIMIT = 30
 
     MAX_SEARCH_LIMIT = 100
 
+    ORDERABLE_TERM_TYPES = {
+
+        "SCD",
+
+        "SBD",
+
+    }
+
     # ========================================================
 
-    # CONFIGURATION
+    # CONFIG
 
     # ========================================================
 
@@ -214,17 +190,7 @@ class RxNormClient:
 
     def base_url(self) -> str:
 
-        """
-
-        Return configured RxNorm API base URL.
-
-        Example:
-
-        https://rxnav.nlm.nih.gov/REST
-
-        """
-
-        base_url = getattr(
+        return getattr(
 
             settings,
 
@@ -232,19 +198,11 @@ class RxNormClient:
 
             "https://rxnav.nlm.nih.gov/REST",
 
-        )
-
-        return base_url.rstrip("/")
+        ).rstrip("/")
 
     @property
 
     def timeout_seconds(self) -> int | float:
-
-        """
-
-        Allow deployment-specific timeout configuration.
-
-        """
 
         return getattr(
 
@@ -258,7 +216,7 @@ class RxNormClient:
 
     # ========================================================
 
-    # INTERNAL HTTP
+    # HTTP
 
     # ========================================================
 
@@ -271,12 +229,6 @@ class RxNormClient:
         query: dict[str, Any] | None = None,
 
     ) -> dict[str, Any]:
-
-        """
-
-        Perform a GET request against RxNorm and return JSON.
-
-        """
 
         url = f"{self.base_url}{path}"
 
@@ -358,11 +310,19 @@ class RxNormClient:
 
             ) from error
 
-        except (URLError, TimeoutError) as error:
+        except (
+
+            URLError,
+
+            TimeoutError,
+
+            OSError,
+
+        ) as error:
 
             logger.warning(
 
-                "RxNorm connection failure url=%s error=%s",
+                "RxNorm network failure url=%s error=%s",
 
                 url,
 
@@ -388,7 +348,7 @@ class RxNormClient:
 
             logger.warning(
 
-                "RxNorm returned an invalid response url=%s",
+                "Invalid RxNorm response url=%s",
 
                 url,
 
@@ -396,39 +356,25 @@ class RxNormClient:
 
             raise RxNormUnavailable(
 
-                "The RxNorm terminology service "
+                "The RxNorm terminology service returned "
 
-                "returned an invalid response."
-
-            ) from error
-
-        except OSError as error:
-
-            logger.warning(
-
-                "RxNorm network error url=%s error=%s",
-
-                url,
-
-                error,
-
-            )
-
-            raise RxNormUnavailable(
-
-                "The RxNorm terminology service "
-
-                "is temporarily unavailable."
+                "an invalid response."
 
             ) from error
 
-        if not isinstance(payload, dict):
+        if not isinstance(
+
+            payload,
+
+            dict,
+
+        ):
 
             raise RxNormUnavailable(
 
-                "The RxNorm terminology service "
+                "The RxNorm terminology service returned "
 
-                "returned an unexpected response."
+                "an unexpected response."
 
             )
 
@@ -442,15 +388,19 @@ class RxNormClient:
 
     @staticmethod
 
-    def _normalize_query(query: str) -> str:
+    def _normalize_query(
 
-        """
+        query: str,
 
-        Normalize user-entered medication search text.
+    ) -> str:
 
-        """
+        if not isinstance(
 
-        if not isinstance(query, str):
+            query,
+
+            str,
+
+        ):
 
             raise RxNormInvalidRequest(
 
@@ -486,21 +436,21 @@ class RxNormClient:
 
     ) -> int:
 
-        """
-
-        Ensure search limits remain within allowed bounds.
-
-        """
-
         try:
 
             limit = int(limit)
 
-        except (TypeError, ValueError) as error:
+        except (
+
+            TypeError,
+
+            ValueError,
+
+        ) as error:
 
             raise RxNormInvalidRequest(
 
-                "Medication search limit must be a number."
+                "Medication search limit must be numeric."
 
             ) from error
 
@@ -526,12 +476,6 @@ class RxNormClient:
 
     ) -> str:
 
-        """
-
-        Validate a supplied RxNorm Concept Unique Identifier.
-
-        """
-
         value = str(
 
             rxcui
@@ -548,9 +492,7 @@ class RxNormClient:
 
             raise RxNormInvalidRequest(
 
-                "A valid numeric RxNorm concept identifier "
-
-                "is required."
+                "A valid numeric RxCUI is required."
 
             )
 
@@ -558,7 +500,7 @@ class RxNormClient:
 
     # ========================================================
 
-    # MEDICATION NAME PARSING
+    # NORMALIZATION HELPERS
 
     # ========================================================
 
@@ -570,107 +512,11 @@ class RxNormClient:
 
     ) -> str:
 
-        """
-
-        Normalize internal whitespace.
-
-        """
-
         return " ".join(
 
             str(value or "").split()
 
         ).strip()
-
-    @classmethod
-
-    def _extract_strength(
-
-        cls,
-
-        name: str,
-
-    ) -> str:
-
-        """
-
-        Extract common medication strengths from RxNorm names.
-
-        Examples:
-
-        - 500 MG
-
-        - 250 MG/5 ML
-
-        - 100 MCG/ACTUAT
-
-        - 20 MG/ML
-
-        """
-
-        text = cls._normalize_whitespace(
-
-            name
-
-        )
-
-        patterns = [
-
-            # 250 MG/5 ML
-
-            r"\b\d+(?:\.\d+)?\s*"
-
-            r"(?:MCG|MG|G|UNIT|UNITS)"
-
-            r"\s*/\s*"
-
-            r"\d+(?:\.\d+)?\s*"
-
-            r"(?:ML|L|ACTUAT|DOSE)\b",
-
-            # 20 MG/ML
-
-            r"\b\d+(?:\.\d+)?\s*"
-
-            r"(?:MCG|MG|G|UNIT|UNITS)"
-
-            r"\s*/\s*"
-
-            r"(?:ML|L|ACTUAT|DOSE)\b",
-
-            # 500 MG
-
-            r"\b\d+(?:\.\d+)?\s*"
-
-            r"(?:MCG|MG|G|UNIT|UNITS|MEQ|MMOL)\b",
-
-            # 0.5 %
-
-            r"\b\d+(?:\.\d+)?\s*%\b",
-
-        ]
-
-        for pattern in patterns:
-
-            match = re.search(
-
-                pattern,
-
-                text,
-
-                flags=re.IGNORECASE,
-
-            )
-
-            if match:
-
-                return cls._normalize_strength(
-
-                    match.group(0)
-
-                )
-
-        return ""
 
     @staticmethod
 
@@ -679,16 +525,6 @@ class RxNormClient:
         value: str,
 
     ) -> str:
-
-        """
-
-        Normalize strength casing.
-
-        500 MG -> 500 mg
-
-        250 MG/5 ML -> 250 mg/5 mL
-
-        """
 
         value = " ".join(
 
@@ -702,8 +538,6 @@ class RxNormClient:
 
             "MG": "mg",
 
-            "G": "g",
-
             "ML": "mL",
 
             "MEQ": "mEq",
@@ -713,10 +547,6 @@ class RxNormClient:
             "UNITS": "units",
 
             "UNIT": "unit",
-
-            "ACTUAT": "actuation",
-
-            "DOSE": "dose",
 
         }
 
@@ -748,6 +578,102 @@ class RxNormClient:
 
     @classmethod
 
+    def _extract_strength(
+
+        cls,
+
+        name: str,
+
+    ) -> str:
+
+        text = cls._normalize_whitespace(
+
+            name
+
+        )
+
+        patterns = [
+
+            # Combination or liquid:
+
+            # 300 MG / 30 MG
+
+            # 250 MG / 5 ML
+
+            (
+
+                r"\b\d+(?:\.\d+)?\s*"
+
+                r"(?:MCG|MG|G|UNIT|UNITS|MEQ|MMOL)"
+
+                r"(?:\s*/\s*"
+
+                r"\d+(?:\.\d+)?\s*"
+
+                r"(?:MCG|MG|G|ML|L|UNIT|UNITS|MEQ|MMOL)"
+
+                r")+\b"
+
+            ),
+
+            # Concentration:
+
+            # 20 MG/ML
+
+            (
+
+                r"\b\d+(?:\.\d+)?\s*"
+
+                r"(?:MCG|MG|G|UNIT|UNITS)"
+
+                r"\s*/\s*"
+
+                r"(?:ML|L)\b"
+
+            ),
+
+            # Simple:
+
+            # 500 MG
+
+            (
+
+                r"\b\d+(?:\.\d+)?\s*"
+
+                r"(?:MCG|MG|G|UNIT|UNITS|MEQ|MMOL)\b"
+
+            ),
+
+            # Percentage:
+
+            r"\b\d+(?:\.\d+)?\s*%\b",
+
+        ]
+
+        for pattern in patterns:
+
+            match = re.search(
+
+                pattern,
+
+                text,
+
+                flags=re.IGNORECASE,
+
+            )
+
+            if match:
+
+                return cls._normalize_strength(
+
+                    match.group(0)
+
+                )
+
+        return ""
+
+    @classmethod
+
     def _extract_dosage_form(
 
         cls,
@@ -756,19 +682,13 @@ class RxNormClient:
 
     ) -> str:
 
-        """
-
-        Extract a human-friendly dosage form.
-
-        """
-
         text = cls._normalize_whitespace(
 
             name
 
         ).lower()
 
-        dosage_forms = [
+        forms = [
 
             (
 
@@ -780,17 +700,17 @@ class RxNormClient:
 
             (
 
-                "delayed release oral tablet",
+                "extended release tablet",
 
-                "Delayed Release Tablet",
+                "Extended Release Tablet",
 
             ),
 
             (
 
-                "extended release tablet",
+                "delayed release oral tablet",
 
-                "Extended Release Tablet",
+                "Delayed Release Tablet",
 
             ),
 
@@ -836,23 +756,7 @@ class RxNormClient:
 
             (
 
-                "tablet",
-
-                "Tablet",
-
-            ),
-
-            (
-
                 "oral capsule",
-
-                "Capsule",
-
-            ),
-
-            (
-
-                "capsule",
 
                 "Capsule",
 
@@ -868,14 +772,6 @@ class RxNormClient:
 
             (
 
-                "suspension",
-
-                "Suspension",
-
-            ),
-
-            (
-
                 "oral solution",
 
                 "Solution",
@@ -884,17 +780,57 @@ class RxNormClient:
 
             (
 
-                "solution",
+                "ophthalmic solution",
 
-                "Solution",
+                "Ophthalmic Solution",
 
             ),
 
             (
 
-                "syrup",
+                "otic solution",
 
-                "Syrup",
+                "Otic Solution",
+
+            ),
+
+            (
+
+                "inhalation solution",
+
+                "Inhalation Solution",
+
+            ),
+
+            (
+
+                "injectable solution",
+
+                "Injection",
+
+            ),
+
+            (
+
+                "injection",
+
+                "Injection",
+
+            ),
+
+            (
+
+                "transdermal patch",
+
+                "Patch",
+
+            ),
+
+            (
+
+                "nasal spray",
+
+                "Nasal Spray",
 
             ),
 
@@ -924,22 +860,6 @@ class RxNormClient:
 
             (
 
-                "transdermal patch",
-
-                "Patch",
-
-            ),
-
-            (
-
-                "patch",
-
-                "Patch",
-
-            ),
-
-            (
-
                 "suppository",
 
                 "Suppository",
@@ -948,111 +868,39 @@ class RxNormClient:
 
             (
 
-                "injection",
+                "tablet",
 
-                "Injection",
-
-            ),
-
-            (
-
-                "injectable solution",
-
-                "Injection",
+                "Tablet",
 
             ),
 
             (
 
-                "inhalation solution",
+                "capsule",
 
-                "Inhalation Solution",
-
-            ),
-
-            (
-
-                "metered dose inhaler",
-
-                "Inhaler",
+                "Capsule",
 
             ),
 
             (
 
-                "inhaler",
+                "suspension",
 
-                "Inhaler",
-
-            ),
-
-            (
-
-                "nasal spray",
-
-                "Nasal Spray",
+                "Suspension",
 
             ),
 
             (
 
-                "spray",
+                "solution",
 
-                "Spray",
-
-            ),
-
-            (
-
-                "ophthalmic solution",
-
-                "Ophthalmic Solution",
-
-            ),
-
-            (
-
-                "ophthalmic drops",
-
-                "Ophthalmic Drops",
-
-            ),
-
-            (
-
-                "otic solution",
-
-                "Otic Solution",
-
-            ),
-
-            (
-
-                "otic drops",
-
-                "Otic Drops",
-
-            ),
-
-            (
-
-                "lozenge",
-
-                "Lozenge",
-
-            ),
-
-            (
-
-                "powder",
-
-                "Powder",
+                "Solution",
 
             ),
 
         ]
 
-        for token, label in dosage_forms:
+        for token, label in forms:
 
             if token in text:
 
@@ -1069,12 +917,6 @@ class RxNormClient:
         name: str,
 
     ) -> str:
-
-        """
-
-        Extract a common route from the RxNorm concept name.
-
-        """
 
         text = cls._normalize_whitespace(
 
@@ -1200,6 +1042,40 @@ class RxNormClient:
 
     @classmethod
 
+    def _extract_brand_name(
+
+        cls,
+
+        name: str,
+
+    ) -> str:
+
+        text = cls._normalize_whitespace(
+
+            name
+
+        )
+
+        match = re.search(
+
+            r"\[([^\]]+)\]",
+
+            text,
+
+        )
+
+        if not match:
+
+            return ""
+
+        return cls._normalize_whitespace(
+
+            match.group(1)
+
+        )
+
+    @classmethod
+
     def _extract_generic_name(
 
         cls,
@@ -1208,19 +1084,11 @@ class RxNormClient:
 
         strength: str,
 
+        dosage_form: str,
+
+        brand_name: str,
+
     ) -> str:
-
-        """
-
-        Produce a cleaner medication name from an RxNorm product name.
-
-        Example:
-
-        Amoxicillin 500 MG Oral Capsule
-
-        -> Amoxicillin
-
-        """
 
         text = cls._normalize_whitespace(
 
@@ -1228,21 +1096,23 @@ class RxNormClient:
 
         )
 
-        if strength:
+        # Remove bracketed brand.
 
-            strength_pattern = re.escape(
+        text = re.sub(
 
-                strength
+            r"\s*\[[^\]]+\]\s*",
 
-            )
+            " ",
 
-            # Strength is normalized when returned, but RxNorm name
+            text,
 
-            # usually uses uppercase units. Remove with a more
+        )
 
-            # permissive expression instead.
+        # Remove strengths.
 
-            text = re.sub(
+        text = re.sub(
+
+            (
 
                 r"\b\d+(?:\.\d+)?\s*"
 
@@ -1250,29 +1120,33 @@ class RxNormClient:
 
                 r"(?:\s*/\s*"
 
-                r"(?:\d+(?:\.\d+)?\s*)?"
+                r"\d*(?:\.\d+)?\s*"
 
-                r"(?:ML|L|ACTUAT|DOSE))?\b",
+                r"(?:MCG|MG|G|ML|L|UNIT|UNITS|MEQ|MMOL)"
 
-                "",
+                r")*\b"
 
-                text,
+            ),
 
-                flags=re.IGNORECASE,
+            " ",
 
-            )
+            text,
+
+            flags=re.IGNORECASE,
+
+        )
 
         removable_terms = [
 
             "Extended Release Oral Tablet",
 
-            "Delayed Release Oral Tablet",
-
-            "Orally Disintegrating Tablet",
-
             "Extended Release Tablet",
 
+            "Delayed Release Oral Tablet",
+
             "Delayed Release Tablet",
+
+            "Orally Disintegrating Tablet",
 
             "Chewable Tablet",
 
@@ -1286,15 +1160,19 @@ class RxNormClient:
 
             "Oral Solution",
 
-            "Tablet",
+            "Ophthalmic Solution",
 
-            "Capsule",
+            "Otic Solution",
 
-            "Suspension",
+            "Inhalation Solution",
 
-            "Solution",
+            "Injectable Solution",
 
-            "Syrup",
+            "Injection",
+
+            "Transdermal Patch",
+
+            "Nasal Spray",
 
             "Cream",
 
@@ -1302,23 +1180,15 @@ class RxNormClient:
 
             "Gel",
 
-            "Patch",
-
             "Suppository",
 
-            "Injection",
+            "Tablet",
 
-            "Inhalation Solution",
+            "Capsule",
 
-            "Inhaler",
+            "Suspension",
 
-            "Nasal Spray",
-
-            "Spray",
-
-            "Lozenge",
-
-            "Powder",
+            "Solution",
 
         ]
 
@@ -1328,7 +1198,7 @@ class RxNormClient:
 
                 re.escape(term),
 
-                "",
+                " ",
 
                 text,
 
@@ -1342,9 +1212,15 @@ class RxNormClient:
 
         )
 
-        return text or cls._normalize_whitespace(
+        return (
 
-            name
+            text
+
+            or cls._normalize_whitespace(
+
+                name
+
+            )
 
         )
 
@@ -1360,15 +1236,9 @@ class RxNormClient:
 
         name: str,
 
-        term_type: str = "",
+        term_type: str,
 
     ) -> RxNormMedication:
-
-        """
-
-        Convert an RxNorm concept into the internal normalized object.
-
-        """
 
         clean_name = cls._normalize_whitespace(
 
@@ -1382,9 +1252,13 @@ class RxNormClient:
 
         )
 
-        dosage_form = cls._extract_dosage_form(
+        dosage_form = (
 
-            clean_name
+            cls._extract_dosage_form(
+
+                clean_name
+
+            )
 
         )
 
@@ -1394,17 +1268,39 @@ class RxNormClient:
 
         )
 
-        generic_name = cls._extract_generic_name(
+        brand_name = (
 
-            clean_name,
+            cls._extract_brand_name(
 
-            strength,
+                clean_name
+
+            )
+
+        )
+
+        generic_name = (
+
+            cls._extract_generic_name(
+
+                clean_name,
+
+                strength,
+
+                dosage_form,
+
+                brand_name,
+
+            )
 
         )
 
         return RxNormMedication(
 
-            rxcui=str(rxcui).strip(),
+            rxcui=str(
+
+                rxcui
+
+            ).strip(),
 
             name=clean_name,
 
@@ -1414,21 +1310,41 @@ class RxNormClient:
 
             ).strip(),
 
-            generic_name=generic_name,
+            generic_name=(
 
-            brand_name="",
+                generic_name
 
-            strength=strength,
+            ),
 
-            dosage_form=dosage_form,
+            brand_name=(
 
-            route=route,
+                brand_name
+
+            ),
+
+            strength=(
+
+                strength
+
+            ),
+
+            dosage_form=(
+
+                dosage_form
+
+            ),
+
+            route=(
+
+                route
+
+            ),
 
         )
 
     # ========================================================
 
-    # SEARCH
+    # PRODUCT SEARCH
 
     # ========================================================
 
@@ -1448,7 +1364,17 @@ class RxNormClient:
 
         """
 
-        Search RxNorm using approximate medication-name matching.
+        Search for actual drug products rather than broad
+
+        terminology concepts.
+
+        Uses RxNorm getDrugs first because it returns product
+
+        concepts such as SCD and SBD.
+
+        Approximate matching is used only to help resolve a
+
+        partially typed or misspelled drug name.
 
         """
 
@@ -1464,6 +1390,404 @@ class RxNormClient:
 
         )
 
+        products = self._search_drug_products(
+
+            query=query,
+
+            limit=limit,
+
+        )
+
+        if products:
+
+            return products
+
+        # ----------------------------------------------------
+
+        # FALLBACK: approximate search
+
+        # ----------------------------------------------------
+
+        approximate = (
+
+            self._search_approximate(
+
+                query=query,
+
+                limit=10,
+
+                active_only=active_only,
+
+            )
+
+        )
+
+        results: list[
+
+            RxNormMedication
+
+        ] = []
+
+        seen: set[str] = set()
+
+        for candidate in approximate:
+
+            # Try the RxNorm candidate name through getDrugs.
+
+            expanded = (
+
+                self._search_drug_products(
+
+                    query=candidate.name,
+
+                    limit=limit,
+
+                )
+
+            )
+
+            for medication in expanded:
+
+                if (
+
+                    medication.rxcui
+
+                    in seen
+
+                ):
+
+                    continue
+
+                seen.add(
+
+                    medication.rxcui
+
+                )
+
+                results.append(
+
+                    medication
+
+                )
+
+                if len(results) >= limit:
+
+                    return results
+
+        return results
+
+    def _search_drug_products(
+
+        self,
+
+        *,
+
+        query: str,
+
+        limit: int,
+
+    ) -> list[RxNormMedication]:
+
+        """
+
+        Use RxNorm getDrugs to retrieve product-level
+
+        prescribing concepts.
+
+        """
+
+        payload = self._get_json(
+
+            "/drugs.json",
+
+            {
+
+                "name": query,
+
+                # Request prescribable name where available.
+
+                "expand": "psn",
+
+            },
+
+        )
+
+        concept_groups = (
+
+            payload
+
+            .get(
+
+                "drugGroup",
+
+                {},
+
+            )
+
+            .get(
+
+                "conceptGroup",
+
+                [],
+
+            )
+
+        )
+
+        if not isinstance(
+
+            concept_groups,
+
+            list,
+
+        ):
+
+            return []
+
+        results: list[
+
+            RxNormMedication
+
+        ] = []
+
+        seen: set[str] = set()
+
+        for group in concept_groups:
+
+            if not isinstance(
+
+                group,
+
+                dict,
+
+            ):
+
+                continue
+
+            group_tty = str(
+
+                group.get("tty")
+
+                or ""
+
+            ).strip()
+
+            # Do not expose broad concepts like:
+
+            # Pill
+
+            # Oral Product
+
+            # Dose Form Group
+
+            #
+
+            # Only return actual drug products.
+
+            if (
+
+                group_tty
+
+                not in self.ORDERABLE_TERM_TYPES
+
+            ):
+
+                continue
+
+            concepts = (
+
+                group.get(
+
+                    "conceptProperties",
+
+                    []
+
+                )
+
+                or []
+
+            )
+
+            if not isinstance(
+
+                concepts,
+
+                list,
+
+            ):
+
+                continue
+
+            for concept in concepts:
+
+                if not isinstance(
+
+                    concept,
+
+                    dict,
+
+                ):
+
+                    continue
+
+                rxcui = str(
+
+                    concept.get("rxcui")
+
+                    or ""
+
+                ).strip()
+
+                tty = str(
+
+                    concept.get("tty")
+
+                    or group_tty
+
+                ).strip()
+
+                # Prefer the Prescribable Name.
+
+                name = (
+
+                    str(
+
+                        concept.get("psn")
+
+                        or ""
+
+                    ).strip()
+
+                    or str(
+
+                        concept.get("name")
+
+                        or ""
+
+                    ).strip()
+
+                    or str(
+
+                        concept.get("synonym")
+
+                        or ""
+
+                    ).strip()
+
+                )
+
+                if (
+
+                    not rxcui
+
+                    or not name
+
+                ):
+
+                    continue
+
+                if (
+
+                    tty
+
+                    not in self.ORDERABLE_TERM_TYPES
+
+                ):
+
+                    continue
+
+                if rxcui in seen:
+
+                    continue
+
+                seen.add(
+
+                    rxcui
+
+                )
+
+                medication = (
+
+                    self._normalize_medication(
+
+                        rxcui=rxcui,
+
+                        name=name,
+
+                        term_type=tty,
+
+                    )
+
+                )
+
+                # For ordering we want actual useful product
+
+                # definitions. Avoid broad product names that
+
+                # still have no strength.
+
+                if (
+
+                    not medication.strength
+
+                ):
+
+                    continue
+
+                results.append(
+
+                    medication
+
+                )
+
+        # Generic products first, then branded products.
+
+        results.sort(
+
+            key=lambda med: (
+
+                0
+
+                if med.term_type == "SCD"
+
+                else 1,
+
+                med.generic_name.lower(),
+
+                med.strength.lower(),
+
+                med.dosage_form.lower(),
+
+                med.brand_name.lower(),
+
+            )
+
+        )
+
+        return results[:limit]
+
+    def _search_approximate(
+
+        self,
+
+        *,
+
+        query: str,
+
+        limit: int,
+
+        active_only: bool,
+
+    ) -> list[RxNormMedication]:
+
+        """
+
+        Approximate search used only as a name-resolution
+
+        fallback.
+
+        """
+
         payload = self._get_json(
 
             "/approximateTerm.json",
@@ -1473,12 +1797,6 @@ class RxNormClient:
                 "term": query,
 
                 "maxEntries": limit,
-
-                # RxNorm:
-
-                # 0 = current concepts
-
-                # 1 = active concepts
 
                 "option": (
 
@@ -1532,11 +1850,7 @@ class RxNormClient:
 
         ] = []
 
-        seen_rxcuis: set[
-
-            str
-
-        ] = set()
+        seen: set[str] = set()
 
         for candidate in candidates:
 
@@ -1552,11 +1866,7 @@ class RxNormClient:
 
             rxcui = str(
 
-                candidate.get(
-
-                    "rxcui"
-
-                )
+                candidate.get("rxcui")
 
                 or ""
 
@@ -1564,23 +1874,7 @@ class RxNormClient:
 
             name = str(
 
-                candidate.get(
-
-                    "name"
-
-                )
-
-                or ""
-
-            ).strip()
-
-            term_type = str(
-
-                candidate.get(
-
-                    "tty"
-
-                )
+                candidate.get("name")
 
                 or ""
 
@@ -1596,11 +1890,11 @@ class RxNormClient:
 
                 continue
 
-            if rxcui in seen_rxcuis:
+            if rxcui in seen:
 
                 continue
 
-            seen_rxcuis.add(
+            seen.add(
 
                 rxcui
 
@@ -1608,21 +1902,15 @@ class RxNormClient:
 
             results.append(
 
-                self._normalize_medication(
+                RxNormMedication(
 
                     rxcui=rxcui,
 
                     name=name,
 
-                    term_type=term_type,
-
                 )
 
             )
-
-            if len(results) >= limit:
-
-                break
 
         return results
 
@@ -1642,7 +1930,7 @@ class RxNormClient:
 
         """
 
-        Retrieve a specific RxNorm concept by RxCUI.
+        Retrieve and normalize a specific RxNorm concept.
 
         """
 
@@ -1682,35 +1970,43 @@ class RxNormClient:
 
         returned_rxcui = str(
 
-            properties.get(
-
-                "rxcui"
-
-            )
+            properties.get("rxcui")
 
             or ""
 
         ).strip()
 
-        name = str(
+        name = (
 
-            properties.get(
+            str(
 
-                "name"
+                properties.get("psn")
 
-            )
+                or ""
 
-            or ""
+            ).strip()
 
-        ).strip()
+            or str(
+
+                properties.get("name")
+
+                or ""
+
+            ).strip()
+
+            or str(
+
+                properties.get("synonym")
+
+                or ""
+
+            ).strip()
+
+        )
 
         term_type = str(
 
-            properties.get(
-
-                "tty"
-
-            )
+            properties.get("tty")
 
             or ""
 
@@ -1742,12 +2038,6 @@ class RxNormClient:
 
         )
 
-    # ========================================================
-
-    # COMPATIBILITY ALIAS
-
-    # ========================================================
-
     def get_medication(
 
         self,
@@ -1758,13 +2048,7 @@ class RxNormClient:
 
         """
 
-        Compatibility alias for medication import code.
-
-        Both of these now work:
-
-            client.get(rxcui)
-
-            client.get_medication(rxcui)
+        Compatibility alias.
 
         """
 
