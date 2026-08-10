@@ -2,123 +2,102 @@ from django.urls import path
 
 from . import views
 
-
 app_name = "pharmacy"
-
 
 urlpatterns = [
 
-    # ============================================================
-    # PHARMACY DASHBOARD
-    # ============================================================
+    # ========================================================
+
+    # PHARMACY WORKSPACE
+
+    # ========================================================
 
     path(
+
         "",
+
         views.dashboard,
+
         name="dashboard",
+
     ),
 
-    # ============================================================
-    # PHARMACY CLINICAL WORKFLOW
-    # ============================================================
+    # ========================================================
+
+    # MEDICATION CATALOG
+
+    # ========================================================
 
     path(
-        "queue/",
-        views.queue,
-        name="queue",
-    ),
 
-    path(
-        "pending-review/",
-        views.pending_review,
-        name="pending-review",
-    ),
-
-    path(
-        "verified/",
-        views.verified,
-        name="verified",
-    ),
-
-    path(
-        "dispensing/",
-        views.dispensing,
-        name="dispensing",
-    ),
-
-    path(
-        "interactions/",
-        views.interactions,
-        name="interactions",
-    ),
-
-    path(
-        "rejected/",
-        views.rejected,
-        name="rejected",
-    ),
-
-    # ============================================================
-    # PHARMACY INVENTORY
-    # ============================================================
-
-    path(
-        "inventory/",
-        views.inventory,
-        name="inventory",
-    ),
-
-    # ============================================================
-    # MEDICATION FORMULARY / CATALOG
-    # ============================================================
-
-    path(
         "medications/",
-        views.medication_catalog,
-        name="medication-catalog",
+
+        views.MedicationCatalogListView.as_view(),
+
+        name="medication-list",
+
     ),
 
     path(
+
         "medications/new/",
+
         views.MedicationCatalogCreateView.as_view(),
-        name="medication-catalog-create",
+
+        name="medication-create",
+
     ),
 
     path(
+
         "medications/<int:pk>/edit/",
+
         views.MedicationCatalogUpdateView.as_view(),
-        name="medication-catalog-update",
+
+        name="medication-update",
+
     ),
 
     path(
+
         "medications/<int:pk>/delete/",
+
         views.MedicationCatalogDeleteView.as_view(),
-        name="medication-catalog-delete",
+
+        name="medication-delete",
+
     ),
 
-    # ============================================================
-    # LOCAL MEDICATION API
-    # ============================================================
+    # ========================================================
+
+    # MEDICATION APIs
+
+    # ========================================================
 
     path(
+
         "api/medications/",
+
         views.medication_list_api,
+
         name="medication-list-api",
+
     ),
 
-    # ============================================================
-    # RXNORM / EXTERNAL MEDICATION TERMINOLOGY API
-    # ============================================================
-
     path(
-        "api/rxnorm/search/",
+
+        "api/us-medications/",
+
         views.us_medication_search_api,
-        name="rxnorm-search-api",
+
+        name="us-medication-search-api",
+
     ),
 
     path(
-        "api/rxnorm/import/",
-        views.import_us_medication,
-        name="rxnorm-import-api",
+    "api/us-medications/import/",
+    views.us_medication_import_api,
+    name="us-medication-import-api",
     ),
+
 ]

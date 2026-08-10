@@ -10,17 +10,21 @@ apps/vitals/templates/vitals/partials/form_fields.html
 
 Purpose:
 
-- Render compact Epic-style vital intake.
+- Render compact clinical vital-sign intake.
 
-- Labels remain on the left.
+- Keep measurement inputs spreadsheet-sized.
 
-- Current observation date/time appears as column heading.
+- Keep labels on the left.
 
-- Values use small spreadsheet-like cells.
+- Use one current observation column.
 
-- Blood pressure uses one combined row.
+- Keep BP on one row.
 
-- Avoid wide full-screen input controls.
+- Reveal oxygen-flow fields only when supplemental oxygen is used.
+
+- Reveal detailed pain fields only when pain is present.
+
+- Keep the body map outside this main flowsheet partial.
 
 Expected context:
 
@@ -30,11 +34,9 @@ Expected context:
 
 {% endcomment %}
 
-{% load static %}
-
 <!-- =========================================================
 
-     VALIDATION ERRORS
+     NON-FIELD ERRORS
 
 ========================================================== -->
 
@@ -44,7 +46,11 @@ Expected context:
 
         class="
 
-            mb-2 rounded-md
+            mb-2
+
+            max-w-xl
+
+            rounded-md
 
             border border-red-300
 
@@ -58,19 +64,7 @@ Expected context:
 
         {% for error in form.non_field_errors %}
 
-            <p
-
-                class="
-
-                    text-[10px]
-
-                    font-semibold
-
-                    text-red-700
-
-                "
-
-            >
+            <p class="text-[10px] font-semibold text-red-700">
 
                 {{ error }}
 
@@ -84,20 +78,101 @@ Expected context:
 
 <!-- =========================================================
 
-     COMPACT FLOWSHEET
+     FLOWSHEET
 
 ========================================================== -->
 
 <div
-    x-data="{ oxygenMethod: '{{ form.oxygen_delivery_method.value|default:'room_air' }}', painPresent: '{{ form.pain_status.value|default:'not_assessed' }}', painLocation: '{{ form.pain_location.value|default:'' }}', showPainMap: false, painMapView: 'front' }"
+
+    x-data="{
+
+        oxygenMethod: '{{ form.oxygen_delivery_method.value|default:"room_air"|escapejs }}',
+
+        painPresent: '{{ form.pain_status.value|default:"not_assessed"|escapejs }}',
+
+        painLocation: '{{ form.pain_location.value|default:""|escapejs }}',
+
+        showPainMap: false,
+
+        painMapView: 'front',
+
+        init() {
+
+            this.$nextTick(() => {
+
+                const oxygenField =
+
+                    this.$refs.oxygenMethod;
+
+                const painStatusField =
+
+                    this.$refs.painStatus;
+
+                const painLocationField =
+
+                    this.$refs.painLocation;
+
+                if (oxygenField) {
+
+                    this.oxygenMethod =
+
+                        oxygenField.value || 'room_air';
+
+                }
+
+                if (painStatusField) {
+
+                    this.painPresent =
+
+                        painStatusField.value || 'not_assessed';
+
+                }
+
+                if (painLocationField) {
+
+                    this.painLocation =
+
+                        painLocationField.value || '';
+
+                }
+
+            });
+
+        },
+
+        selectPainLocation(value) {
+
+            this.painLocation = value;
+
+            if (this.$refs.painLocation) {
+
+                this.$refs.painLocation.value = value;
+
+                this.$refs.painLocation.dispatchEvent(
+
+                    new Event('change', {
+
+                        bubbles: true
+
+                    })
+
+                );
+
+            }
+
+            this.showPainMap = false;
+
+        }
+
+    }"
 
     class="
 
         inline-block
 
-        min-w-[360px]
-
         overflow-hidden
+
+        rounded-md
 
         border border-slate-300
 
@@ -109,7 +184,7 @@ Expected context:
 
     <!-- =====================================================
 
-         COLUMN HEADING
+         COLUMN HEADER
 
     ====================================================== -->
 
@@ -119,7 +194,7 @@ Expected context:
 
             grid
 
-            grid-cols-[155px_165px]
+            grid-cols-[142px_182px]
 
             border-b border-slate-400
 
@@ -133,15 +208,17 @@ Expected context:
 
             class="
 
-                flex items-end
+                flex h-9
+
+                items-center
 
                 border-r border-slate-400
 
-                px-2 py-1.5
+                px-2
 
                 text-[9px] font-bold
 
-                uppercase tracking-wide
+                uppercase tracking-[0.06em]
 
                 text-slate-600
 
@@ -157,51 +234,31 @@ Expected context:
 
             class="
 
+                flex h-9
+
+                flex-col
+
+                items-center justify-center
+
                 bg-blue-50
 
-                px-2 py-1
-
-                text-center
+                px-2
 
             "
 
         >
 
-            <p
-
-                class="
-
-                    text-[9px]
-
-                    font-bold
-
-                    text-slate-800
-
-                "
-
-            >
+            <span class="text-[9px] font-bold text-slate-800">
 
                 {{ form.observation_date_display }}
 
-            </p>
+            </span>
 
-            <p
-
-                class="
-
-                    text-[9px]
-
-                    font-semibold
-
-                    text-blue-700
-
-                "
-
-            >
+            <span class="text-[9px] font-semibold text-blue-700">
 
                 {{ form.observation_time_display }}
 
-            </p>
+            </span>
 
         </div>
 
@@ -217,7 +274,9 @@ Expected context:
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-200
 
@@ -229,11 +288,15 @@ Expected context:
 
             class="
 
-                flex h-9 items-center
+                flex h-8
+
+                items-center
 
                 border-r border-slate-300
 
-                bg-slate-50 px-2
+                bg-slate-50
+
+                px-2
 
                 text-[10px] font-semibold
 
@@ -247,25 +310,15 @@ Expected context:
 
         </div>
 
-        <div
+        <div class="flex h-8 items-center gap-1 bg-white px-1">
 
-            class="
-
-                flex h-9 items-center
-
-                bg-white
-
-            "
-
-        >
-
-            <div class="w-[72px]">
+            <div class="w-[56px]">
 
                 {{ form.temperature_fahrenheit }}
 
             </div>
 
-            <div class="w-[58px]">
+            <div class="w-[72px]">
 
                 {{ form.temperature_unit }}
 
@@ -275,13 +328,15 @@ Expected context:
 
     </div>
 
-    <!-- Temperature site -->
+    <!-- TEMP SITE -->
 
     <div
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-200
 
@@ -293,11 +348,15 @@ Expected context:
 
             class="
 
-                flex h-9 items-center
+                flex h-8
+
+                items-center
 
                 border-r border-slate-300
 
-                bg-slate-50 px-2
+                bg-slate-50
+
+                px-2
 
                 text-[10px] font-medium
 
@@ -311,19 +370,9 @@ Expected context:
 
         </div>
 
-        <div
+        <div class="flex h-8 items-center bg-white px-1">
 
-            class="
-
-                flex h-9 items-center
-
-                bg-white
-
-            "
-
-        >
-
-            <div class="w-[145px]">
+            <div class="w-[150px]">
 
                 {{ form.temperature_site }}
 
@@ -335,7 +384,7 @@ Expected context:
 
     <!-- =====================================================
 
-         PULSE
+         HEART RATE
 
     ====================================================== -->
 
@@ -343,7 +392,9 @@ Expected context:
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-200
 
@@ -355,11 +406,15 @@ Expected context:
 
             class="
 
-                flex h-9 items-center
+                flex h-8
+
+                items-center
 
                 border-r border-slate-300
 
-                bg-slate-50 px-2
+                bg-slate-50
+
+                px-2
 
                 text-[10px] font-semibold
 
@@ -373,35 +428,15 @@ Expected context:
 
         </div>
 
-        <div
+        <div class="flex h-8 items-center bg-white px-1">
 
-            class="
-
-                flex h-9 items-center
-
-                bg-white
-
-            "
-
-        >
-
-            <div class="w-[72px]">
+            <div class="w-[50px]">
 
                 {{ form.heart_rate }}
 
             </div>
 
-            <span
-
-                class="
-
-                    ml-1 text-[9px]
-
-                    text-slate-500
-
-                "
-
-            >
+            <span class="ml-1 text-[9px] text-slate-500">
 
                 bpm
 
@@ -411,45 +446,15 @@ Expected context:
 
     </div>
 
-    <!-- =====================================================
-
-         PULSE RHYTHM
-
-    ====================================================== -->
-
-    <div class="grid grid-cols-[155px_165px] border-b border-slate-200">
-        <div class="flex h-9 items-center border-r border-slate-300 bg-slate-50 px-2 text-[10px] font-medium text-slate-600">
-            Rhythm
-        </div>
-        <div class="flex h-9 items-center bg-white">
-            <div class="w-[145px]">
-                {{ form.heart_rhythm }}
-            </div>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-[155px_165px] border-b border-slate-200">
-        <div class="flex h-9 items-center border-r border-slate-300 bg-slate-50 px-2 text-[10px] font-medium text-slate-600">
-            Pulse method
-        </div>
-        <div class="flex h-9 items-center bg-white">
-            <div class="w-[145px]">
-                {{ form.heart_rate_method }}
-            </div>
-        </div>
-    </div>
-
-    <!-- =====================================================
-
-         RESPIRATIONS
-
-    ====================================================== -->
+    <!-- RHYTHM -->
 
     <div
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-200
 
@@ -461,11 +466,127 @@ Expected context:
 
             class="
 
-                flex h-9 items-center
+                flex h-8
+
+                items-center
 
                 border-r border-slate-300
 
-                bg-slate-50 px-2
+                bg-slate-50
+
+                px-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            Rhythm
+
+        </div>
+
+        <div class="flex h-8 items-center bg-white px-1">
+
+            <div class="w-[150px]">
+
+                {{ form.heart_rhythm }}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- PULSE METHOD -->
+
+    <div
+
+        class="
+
+            grid
+
+            grid-cols-[142px_182px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-8
+
+                items-center
+
+                border-r border-slate-300
+
+                bg-slate-50
+
+                px-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            Pulse Method
+
+        </div>
+
+        <div class="flex h-8 items-center bg-white px-1">
+
+            <div class="w-[150px]">
+
+                {{ form.heart_rate_method }}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+
+         RESPIRATORY RATE
+
+    ====================================================== -->
+
+    <div
+
+        class="
+
+            grid
+
+            grid-cols-[142px_182px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-8
+
+                items-center
+
+                border-r border-slate-300
+
+                bg-slate-50
+
+                px-2
 
                 text-[10px] font-semibold
 
@@ -479,35 +600,15 @@ Expected context:
 
         </div>
 
-        <div
+        <div class="flex h-8 items-center bg-white px-1">
 
-            class="
-
-                flex h-9 items-center
-
-                bg-white
-
-            "
-
-        >
-
-            <div class="w-[72px]">
+            <div class="w-[50px]">
 
                 {{ form.respiratory_rate }}
 
             </div>
 
-            <span
-
-                class="
-
-                    ml-1 text-[9px]
-
-                    text-slate-500
-
-                "
-
-            >
+            <span class="ml-1 text-[9px] text-slate-500">
 
                 /min
 
@@ -527,7 +628,9 @@ Expected context:
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-200
 
@@ -539,11 +642,15 @@ Expected context:
 
             class="
 
-                flex h-9 items-center
+                flex h-8
+
+                items-center
 
                 border-r border-slate-300
 
-                bg-slate-50 px-2
+                bg-slate-50
+
+                px-2
 
                 text-[10px] font-semibold
 
@@ -557,63 +664,27 @@ Expected context:
 
         </div>
 
-        <div
+        <div class="flex h-8 items-center bg-white px-1">
 
-            class="
-
-                flex h-9
-
-                items-center
-
-                bg-white
-
-                px-1
-
-            "
-
-        >
-
-            <div class="w-[52px]">
+            <div class="w-[46px]">
 
                 {{ form.systolic_blood_pressure }}
 
             </div>
 
-            <span
-
-                class="
-
-                    mx-0.5
-
-                    text-xs font-bold
-
-                    text-slate-500
-
-                "
-
-            >
+            <span class="mx-1 text-[11px] font-bold text-slate-500">
 
                 /
 
             </span>
 
-            <div class="w-[52px]">
+            <div class="w-[46px]">
 
                 {{ form.diastolic_blood_pressure }}
 
             </div>
 
-            <span
-
-                class="
-
-                    ml-1 text-[8px]
-
-                    text-slate-500
-
-                "
-
-            >
+            <span class="ml-1 text-[8px] text-slate-500">
 
                 mmHg
 
@@ -623,26 +694,112 @@ Expected context:
 
     </div>
 
-    <div class="grid grid-cols-[155px_165px] border-b border-slate-200">
-        <div class="flex h-9 items-center border-r border-slate-300 bg-slate-50 px-2 text-[10px] font-medium text-slate-600">
-            BP location
+    <!-- BP LOCATION -->
+
+    <div
+
+        class="
+
+            grid
+
+            grid-cols-[142px_182px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-8
+
+                items-center
+
+                border-r border-slate-300
+
+                bg-slate-50
+
+                px-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            BP Location
+
         </div>
-        <div class="flex h-9 items-center bg-white">
-            <div class="w-[145px]">
+
+        <div class="flex h-8 items-center bg-white px-1">
+
+            <div class="w-[150px]">
+
                 {{ form.blood_pressure_location }}
+
             </div>
+
         </div>
+
     </div>
 
-    <div class="grid grid-cols-[155px_165px] border-b border-slate-200">
-        <div class="flex h-9 items-center border-r border-slate-300 bg-slate-50 px-2 text-[10px] font-medium text-slate-600">
-            Patient position
+    <!-- POSITION -->
+
+    <div
+
+        class="
+
+            grid
+
+            grid-cols-[142px_182px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex h-8
+
+                items-center
+
+                border-r border-slate-300
+
+                bg-slate-50
+
+                px-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            Position
+
         </div>
-        <div class="flex h-9 items-center bg-white">
-            <div class="w-[145px]">
+
+        <div class="flex h-8 items-center bg-white px-1">
+
+            <div class="w-[150px]">
+
                 {{ form.position }}
+
             </div>
+
         </div>
+
     </div>
 
     <!-- =====================================================
@@ -655,7 +812,9 @@ Expected context:
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-200
 
@@ -667,11 +826,15 @@ Expected context:
 
             class="
 
-                flex h-9 items-center
+                flex h-8
+
+                items-center
 
                 border-r border-slate-300
 
-                bg-slate-50 px-2
+                bg-slate-50
+
+                px-2
 
                 text-[10px] font-semibold
 
@@ -685,35 +848,15 @@ Expected context:
 
         </div>
 
-        <div
+        <div class="flex h-8 items-center bg-white px-1">
 
-            class="
-
-                flex h-9 items-center
-
-                bg-white
-
-            "
-
-        >
-
-            <div class="w-[72px]">
+            <div class="w-[50px]">
 
                 {{ form.oxygen_saturation }}
 
             </div>
 
-            <span
-
-                class="
-
-                    ml-1 text-[9px]
-
-                    text-slate-500
-
-                "
-
-            >
+            <span class="ml-1 text-[9px] text-slate-500">
 
                 %
 
@@ -733,7 +876,9 @@ Expected context:
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-200
 
@@ -745,11 +890,15 @@ Expected context:
 
             class="
 
-                flex h-9 items-center
+                flex h-8
+
+                items-center
 
                 border-r border-slate-300
 
-                bg-slate-50 px-2
+                bg-slate-50
+
+                px-2
 
                 text-[10px] font-medium
 
@@ -759,23 +908,21 @@ Expected context:
 
         >
 
-            Oxygen Delivery
+            Oxygen
 
         </div>
 
-        <div
+        <div class="flex h-8 items-center bg-white px-1">
 
-            class="
+            <div
 
-                flex h-9 items-center
+                class="w-[150px]"
 
-                bg-white
+                x-ref="oxygenMethod"
 
-            "
+                @change="oxygenMethod = $event.target.value"
 
-        >
-
-            <div class="w-[145px]">
+            >
 
                 {{ form.oxygen_delivery_method }}
 
@@ -785,15 +932,19 @@ Expected context:
 
     </div>
 
-    <!-- Oxygen flow -->
+    <!-- OXYGEN FLOW -->
 
     <div
-        x-show="oxygenMethod !== 'room_air'"
+
         x-cloak
+
+        x-show="oxygenMethod && oxygenMethod !== 'room_air'"
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-200
 
@@ -805,15 +956,19 @@ Expected context:
 
             class="
 
-                flex h-9 items-center
+                flex h-8
+
+                items-center
 
                 border-r border-slate-300
 
-                bg-slate-50 px-2
+                bg-blue-50
+
+                px-2
 
                 text-[10px] font-medium
 
-                text-slate-600
+                text-blue-800
 
             "
 
@@ -823,35 +978,15 @@ Expected context:
 
         </div>
 
-        <div
+        <div class="flex h-8 items-center bg-blue-50/30 px-1">
 
-            class="
-
-                flex h-9 items-center
-
-                bg-white
-
-            "
-
-        >
-
-            <div class="w-[72px]">
+            <div class="w-[50px]">
 
                 {{ form.oxygen_flow_lpm }}
 
             </div>
 
-            <span
-
-                class="
-
-                    ml-1 text-[9px]
-
-                    text-slate-500
-
-                "
-
-            >
+            <span class="ml-1 text-[9px] text-slate-500">
 
                 L/min
 
@@ -867,46 +1002,13 @@ Expected context:
 
     ====================================================== -->
 
-    <div class="grid grid-cols-[155px_165px] border-b border-slate-200">
-        <div class="flex h-9 items-center border-r border-slate-300 bg-slate-50 px-2 text-[10px] font-semibold text-slate-700">
-            Pain status
-        </div>
-        <div class="flex h-9 items-center bg-white">
-            <div class="w-[145px]">
-                {{ form.pain_status }}
-            </div>
-        </div>
-    </div>
-
-    <div x-show="painPresent === 'yes'" x-cloak class="border-b border-slate-200">
-        <div class="grid grid-cols-[155px_165px]">
-            <div class="flex min-h-9 items-center border-r border-slate-300 bg-slate-50 px-2 text-[10px] font-medium text-slate-600">
-                Pain location
-            </div>
-            <div class="flex min-h-9 items-center gap-1 bg-white px-1">
-                <div class="min-w-0 flex-1">
-                    {{ form.pain_location }}
-                </div>
-                <button type="button" @click="showPainMap = true" class="pain-map-trigger">
-                    Body map
-                </button>
-            </div>
-        </div>
-        <div class="grid grid-cols-[155px_165px] border-t border-slate-100">
-            <div class="flex min-h-14 items-center border-r border-slate-300 bg-slate-50 px-2 text-[10px] font-medium text-slate-600">
-                Characteristics
-            </div>
-            <div class="bg-white">
-                {{ form.pain_characteristics }}
-            </div>
-        </div>
-    </div>
-
     <div
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-200
 
@@ -918,11 +1020,15 @@ Expected context:
 
             class="
 
-                flex h-9 items-center
+                flex h-8
+
+                items-center
 
                 border-r border-slate-300
 
-                bg-slate-50 px-2
+                bg-slate-50
+
+                px-2
 
                 text-[10px] font-semibold
 
@@ -936,39 +1042,211 @@ Expected context:
 
         </div>
 
+        <div class="flex h-8 items-center gap-1 bg-white px-1">
+
+            <div
+
+                class="w-[92px]"
+
+                x-ref="painStatus"
+
+                @change="painPresent = $event.target.value"
+
+            >
+
+                {{ form.pain_status }}
+
+            </div>
+
+            <template x-if="painPresent === 'yes'">
+
+                <div class="flex items-center gap-1">
+
+                    <div class="w-[42px]">
+
+                        {{ form.pain_score }}
+
+                    </div>
+
+                    <span class="text-[9px] text-slate-500">
+
+                        /10
+
+                    </span>
+
+                </div>
+
+            </template>
+
+        </div>
+
+    </div>
+
+    <!-- PAIN LOCATION -->
+
+    <div
+
+        x-cloak
+
+        x-show="painPresent === 'yes'"
+
+        class="
+
+            grid
+
+            grid-cols-[142px_182px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
         <div
 
             class="
 
-                flex h-9 items-center
+                flex min-h-9
 
-                bg-white
+                items-center
+
+                border-r border-slate-300
+
+                bg-amber-50/50
+
+                px-2
+
+                text-[10px] font-medium
+
+                text-slate-600
 
             "
 
         >
 
-            <div class="w-[52px]">
+            Pain Location
 
-                {{ form.pain_score }}
+        </div>
+
+        <div
+
+            class="
+
+                flex min-h-9
+
+                items-center gap-1
+
+                bg-white
+
+                px-1
+
+            "
+
+        >
+
+            <div
+
+                class="min-w-0 flex-1"
+
+                x-ref="painLocation"
+
+                @change="painLocation = $event.target.value"
+
+            >
+
+                {{ form.pain_location }}
 
             </div>
 
-            <span
+            <button
+
+                type="button"
+
+                @click="showPainMap = true"
 
                 class="
 
-                    ml-1 text-[9px]
+                    shrink-0
 
-                    text-slate-500
+                    rounded
+
+                    border border-slate-300
+
+                    bg-white
+
+                    px-1.5 py-1
+
+                    text-[8px] font-semibold
+
+                    text-slate-600
+
+                    hover:border-emerald-400
+
+                    hover:bg-emerald-50
+
+                    hover:text-emerald-800
 
                 "
 
             >
 
-                /10
+                Map
 
-            </span>
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- PAIN CHARACTERISTICS -->
+
+    <div
+
+        x-cloak
+
+        x-show="painPresent === 'yes'"
+
+        class="
+
+            grid
+
+            grid-cols-[142px_182px]
+
+            border-b border-slate-200
+
+        "
+
+    >
+
+        <div
+
+            class="
+
+                flex min-h-12
+
+                items-start
+
+                border-r border-slate-300
+
+                bg-amber-50/50
+
+                px-2 py-2
+
+                text-[10px] font-medium
+
+                text-slate-600
+
+            "
+
+        >
+
+            Characteristics
+
+        </div>
+
+        <div class="bg-white p-1">
+
+            {{ form.pain_characteristics }}
 
         </div>
 
@@ -992,7 +1270,7 @@ Expected context:
 
             text-[8px] font-bold
 
-            uppercase tracking-wide
+            uppercase tracking-[0.07em]
 
             text-slate-500
 
@@ -1004,13 +1282,15 @@ Expected context:
 
     </div>
 
-    <!-- Height -->
+    <!-- HEIGHT -->
 
     <div
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-200
 
@@ -1022,11 +1302,15 @@ Expected context:
 
             class="
 
-                flex h-9 items-center
+                flex h-8
+
+                items-center
 
                 border-r border-slate-300
 
-                bg-slate-50 px-2
+                bg-slate-50
+
+                px-2
 
                 text-[10px] font-medium
 
@@ -1040,19 +1324,9 @@ Expected context:
 
         </div>
 
-        <div
+        <div class="flex h-8 items-center bg-white px-1">
 
-            class="
-
-                flex h-9 items-center
-
-                bg-white
-
-            "
-
-        >
-
-            <div class="w-[72px]">
+            <div class="w-[50px]">
 
                 {{ form.height_cm }}
 
@@ -1068,13 +1342,15 @@ Expected context:
 
     </div>
 
-    <!-- Weight -->
+    <!-- WEIGHT -->
 
     <div
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-200
 
@@ -1086,11 +1362,15 @@ Expected context:
 
             class="
 
-                flex h-9 items-center
+                flex h-8
+
+                items-center
 
                 border-r border-slate-300
 
-                bg-slate-50 px-2
+                bg-slate-50
+
+                px-2
 
                 text-[10px] font-medium
 
@@ -1104,19 +1384,9 @@ Expected context:
 
         </div>
 
-        <div
+        <div class="flex h-8 items-center bg-white px-1">
 
-            class="
-
-                flex h-9 items-center
-
-                bg-white
-
-            "
-
-        >
-
-            <div class="w-[72px]">
+            <div class="w-[50px]">
 
                 {{ form.weight_kg }}
 
@@ -1132,13 +1402,15 @@ Expected context:
 
     </div>
 
-    <!-- Glucose -->
+    <!-- GLUCOSE -->
 
     <div
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-300
 
@@ -1150,11 +1422,15 @@ Expected context:
 
             class="
 
-                flex h-9 items-center
+                flex h-8
+
+                items-center
 
                 border-r border-slate-300
 
-                bg-slate-50 px-2
+                bg-slate-50
+
+                px-2
 
                 text-[10px] font-medium
 
@@ -1168,35 +1444,15 @@ Expected context:
 
         </div>
 
-        <div
+        <div class="flex h-8 items-center bg-white px-1">
 
-            class="
-
-                flex h-9 items-center
-
-                bg-white
-
-            "
-
-        >
-
-            <div class="w-[72px]">
+            <div class="w-[52px]">
 
                 {{ form.blood_glucose_mg_dl }}
 
             </div>
 
-            <span
-
-                class="
-
-                    ml-1 text-[9px]
-
-                    text-slate-500
-
-                "
-
-            >
+            <span class="ml-1 text-[9px] text-slate-500">
 
                 mg/dL
 
@@ -1208,7 +1464,7 @@ Expected context:
 
     <!-- =====================================================
 
-         NOTES
+         COMMENTS
 
     ====================================================== -->
 
@@ -1216,7 +1472,9 @@ Expected context:
 
         class="
 
-            grid grid-cols-[155px_165px]
+            grid
+
+            grid-cols-[142px_182px]
 
             border-b border-slate-200
 
@@ -1246,7 +1504,7 @@ Expected context:
 
         </div>
 
-        <div class="bg-white">
+        <div class="bg-white p-1">
 
             {{ form.notes }}
 
@@ -1256,21 +1514,13 @@ Expected context:
 
     <!-- =====================================================
 
-         UPDATE CORRECTION
+         CORRECTION REASON
 
     ====================================================== -->
 
     {% if form.is_update %}
 
-        <div
-
-            class="
-
-                grid grid-cols-[155px_165px]
-
-            "
-
-        >
+        <div class="grid grid-cols-[142px_182px]">
 
             <div
 
@@ -1294,7 +1544,7 @@ Expected context:
 
             </div>
 
-            <div class="bg-amber-50">
+            <div class="bg-amber-50 p-1">
 
                 {{ form.correction_reason }}
 
@@ -1308,234 +1558,14 @@ Expected context:
 
     {% endif %}
 
-    <div
-        x-show="showPainMap"
-        x-cloak
-        class="pain-map-backdrop"
-        @keydown.escape.window="showPainMap = false"
-        @click.self="showPainMap = false"
-    >
-        <div class="pain-map-dialog" role="dialog" aria-modal="true" aria-labelledby="pain-map-title">
-            <header class="pain-map-dialog-header">
-                <div>
-                    <h2 id="pain-map-title">Select pain location</h2>
-                    <p>Tap a body region to select it.</p>
-                    <p class="pain-map-selection" x-text="painLocation ? `Selected: ${painLocation.replaceAll('_', ' ')}` : 'No location selected'"></p>
-                    <p class="pain-map-attribution">Avatars: Goran tek-en and Nanoxyde, Wikimedia Commons, CC BY-SA. Modified for clinical hotspots.</p>
-                </div>
-                <button type="button" class="pain-map-close" @click="showPainMap = false" aria-label="Close body map">×</button>
-            </header>
+    <!-- =====================================================
 
-            <div class="pain-map-view-tabs" role="tablist" aria-label="Body map view">
-                <button type="button" role="tab" :aria-selected="painMapView === 'front'" :class="{ 'pain-map-view-active': painMapView === 'front' }" @click="painMapView = 'front'">Front</button>
-                <button type="button" role="tab" :aria-selected="painMapView === 'back'" :class="{ 'pain-map-view-active': painMapView === 'back' }" @click="painMapView = 'back'">Back</button>
-            </div>
+         PAIN BODY MAP
 
-            <div class="pain-map-body">
-                <div x-show="painMapView === 'front'" x-cloak class="pain-map-stage pain-map-stage-front" role="group" aria-label="Clickable front-facing human body map">
-                    <img src="{% static 'src/images/male-front-back-3d.svg' %}" alt="Realistic front-facing human body" class="pain-map-image pain-map-image-front">
-                    <div class="pain-map-hotspots">
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:3%;width:22%;height:15%" aria-label="Head" :class="{ 'pain-map-hotspot-active': painLocation === 'head' }" @click="painLocation = 'head'; showPainMap = false">Head</button>
-                        <button type="button" class="pain-map-hotspot" style="left:43%;top:8%;width:14%;height:8%" aria-label="Face" :class="{ 'pain-map-hotspot-active': painLocation === 'face' }" @click="painLocation = 'face'; showPainMap = false">Face</button>
-                        <button type="button" class="pain-map-hotspot" style="left:42%;top:10%;width:7%;height:3%" aria-label="Patient left eye" @click="painLocation = 'left_eye'; showPainMap = false">Right eye</button>
-                        <button type="button" class="pain-map-hotspot" style="left:51%;top:10%;width:7%;height:3%" aria-label="Patient right eye" @click="painLocation = 'right_eye'; showPainMap = false">Left eye</button>
-                        <button type="button" class="pain-map-hotspot" style="left:37%;top:10%;width:5%;height:8%" aria-label="Patient left ear" @click="painLocation = 'left_ear'; showPainMap = false">Right ear</button>
-                        <button type="button" class="pain-map-hotspot" style="left:58%;top:10%;width:5%;height:8%" aria-label="Patient right ear" @click="painLocation = 'right_ear'; showPainMap = false">Left ear</button>
-                        <button type="button" class="pain-map-hotspot" style="left:43%;top:20%;width:14%;height:8%" aria-label="Neck and throat" @click="painLocation = 'neck'; showPainMap = false">Neck</button>
-                        <button type="button" class="pain-map-hotspot" style="left:32%;top:23%;width:15%;height:12%" aria-label="Patient left shoulder" @click="painLocation = 'left_shoulder'; showPainMap = false">Right shoulder</button>
-                        <button type="button" class="pain-map-hotspot" style="left:53%;top:23%;width:15%;height:12%" aria-label="Patient right shoulder" @click="painLocation = 'right_shoulder'; showPainMap = false">Left shoulder</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:29%;width:11%;height:13%" aria-label="Patient left chest and ribs" @click="painLocation = 'left_chest'; showPainMap = false">Right chest</button>
-                        <button type="button" class="pain-map-hotspot" style="left:50%;top:29%;width:11%;height:13%" aria-label="Patient right chest and ribs" @click="painLocation = 'right_chest'; showPainMap = false">Left chest</button>
-                        <button type="button" class="pain-map-hotspot" style="left:46%;top:28%;width:8%;height:15%" aria-label="Sternum" @click="painLocation = 'sternum'; showPainMap = false">Sternum</button>
-                        <button type="button" class="pain-map-hotspot" style="left:36%;top:35%;width:14%;height:11%" aria-label="Patient left ribs" @click="painLocation = 'left_ribs'; showPainMap = false">Right ribs</button>
-                        <button type="button" class="pain-map-hotspot" style="left:50%;top:35%;width:14%;height:11%" aria-label="Patient right ribs" @click="painLocation = 'right_ribs'; showPainMap = false">Left ribs</button>
-                        <button type="button" class="pain-map-hotspot" style="left:40%;top:41%;width:20%;height:18%" aria-label="Abdomen" @click="painLocation = 'upper_abdomen'; showPainMap = false">Abdomen</button>
-                        <button type="button" class="pain-map-hotspot" style="left:40%;top:48%;width:10%;height:10%" aria-label="Patient left lower abdomen" @click="painLocation = 'left_lower_quadrant'; showPainMap = false">Right lower abdomen</button>
-                        <button type="button" class="pain-map-hotspot" style="left:50%;top:48%;width:10%;height:10%" aria-label="Patient right lower abdomen" @click="painLocation = 'right_lower_quadrant'; showPainMap = false">Left lower abdomen</button>
-                        <button type="button" class="pain-map-hotspot" style="left:46%;top:48%;width:8%;height:6%" aria-label="Umbilicus" @click="painLocation = 'umbilicus'; showPainMap = false">Umbilicus</button>
-                        <button type="button" class="pain-map-hotspot" style="left:40%;top:58%;width:20%;height:10%" aria-label="Pelvis and groin" @click="painLocation = 'pelvic'; showPainMap = false">Pelvis</button>
-                        <button type="button" class="pain-map-hotspot" style="left:22%;top:30%;width:14%;height:22%" aria-label="Patient left arm" @click="painLocation = 'left_upper_arm'; showPainMap = false">Right arm</button>
-                        <button type="button" class="pain-map-hotspot" style="left:64%;top:30%;width:14%;height:22%" aria-label="Patient right arm" @click="painLocation = 'right_upper_arm'; showPainMap = false">Left arm</button>
-                        <button type="button" class="pain-map-hotspot" style="left:15%;top:64%;width:15%;height:13%" aria-label="Patient left hand and fingers" @click="painLocation = 'left_hand'; showPainMap = false">Right hand</button>
-                        <button type="button" class="pain-map-hotspot" style="left:70%;top:64%;width:15%;height:13%" aria-label="Patient right hand and fingers" @click="painLocation = 'right_hand'; showPainMap = false">Left hand</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:63%;width:10%;height:18%" aria-label="Patient left thigh" @click="painLocation = 'left_thigh'; showPainMap = false">Right thigh</button>
-                        <button type="button" class="pain-map-hotspot" style="left:51%;top:63%;width:10%;height:18%" aria-label="Patient right thigh" @click="painLocation = 'right_thigh'; showPainMap = false">Left thigh</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:80%;width:10%;height:7%" aria-label="Patient left knee" @click="painLocation = 'left_knee'; showPainMap = false">Right knee</button>
-                        <button type="button" class="pain-map-hotspot" style="left:51%;top:80%;width:10%;height:7%" aria-label="Patient right knee" @click="painLocation = 'right_knee'; showPainMap = false">Left knee</button>
-                        <button type="button" class="pain-map-hotspot" style="left:38%;top:86%;width:12%;height:11%" aria-label="Patient left lower leg and calf" @click="painLocation = 'left_lower_leg'; showPainMap = false">Right lower leg</button>
-                        <button type="button" class="pain-map-hotspot" style="left:50%;top:86%;width:12%;height:11%" aria-label="Patient right lower leg and calf" @click="painLocation = 'right_lower_leg'; showPainMap = false">Left lower leg</button>
-                        <button type="button" class="pain-map-hotspot" style="left:34%;top:96%;width:16%;height:5%" aria-label="Patient left foot and toes" @click="painLocation = 'left_foot'; showPainMap = false">Right foot</button>
-                        <button type="button" class="pain-map-hotspot" style="left:50%;top:96%;width:16%;height:5%" aria-label="Patient right foot and toes" @click="painLocation = 'right_foot'; showPainMap = false">Left foot</button>
-                        <button type="button" class="pain-map-hotspot" style="left:43%;top:2%;width:14%;height:7%" aria-label="Scalp" @click="painLocation = 'scalp'; showPainMap = false">Scalp</button>
-                        <button type="button" class="pain-map-hotspot" style="left:45%;top:7%;width:10%;height:6%" aria-label="Forehead" @click="painLocation = 'forehead'; showPainMap = false">Forehead</button>
-                        <button type="button" class="pain-map-hotspot" style="left:47%;top:10%;width:7%;height:5%" aria-label="Nose" @click="painLocation = 'nose'; showPainMap = false">Nose</button>
-                        <button type="button" class="pain-map-hotspot" style="left:40%;top:13%;width:10%;height:7%" aria-label="Patient left cheek" @click="painLocation = 'left_cheek'; showPainMap = false">Right cheek</button>
-                        <button type="button" class="pain-map-hotspot" style="left:50%;top:13%;width:10%;height:7%" aria-label="Patient right cheek" @click="painLocation = 'right_cheek'; showPainMap = false">Left cheek</button>
-                        <button type="button" class="pain-map-hotspot" style="left:42%;top:17%;width:16%;height:5%" aria-label="Jaw and mouth" @click="painLocation = 'jaw'; showPainMap = false">Jaw</button>
-                        <button type="button" class="pain-map-hotspot" style="left:46%;top:17%;width:8%;height:3%" aria-label="Mouth" @click="painLocation = 'mouth'; showPainMap = false">Mouth</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:24%;width:11%;height:6%" aria-label="Patient left clavicle" @click="painLocation = 'left_clavicle'; showPainMap = false">Right clavicle</button>
-                        <button type="button" class="pain-map-hotspot" style="left:50%;top:24%;width:11%;height:6%" aria-label="Patient right clavicle" @click="painLocation = 'right_clavicle'; showPainMap = false">Left clavicle</button>
-                        <button type="button" class="pain-map-hotspot" style="left:34%;top:31%;width:10%;height:8%" aria-label="Patient left axilla" @click="painLocation = 'left_axilla'; showPainMap = false">Right axilla</button>
-                        <button type="button" class="pain-map-hotspot" style="left:56%;top:31%;width:10%;height:8%" aria-label="Patient right axilla" @click="painLocation = 'right_axilla'; showPainMap = false">Left axilla</button>
-                        <button type="button" class="pain-map-hotspot" style="left:27%;top:34%;width:9%;height:13%" aria-label="Patient left bicep" @click="painLocation = 'left_bicep'; showPainMap = false">Right bicep</button>
-                        <button type="button" class="pain-map-hotspot" style="left:64%;top:34%;width:9%;height:13%" aria-label="Patient right bicep" @click="painLocation = 'right_bicep'; showPainMap = false">Left bicep</button>
-                        <button type="button" class="pain-map-hotspot" style="left:21%;top:42%;width:10%;height:8%" aria-label="Patient left elbow" @click="painLocation = 'left_elbow'; showPainMap = false">Right elbow</button>
-                        <button type="button" class="pain-map-hotspot" style="left:69%;top:42%;width:10%;height:8%" aria-label="Patient right elbow" @click="painLocation = 'right_elbow'; showPainMap = false">Left elbow</button>
-                        <button type="button" class="pain-map-hotspot" style="left:20%;top:49%;width:10%;height:13%" aria-label="Patient left forearm" @click="painLocation = 'left_forearm'; showPainMap = false">Right forearm</button>
-                        <button type="button" class="pain-map-hotspot" style="left:70%;top:49%;width:10%;height:13%" aria-label="Patient right forearm" @click="painLocation = 'right_forearm'; showPainMap = false">Left forearm</button>
-                        <button type="button" class="pain-map-hotspot" style="left:19%;top:61%;width:10%;height:5%" aria-label="Patient left wrist" @click="painLocation = 'left_wrist'; showPainMap = false">Right wrist</button>
-                        <button type="button" class="pain-map-hotspot" style="left:71%;top:61%;width:10%;height:5%" aria-label="Patient right wrist" @click="painLocation = 'right_wrist'; showPainMap = false">Left wrist</button>
-                        <button type="button" class="pain-map-hotspot" style="left:46%;top:59%;width:8%;height:8%" aria-label="Groin" @click="painLocation = 'groin'; showPainMap = false">Groin</button>
-                        <button type="button" class="pain-map-hotspot" style="left:41%;top:58%;width:18%;height:8%" aria-label="Pelvis" @click="painLocation = 'pelvis'; showPainMap = false">Pelvis</button>
-                        <button type="button" class="pain-map-hotspot" style="left:47%;top:65%;width:6%;height:15%" aria-label="Patient inner thighs" @click="painLocation = 'left_inner_thigh'; showPainMap = false">Inner thigh</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:87%;width:8%;height:10%" aria-label="Patient left calf" @click="painLocation = 'left_calf'; showPainMap = false">Right calf</button>
-                        <button type="button" class="pain-map-hotspot" style="left:53%;top:87%;width:8%;height:10%" aria-label="Patient right calf" @click="painLocation = 'right_calf'; showPainMap = false">Left calf</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:95%;width:10%;height:5%" aria-label="Patient left ankle" @click="painLocation = 'left_ankle'; showPainMap = false">Right ankle</button>
-                        <button type="button" class="pain-map-hotspot" style="left:51%;top:95%;width:10%;height:5%" aria-label="Patient right ankle" @click="painLocation = 'right_ankle'; showPainMap = false">Left ankle</button>
-                    </div>
-                </div>
-                <svg x-show="painMapView === 'front'" x-cloak class="pain-map-avatar pain-map-avatar-front pain-map-legacy" viewBox="0 0 260 520" role="img" aria-label="Legacy front body map">
-                    <defs>
-                        <linearGradient id="skin-front" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#f8d0b8"/><stop offset="0.48" stop-color="#d99478"/><stop offset="1" stop-color="#9c5b50"/></linearGradient>
-                        <linearGradient id="skin-front-light" x1="0" x2="1"><stop stop-color="#efb79d"/><stop offset="1" stop-color="#b86e5d"/></linearGradient>
-                        <filter id="body-shadow"><feDropShadow dx="3" dy="5" stdDeviation="4" flood-color="#0f172a" flood-opacity=".22"/></filter>
-                    </defs>
-                    <g class="pain-map-human" filter="url(#body-shadow)">
-                        <path class="pain-map-base" fill="url(#skin-front)" d="M101 70c-12-12-15-27-8-42 8-16 26-24 42-19 18 5 29 20 27 37-1 12-8 20-16 27l5 22c18 7 35 12 45 28l23 86-20 8-20-50 13 91-16 8 9 49-11 4-2 74-25 0-5-70h-14l-5 70H98l-2-74-11-4 9-49-16-8 13-91-20 50-20-8 23-86c10-16 27-21 45-28z"/>
-                        <path class="pain-map-shading" d="M103 86c19 9 37 9 54 0l8 16c-18 14-50 14-70 0zM78 127l16 67-9 42-13-11 9-98zM182 127l-16 67 9 42 13-11-9-98zM100 247l28 5-5 76H98zM132 252l28-5 5 76h-25z"/>
-                        <path class="pain-map-detail" d="M108 24q19 11 36 0M107 55q18 8 37 0M91 120q39 17 78 0M91 151q39 17 78 0M96 205q34 15 68 0M104 88v116M156 88v116"/>
-                    </g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Scalp" @click="painLocation = 'scalp'; showPainMap = false"><path d="M101 18q29-28 58 0l-8 20h-42z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Forehead" @click="painLocation = 'forehead'; showPainMap = false"><path d="M110 23h40v17h-40z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Head" @click="painLocation = 'head'; showPainMap = false" @keydown.enter="painLocation = 'head'; showPainMap = false"><circle cx="130" cy="38" r="31" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Face" @click="painLocation = 'face'; showPainMap = false" @keydown.enter="painLocation = 'face'; showPainMap = false"><path d="M108 29q22-18 44 0v25q-22 19-44 0z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left cheek" @click="painLocation = 'left_cheek'; showPainMap = false"><path d="M108 40h20v17l-16-2z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right cheek" @click="painLocation = 'right_cheek'; showPainMap = false"><path d="M130 40h20l-4 15-16 2z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Nose" @click="painLocation = 'nose'; showPainMap = false"><path d="M126 36h8l4 18-8 5-8-5z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Jaw" @click="painLocation = 'jaw'; showPainMap = false"><path d="M108 53q22 16 44 0l-6 13h-32z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Mouth" @click="painLocation = 'mouth'; showPainMap = false"><path d="M121 53h18v6h-18z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left eye" @click="painLocation = 'left_eye'; showPainMap = false"><ellipse cx="119" cy="39" rx="7" ry="3" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right eye" @click="painLocation = 'right_eye'; showPainMap = false"><ellipse cx="141" cy="39" rx="7" ry="3" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Neck" @click="painLocation = 'neck'; showPainMap = false"><path d="M111 65h38v28h-38z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Throat" @click="painLocation = 'throat'; showPainMap = false"><path d="M119 67h22v25h-22z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left clavicle" @click="painLocation = 'left_clavicle'; showPainMap = false"><path d="M107 91h23v12l-30 9z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right clavicle" @click="painLocation = 'right_clavicle'; showPainMap = false"><path d="M130 91h23l30 21-30-9z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left axilla" @click="painLocation = 'left_axilla'; showPainMap = false"><path d="M91 106h17l-4 25-13 12z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right axilla" @click="painLocation = 'right_axilla'; showPainMap = false"><path d="M152 106h17l13 37-13-12z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left shoulder" @click="painLocation = 'left_shoulder'; showPainMap = false"><path d="M105 86 76 105l15 38 28-30z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right shoulder" @click="painLocation = 'right_shoulder'; showPainMap = false"><path d="m155 86 29 19-15 38-28-30z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left chest" @click="painLocation = 'left_chest'; showPainMap = false"><path d="M105 102h25v61l-27 9-12-47z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right chest" @click="painLocation = 'right_chest'; showPainMap = false"><path d="M130 102h25l14 23-12 47-27-9z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Upper abdomen" @click="painLocation = 'upper_abdomen'; showPainMap = false"><path d="M103 172h27v48l-30-4zM130 172h27l3 44-30 4z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left upper quadrant" @click="painLocation = 'left_upper_quadrant'; showPainMap = false"><path d="M103 165h27v28h-28z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right upper quadrant" @click="painLocation = 'right_upper_quadrant'; showPainMap = false"><path d="M130 165h27v28h-27z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Umbilicus" @click="painLocation = 'umbilicus'; showPainMap = false"><circle cx="130" cy="196" r="8" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left lower quadrant" @click="painLocation = 'left_lower_quadrant'; showPainMap = false"><path d="M101 193h29v28l-30-4z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right lower quadrant" @click="painLocation = 'right_lower_quadrant'; showPainMap = false"><path d="M130 193h29l1 24-30 4z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Pelvic region" @click="painLocation = 'pelvic'; showPainMap = false"><path d="M101 217h58l-6 28h-46z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Groin" @click="painLocation = 'groin'; showPainMap = false"><path d="M119 220h22l-4 24h-14z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left bicep" @click="painLocation = 'left_bicep'; showPainMap = false"><path d="M77 108 56 124l-25 79 20 8 32-61z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right bicep" @click="painLocation = 'right_bicep'; showPainMap = false"><path d="m183 108 21 16 25 79-20 8-32-61z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left hand and fingers" @click="painLocation = 'left_hand'; showPainMap = false"><path d="M29 203h25l-2 48-28-5z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right hand and fingers" @click="painLocation = 'right_hand'; showPainMap = false"><path d="M206 203h25l3 43-28 5z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left thigh" @click="painLocation = 'left_thigh'; showPainMap = false"><path d="M99 221h31v83l-27 3z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right thigh" @click="painLocation = 'right_thigh'; showPainMap = false"><path d="M130 221h31l-4 86-27-3z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left knee" @click="painLocation = 'left_knee'; showPainMap = false"><path d="M103 307h27v30h-29z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right knee" @click="painLocation = 'right_knee'; showPainMap = false"><path d="M130 307h27l2 30h-29z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left lower leg" @click="painLocation = 'left_lower_leg'; showPainMap = false"><path d="M101 337h29l-4 105h-28z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right lower leg" @click="painLocation = 'right_lower_leg'; showPainMap = false"><path d="M130 337h29l3 105h-28z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left foot and toes" @click="painLocation = 'left_foot'; showPainMap = false"><path d="M98 442h28l-4 30-32 8q-8-10 8-38z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right foot and toes" @click="painLocation = 'right_foot'; showPainMap = false"><path d="M134 442h28q16 28 8 38l-32-8z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left ear" @click="painLocation = 'left_ear'; showPainMap = false"><ellipse cx="103" cy="42" rx="5" ry="10" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right ear" @click="painLocation = 'right_ear'; showPainMap = false"><ellipse cx="157" cy="42" rx="5" ry="10" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Sternum" @click="painLocation = 'sternum'; showPainMap = false"><path d="M126 101h8v72h-8z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left ribs" @click="painLocation = 'left_ribs'; showPainMap = false"><path d="M91 132h35v31l-28 9z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right ribs" @click="painLocation = 'right_ribs'; showPainMap = false"><path d="M134 132h35l-7 40-28-9z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left upper arm" @click="painLocation = 'left_upper_arm'; showPainMap = false"><path d="M57 124h22l-23 87-20-8z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right upper arm" @click="painLocation = 'right_upper_arm'; showPainMap = false"><path d="M181 124h22l21 79-20 8z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left tricep" @click="painLocation = 'left_tricep'; showPainMap = false"><path d="M45 145h18l-10 62-16-6z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right tricep" @click="painLocation = 'right_tricep'; showPainMap = false"><path d="M197 145h18l8 56-16 6z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left elbow" @click="painLocation = 'left_elbow'; showPainMap = false"><circle cx="47" cy="211" r="10" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right elbow" @click="painLocation = 'right_elbow'; showPainMap = false"><circle cx="213" cy="211" r="10" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left forearm" @click="painLocation = 'left_forearm'; showPainMap = false"><path d="M38 218h20l-7 30-19-5z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right forearm" @click="painLocation = 'right_forearm'; showPainMap = false"><path d="M202 218h20l6 25-19 5z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left wrist" @click="painLocation = 'left_wrist'; showPainMap = false"><path d="M34 243h18v12H34z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right wrist" @click="painLocation = 'right_wrist'; showPainMap = false"><path d="M208 243h18v12h-18z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left inner thigh" @click="painLocation = 'left_inner_thigh'; showPainMap = false"><path d="M121 225h9v78h-7z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right inner thigh" @click="painLocation = 'right_inner_thigh'; showPainMap = false"><path d="M130 225h9l-2 78h-7z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left calf" @click="painLocation = 'left_calf'; showPainMap = false"><path d="M101 337h13l-4 105h-12z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right calf" @click="painLocation = 'right_calf'; showPainMap = false"><path d="M146 337h13l3 105h-12z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left ankle" @click="painLocation = 'left_ankle'; showPainMap = false"><path d="M96 430h19v16H95z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right ankle" @click="painLocation = 'right_ankle'; showPainMap = false"><path d="M145 430h19l2 16h-19z" /></g>
-                </svg>
+    ====================================================== -->
 
-                <div x-show="painMapView === 'back'" x-cloak class="pain-map-stage pain-map-stage-back" role="group" aria-label="Clickable back-facing human body map">
-                    <img src="{% static 'src/images/male-front-back-3d.svg' %}" alt="Realistic back-facing human body" class="pain-map-image pain-map-image-back">
-                    <div class="pain-map-hotspots">
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:3%;width:22%;height:15%" aria-label="Back of head" @click="painLocation = 'occiput'; showPainMap = false">Back of head</button>
-                        <button type="button" class="pain-map-hotspot" style="left:43%;top:18%;width:14%;height:12%" aria-label="Cervical spine" @click="painLocation = 'cervical_spine'; showPainMap = false">Cervical spine</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:24%;width:22%;height:18%" aria-label="Upper back" @click="painLocation = 'upper_back'; showPainMap = false">Upper back</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:25%;width:10%;height:16%" aria-label="Patient left shoulder blade" @click="painLocation = 'left_scapula'; showPainMap = false">Right shoulder blade</button>
-                        <button type="button" class="pain-map-hotspot" style="left:51%;top:25%;width:10%;height:16%" aria-label="Patient right shoulder blade" @click="painLocation = 'right_scapula'; showPainMap = false">Left shoulder blade</button>
-                        <button type="button" class="pain-map-hotspot" style="left:47%;top:25%;width:6%;height:20%" aria-label="Thoracic spine" @click="painLocation = 'thoracic_spine'; showPainMap = false">Thoracic spine</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:40%;width:22%;height:17%" aria-label="Lower back" @click="painLocation = 'lower_back'; showPainMap = false">Lower back</button>
-                        <button type="button" class="pain-map-hotspot" style="left:47%;top:42%;width:6%;height:17%" aria-label="Lumbar spine" @click="painLocation = 'lumbar_spine'; showPainMap = false">Lumbar spine</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:37%;width:10%;height:14%" aria-label="Patient left flank" @click="painLocation = 'left_flank'; showPainMap = false">Right flank</button>
-                        <button type="button" class="pain-map-hotspot" style="left:51%;top:37%;width:10%;height:14%" aria-label="Patient right flank" @click="painLocation = 'right_flank'; showPainMap = false">Left flank</button>
-                        <button type="button" class="pain-map-hotspot" style="left:46%;top:54%;width:8%;height:9%" aria-label="Sacrum" @click="painLocation = 'sacrum'; showPainMap = false">Sacrum</button>
-                        <button type="button" class="pain-map-hotspot" style="left:47%;top:61%;width:6%;height:6%" aria-label="Coccyx" @click="painLocation = 'coccyx'; showPainMap = false">Coccyx</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:52%;width:11%;height:15%" aria-label="Patient left buttock" @click="painLocation = 'left_gluteal'; showPainMap = false">Right buttock</button>
-                        <button type="button" class="pain-map-hotspot" style="left:50%;top:52%;width:11%;height:15%" aria-label="Patient right buttock" @click="painLocation = 'right_gluteal'; showPainMap = false">Left buttock</button>
-                        <button type="button" class="pain-map-hotspot" style="left:38%;top:60%;width:12%;height:10%" aria-label="Patient left hip" @click="painLocation = 'left_hip'; showPainMap = false">Right hip</button>
-                        <button type="button" class="pain-map-hotspot" style="left:50%;top:60%;width:12%;height:10%" aria-label="Patient right hip" @click="painLocation = 'right_hip'; showPainMap = false">Left hip</button>
-                        <button type="button" class="pain-map-hotspot" style="left:22%;top:30%;width:14%;height:25%" aria-label="Patient left posterior arm" @click="painLocation = 'left_upper_arm'; showPainMap = false">Right arm</button>
-                        <button type="button" class="pain-map-hotspot" style="left:64%;top:30%;width:14%;height:25%" aria-label="Patient right posterior arm" @click="painLocation = 'right_upper_arm'; showPainMap = false">Left arm</button>
-                        <button type="button" class="pain-map-hotspot" style="left:15%;top:64%;width:15%;height:13%" aria-label="Patient left hand and fingers" @click="painLocation = 'left_hand'; showPainMap = false">Right hand</button>
-                        <button type="button" class="pain-map-hotspot" style="left:70%;top:64%;width:15%;height:13%" aria-label="Patient right hand and fingers" @click="painLocation = 'right_hand'; showPainMap = false">Left hand</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:63%;width:10%;height:18%" aria-label="Patient left thigh" @click="painLocation = 'left_thigh'; showPainMap = false">Right thigh</button>
-                        <button type="button" class="pain-map-hotspot" style="left:51%;top:63%;width:10%;height:18%" aria-label="Patient right thigh" @click="painLocation = 'right_thigh'; showPainMap = false">Left thigh</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:80%;width:10%;height:7%" aria-label="Patient left knee" @click="painLocation = 'left_knee'; showPainMap = false">Right knee</button>
-                        <button type="button" class="pain-map-hotspot" style="left:51%;top:80%;width:10%;height:7%" aria-label="Patient right knee" @click="painLocation = 'right_knee'; showPainMap = false">Left knee</button>
-                        <button type="button" class="pain-map-hotspot" style="left:39%;top:86%;width:12%;height:11%" aria-label="Patient left calf" @click="painLocation = 'left_calf'; showPainMap = false">Right calf</button>
-                        <button type="button" class="pain-map-hotspot" style="left:50%;top:86%;width:12%;height:11%" aria-label="Patient right calf" @click="painLocation = 'right_calf'; showPainMap = false">Left calf</button>
-                        <button type="button" class="pain-map-hotspot" style="left:34%;top:96%;width:16%;height:5%" aria-label="Patient left foot and toes" @click="painLocation = 'left_foot'; showPainMap = false">Right foot</button>
-                        <button type="button" class="pain-map-hotspot" style="left:50%;top:96%;width:16%;height:5%" aria-label="Patient right foot and toes" @click="painLocation = 'right_foot'; showPainMap = false">Left foot</button>
-                    </div>
-                </div>
-                <svg x-show="painMapView === 'back'" x-cloak class="pain-map-avatar pain-map-avatar-back pain-map-legacy" viewBox="0 0 260 520" role="img" aria-label="Legacy back body map">
-                    <defs><linearGradient id="skin-back" x1="0" x2="1"><stop stop-color="#f0b99e"/><stop offset=".5" stop-color="#c57965"/><stop offset="1" stop-color="#8c514b"/></linearGradient><filter id="body-shadow-back"><feDropShadow dx="3" dy="5" stdDeviation="4" flood-color="#0f172a" flood-opacity=".22"/></filter></defs>
-                    <g class="pain-map-human" filter="url(#body-shadow-back)">
-                        <path class="pain-map-base" fill="url(#skin-back)" d="M101 70c-12-12-15-27-8-42 8-16 26-24 42-19 18 5 29 20 27 37-1 12-8 20-16 27l5 22c18 7 35 12 45 28l23 86-20 8-20-50 13 91-16 8 9 49-11 4-2 74-25 0-5-70h-14l-5 70H98l-2-74-11-4 9-49-16-8 13-91-20 50-20-8 23-86c10-16 27-21 45-28z"/>
-                        <path class="pain-map-shading" d="M100 95q30 18 60 0l20 25-11 95q-39 20-78 0l-11-95zM101 247l29 5-5 76H98zM132 252l28-5 5 76h-25z"/>
-                        <path class="pain-map-detail" d="M130 94v116M99 121q31 18 62 0M95 170q35 19 70 0M94 215q36 15 72 0M130 223v112"/>
-                    </g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Back of head" @click="painLocation = 'occiput'; showPainMap = false"><path d="M101 18q29-28 58 0l-8 40h-42z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Cervical spine" @click="painLocation = 'cervical_spine'; showPainMap = false"><path d="M123 65h14v40h-14z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Upper back" @click="painLocation = 'upper_back'; showPainMap = false"><path d="M101 101h29v73l-36-6z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Upper back right" @click="painLocation = 'upper_back'; showPainMap = false"><path d="M130 101h29l7 67-36 6z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left shoulder blade" @click="painLocation = 'left_scapula'; showPainMap = false"><path d="M93 106h30v58l-28 4z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right shoulder blade" @click="painLocation = 'right_scapula'; showPainMap = false"><path d="M137 106h30l-2 62-28-4z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Thoracic spine" @click="painLocation = 'thoracic_spine'; showPainMap = false"><path d="M123 105h14v65h-14z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Lower back" @click="painLocation = 'lower_back'; showPainMap = false"><path d="M94 168h36v55l-39-8zM130 168h36l3 47-39 8z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Lumbar spine" @click="painLocation = 'lumbar_spine'; showPainMap = false"><path d="M123 170h14v53h-14z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Sacrum" @click="painLocation = 'sacrum'; showPainMap = false"><path d="M116 220h28l-7 33h-14z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left buttock" @click="painLocation = 'left_gluteal'; showPainMap = false"><path d="M91 218h39v39l-32-4z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right buttock" @click="painLocation = 'right_gluteal'; showPainMap = false"><path d="M130 218h39l-7 35-32 4z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Left flank" @click="painLocation = 'right_flank'; showPainMap = false"><path d="M91 166h20l-4 54-16-5z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Right flank" @click="painLocation = 'left_flank'; showPainMap = false"><path d="M149 166h20l-1 49-16 5z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Left shoulder" @click="painLocation = 'right_shoulder'; showPainMap = false"><path d="M104 88 76 105l15 38 28-30z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Right shoulder" @click="painLocation = 'left_shoulder'; showPainMap = false"><path d="m156 88 28 17-15 38-28-30z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Left hip" @click="painLocation = 'right_hip'; showPainMap = false"><path d="M91 218h39v39l-32-4z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Right hip" @click="painLocation = 'left_hip'; showPainMap = false"><path d="M130 218h39l-7 35-32 4z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient left hand and fingers" @click="painLocation = 'left_hand'; showPainMap = false"><path d="M25 198h30l3 51-28-5-5-29zM22 195l-5-8 5-3 6 10zM29 192l-3-11 5-2 5 12zM37 190l-1-12 5-1 4 12zM45 191l3-11 5 2-1 12z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Patient right hand and fingers" @click="painLocation = 'right_hand'; showPainMap = false"><path d="M205 198h30l5 17-5 29-28 5-3-42zM238 195l5-8 4 3-5 10zM231 192l3-11 5 2-3 12zM223 190l1-12 5-1 1 12zM215 191l-3-11-5 2 1 12z" /></g>
-                    <g class="pain-map-region-shape" role="button" tabindex="0" aria-label="Coccyx" @click="painLocation = 'coccyx'; showPainMap = false"><path d="M124 244h12l-3 15h-6z" /></g>
-                </svg>
+    {% include "vitals/partials/pain_body_map.html" %}
 
-
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- =========================================================
@@ -1550,7 +1580,9 @@ Expected context:
 
         class="
 
-            mt-2 max-w-md
+            mt-2
+
+            max-w-md
 
             rounded-md
 
@@ -1564,17 +1596,7 @@ Expected context:
 
     >
 
-        <p
-
-            class="
-
-                text-[10px] font-bold
-
-                text-red-800
-
-            "
-
-        >
+        <p class="text-[10px] font-bold text-red-800">
 
             Review the following:
 

@@ -1,0 +1,451 @@
+{% load static %}
+
+{% comment %}
+============================================================
+PAIN BODY MAP
+
+File:
+apps/vitals/templates/vitals/partials/pain_body_map.html
+
+Purpose:
+- Select an anatomical pain location.
+- Keep body-map markup outside the main vital flowsheet.
+- Synchronize the selected region with the Django pain_location field.
+
+Parent Alpine state expected:
+- showPainMap
+- painMapView
+- painLocation
+- selectPainLocation()
+============================================================
+{% endcomment %}
+
+
+<div
+    x-cloak
+    x-show="showPainMap"
+
+    @keydown.escape.window="showPainMap = false"
+    @click.self="showPainMap = false"
+
+    class="
+        fixed inset-0 z-[100]
+        flex items-center justify-center
+        bg-slate-950/55
+        p-4
+    "
+>
+
+    <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pain-map-title"
+
+        class="
+            flex
+            max-h-[92vh]
+            w-full max-w-3xl
+            flex-col
+            overflow-hidden
+            rounded-xl
+            border border-slate-300
+            bg-white
+            shadow-2xl
+        "
+    >
+
+        <!-- HEADER -->
+
+        <header
+            class="
+                flex shrink-0
+                items-start justify-between
+                border-b border-slate-200
+                bg-white
+                px-4 py-3
+            "
+        >
+
+            <div>
+
+                <h2
+                    id="pain-map-title"
+                    class="
+                        text-sm font-semibold
+                        text-slate-900
+                    "
+                >
+                    Select Pain Location
+                </h2>
+
+
+                <p class="mt-0.5 text-[10px] text-slate-500">
+                    Select the anatomical region where pain is present.
+                </p>
+
+
+                <p
+                    x-show="painLocation"
+                    class="
+                        mt-1
+                        text-[10px] font-semibold
+                        text-emerald-700
+                    "
+                >
+                    Selected:
+                    <span
+                        x-text="
+                            painLocation
+                                ? painLocation
+                                    .replaceAll('_', ' ')
+                                    .replace(/\b\w/g, c => c.toUpperCase())
+                                : ''
+                        "
+                    ></span>
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                @click="showPainMap = false"
+
+                class="
+                    grid h-7 w-7
+                    place-items-center
+                    rounded-md
+                    text-lg
+                    text-slate-500
+                    hover:bg-slate-100
+                "
+                aria-label="Close body map"
+            >
+                ×
+            </button>
+
+        </header>
+
+
+        <!-- VIEW SWITCH -->
+
+        <div
+            class="
+                flex shrink-0
+                justify-center gap-1
+                border-b border-slate-200
+                bg-slate-50
+                p-2
+            "
+        >
+
+            <button
+                type="button"
+                @click="painMapView = 'front'"
+
+                :class="
+                    painMapView === 'front'
+                        ? 'bg-emerald-700 text-white'
+                        : 'bg-white text-slate-600'
+                "
+
+                class="
+                    rounded-md
+                    border border-slate-300
+                    px-4 py-1.5
+                    text-[10px] font-semibold
+                "
+            >
+                Front
+            </button>
+
+
+            <button
+                type="button"
+                @click="painMapView = 'back'"
+
+                :class="
+                    painMapView === 'back'
+                        ? 'bg-emerald-700 text-white'
+                        : 'bg-white text-slate-600'
+                "
+
+                class="
+                    rounded-md
+                    border border-slate-300
+                    px-4 py-1.5
+                    text-[10px] font-semibold
+                "
+            >
+                Back
+            </button>
+
+        </div>
+
+
+        <!-- BODY -->
+
+        <div
+            class="
+                min-h-0 flex-1
+                overflow-y-auto
+                p-4
+            "
+        >
+
+            <!-- =============================================
+                 FRONT
+            ============================================== -->
+
+            <div
+                x-show="painMapView === 'front'"
+                class="
+                    relative
+                    mx-auto
+                    h-[620px]
+                    w-[310px]
+                "
+            >
+
+                <img
+                    src="{% static 'src/images/male-front-back-3d.svg' %}"
+                    alt="Front human body"
+                    class="
+                        absolute inset-0
+                        h-full w-full
+                        object-contain
+                        object-left
+                    "
+                >
+
+
+                <!-- HEAD -->
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('head')"
+                    class="absolute left-[39%] top-[3%] h-[14%] w-[22%] rounded hover:bg-emerald-400/20"
+                    aria-label="Head"
+                ></button>
+
+
+                <!-- NECK -->
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('neck')"
+                    class="absolute left-[43%] top-[18%] h-[8%] w-[14%] rounded hover:bg-emerald-400/20"
+                    aria-label="Neck"
+                ></button>
+
+
+                <!-- LEFT CHEST -->
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('left_chest')"
+                    class="absolute left-[50%] top-[28%] h-[14%] w-[12%] rounded hover:bg-emerald-400/20"
+                    aria-label="Left chest"
+                ></button>
+
+
+                <!-- RIGHT CHEST -->
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('right_chest')"
+                    class="absolute left-[38%] top-[28%] h-[14%] w-[12%] rounded hover:bg-emerald-400/20"
+                    aria-label="Right chest"
+                ></button>
+
+
+                <!-- ABDOMEN -->
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('upper_abdomen')"
+                    class="absolute left-[40%] top-[42%] h-[16%] w-[20%] rounded hover:bg-emerald-400/20"
+                    aria-label="Abdomen"
+                ></button>
+
+
+                <!-- LEFT ARM -->
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('left_upper_arm')"
+                    class="absolute left-[65%] top-[29%] h-[25%] w-[13%] rounded hover:bg-emerald-400/20"
+                    aria-label="Left arm"
+                ></button>
+
+
+                <!-- RIGHT ARM -->
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('right_upper_arm')"
+                    class="absolute left-[22%] top-[29%] h-[25%] w-[13%] rounded hover:bg-emerald-400/20"
+                    aria-label="Right arm"
+                ></button>
+
+
+                <!-- LEFT THIGH -->
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('left_thigh')"
+                    class="absolute left-[51%] top-[63%] h-[18%] w-[10%] rounded hover:bg-emerald-400/20"
+                    aria-label="Left thigh"
+                ></button>
+
+
+                <!-- RIGHT THIGH -->
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('right_thigh')"
+                    class="absolute left-[39%] top-[63%] h-[18%] w-[10%] rounded hover:bg-emerald-400/20"
+                    aria-label="Right thigh"
+                ></button>
+
+
+                <!-- LEFT KNEE -->
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('left_knee')"
+                    class="absolute left-[51%] top-[80%] h-[7%] w-[10%] rounded hover:bg-emerald-400/20"
+                    aria-label="Left knee"
+                ></button>
+
+
+                <!-- RIGHT KNEE -->
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('right_knee')"
+                    class="absolute left-[39%] top-[80%] h-[7%] w-[10%] rounded hover:bg-emerald-400/20"
+                    aria-label="Right knee"
+                ></button>
+
+            </div>
+
+
+            <!-- =============================================
+                 BACK
+            ============================================== -->
+
+            <div
+                x-cloak
+                x-show="painMapView === 'back'"
+                class="
+                    relative
+                    mx-auto
+                    h-[620px]
+                    w-[310px]
+                "
+            >
+
+                <img
+                    src="{% static 'src/images/male-front-back-3d.svg' %}"
+                    alt="Back human body"
+                    class="
+                        absolute inset-0
+                        h-full w-full
+                        object-contain
+                        object-right
+                    "
+                >
+
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('occiput')"
+                    class="absolute left-[39%] top-[3%] h-[14%] w-[22%] rounded hover:bg-emerald-400/20"
+                    aria-label="Back of head"
+                ></button>
+
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('cervical_spine')"
+                    class="absolute left-[44%] top-[18%] h-[10%] w-[12%] rounded hover:bg-emerald-400/20"
+                    aria-label="Cervical spine"
+                ></button>
+
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('upper_back')"
+                    class="absolute left-[39%] top-[25%] h-[17%] w-[22%] rounded hover:bg-emerald-400/20"
+                    aria-label="Upper back"
+                ></button>
+
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('lower_back')"
+                    class="absolute left-[39%] top-[42%] h-[16%] w-[22%] rounded hover:bg-emerald-400/20"
+                    aria-label="Lower back"
+                ></button>
+
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('left_gluteal')"
+                    class="absolute left-[50%] top-[54%] h-[13%] w-[11%] rounded hover:bg-emerald-400/20"
+                    aria-label="Left buttock"
+                ></button>
+
+
+                <button
+                    type="button"
+                    @click="selectPainLocation('right_gluteal')"
+                    class="absolute left-[39%] top-[54%] h-[13%] w-[11%] rounded hover:bg-emerald-400/20"
+                    aria-label="Right buttock"
+                ></button>
+
+            </div>
+
+        </div>
+
+
+        <!-- FOOTER -->
+
+        <footer
+            class="
+                flex shrink-0
+                items-center justify-between
+                border-t border-slate-200
+                bg-slate-50
+                px-4 py-2
+            "
+        >
+
+            <p class="text-[9px] text-slate-500">
+                Select the closest anatomical region.
+            </p>
+
+
+            <button
+                type="button"
+                @click="showPainMap = false"
+
+                class="
+                    rounded-md
+                    border border-slate-300
+                    bg-white
+                    px-3 py-1.5
+                    text-[10px] font-semibold
+                    text-slate-700
+                    hover:bg-slate-100
+                "
+            >
+                Close
+            </button>
+
+        </footer>
+
+    </section>
+
+</div>

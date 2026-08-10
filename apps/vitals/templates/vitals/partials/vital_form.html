@@ -1,498 +1,555 @@
 {% comment %}
-
 ============================================================
-
 VITAL OBSERVATION FORM
 
 File:
-
 apps/vitals/templates/vitals/partials/vital_form.html
 
 Purpose:
-
-- Render compact clinical vital-sign intake.
-
-- Avoid duplicate patient demographic information.
-
+- Render compact vital-sign intake.
 - Keep patient identity in the clinical sidebar.
-
-- Display encounter only as compact context.
-
+- Show encounter context only when relevant.
 - Use automatic observation date/time.
-
-- Present measurements in a compact flowsheet.
-
+- Keep current entry and previous readings adjacent.
 - Support HTMX create/update submission.
-
-Expected context:
-
-- form
-
-- page_title
-
-- page_description
-
-- submit_label
-
-- vital
-
-- selected_patient
-
-- active_encounter
-
 ============================================================
-
 {% endcomment %}
 
-<div class="w-full p-2">
+
+<div class="w-full">
 
     <form
-
         method="post"
-
         action="{{ request.get_full_path }}"
 
         hx-post="{{ request.get_full_path }}"
-
         hx-target="#vitals-form-workspace"
-
         hx-swap="innerHTML"
-
         hx-indicator="#vital-form-loading"
-
         hx-disabled-elt="#vital-submit-button"
 
         class="
-
             overflow-hidden
-
             rounded-lg
-
             border border-slate-300
-
             bg-white
-
-            shadow-sm
-
         "
-
     >
 
         {% csrf_token %}
 
-        <!-- =====================================================
 
-             COMPACT CLINICAL HEADER
-
-        ====================================================== -->
+        <!-- =================================================
+             HEADER
+        ================================================== -->
 
         <header
-
             class="
-
-                flex min-h-12
-
+                flex min-h-11
                 items-center justify-between
-
                 gap-3
-
                 border-b border-slate-300
-
                 bg-slate-100
-
                 px-3 py-2
-
             "
-
         >
 
             <div class="min-w-0">
 
                 <h1
-
                     class="
-
+                        truncate
                         text-sm font-bold
-
                         text-slate-900
-
                     "
-
                 >
-
                     {{ page_title|default:"Record Vital Signs" }}
-
                 </h1>
 
-                <p
+                {% if page_description %}
 
-                    class="
+                    <p class="mt-0.5 text-[10px] text-slate-500">
+                        {{ page_description }}
+                    </p>
 
-                        mt-0.5 text-[10px]
+                {% else %}
 
-                        text-slate-500
+                    <p class="mt-0.5 text-[10px] text-slate-500">
+                        Clinical vital-sign observation
+                    </p>
 
-                    "
-
-                >
-
-                    Clinical vital-sign intake
-
-                </p>
+                {% endif %}
 
             </div>
 
-            <div class="flex items-center gap-4">
+
+            <div class="flex shrink-0 items-center gap-3">
 
                 {% if active_encounter %}
 
-                    <div class="text-right">
+                    <div
+                        class="
+                            hidden
+                            text-right
+                            sm:block
+                        "
+                    >
 
-                        <span
-
+                        <div
                             class="
-
-                                text-[9px] font-bold
-
+                                text-[8px] font-bold
                                 uppercase tracking-wide
-
-                                text-slate-500
-
+                                text-slate-400
                             "
-
                         >
-
                             Encounter
+                        </div>
 
-                        </span>
-
-                        <span
-
+                        <div
                             class="
-
-                                ml-1 text-[10px]
-
-                                font-semibold
-
-                                text-slate-800
-
+                                text-[10px] font-semibold
+                                text-slate-700
                             "
-
                         >
-
                             {{ active_encounter.encounter_number }}
-
-                        </span>
+                        </div>
 
                     </div>
 
                 {% endif %}
 
+
                 <div
-
                     id="vital-form-loading"
-
                     class="
-
                         htmx-indicator
-
-                        text-[10px]
-
-                        font-semibold
-
+                        text-[10px] font-semibold
                         text-emerald-700
-
                     "
-
                 >
-
                     Saving…
-
                 </div>
 
             </div>
 
         </header>
 
-        <!-- =====================================================
 
-             VITAL FLOWSHEET
-
-        ====================================================== -->
+        <!-- =================================================
+             WORKSPACE
+        ================================================== -->
 
         <div
-
             id="vitals-form-workspace"
-
             class="
-
                 overflow-x-auto
-
                 bg-white
-
-                p-3
-
+                p-2
             "
-
         >
 
-            <div class="vitals-intake-layout">
-                <div class="vitals-intake-fields">
+            <div
+                class="
+                    flex
+                    items-start
+                    gap-3
+                "
+            >
+
+                <!-- CURRENT OBSERVATION -->
+
+                <div class="shrink-0">
+
                     {% include "vitals/partials/form_fields.html" %}
+
                 </div>
 
-                <aside class="vitals-comparison-panel" aria-labelledby="vitals-comparison-title">
-                    <div class="vitals-comparison-header">
-                        <div>
-                            <h2 id="vitals-comparison-title" class="vitals-comparison-title">Previous vitals</h2>
-                            <p class="vitals-comparison-description">Use recent observations for comparison.</p>
-                        </div>
-                    </div>
+
+                <!-- =========================================
+                     PREVIOUS VITALS
+                ========================================== -->
+
+                <aside
+                    class="
+                        hidden
+                        w-[300px]
+                        shrink-0
+                        overflow-hidden
+                        rounded-md
+                        border border-slate-300
+                        bg-white
+                        lg:block
+                    "
+                    aria-labelledby="vitals-comparison-title"
+                >
+
+                    <header
+                        class="
+                            border-b border-slate-300
+                            bg-slate-100
+                            px-3 py-2
+                        "
+                    >
+
+                        <h2
+                            id="vitals-comparison-title"
+                            class="
+                                text-[10px] font-bold
+                                uppercase tracking-[0.06em]
+                                text-slate-600
+                            "
+                        >
+                            Previous Vitals
+                        </h2>
+
+                        <p class="mt-0.5 text-[9px] text-slate-500">
+                            Recent observations for comparison.
+                        </p>
+
+                    </header>
+
 
                     {% if previous_vitals %}
-                        <div class="vitals-comparison-list">
+
+                        <div
+                            class="
+                                max-h-[540px]
+                                divide-y divide-slate-200
+                                overflow-y-auto
+                            "
+                        >
+
                             {% for previous in previous_vitals %}
-                                <article class="vitals-comparison-card">
-                                    <header class="vitals-comparison-card-header">
-                                        <time datetime="{{ previous.recorded_at|date:'c' }}">{{ previous.recorded_at|date:"M j, Y · g:i A" }}</time>
-                                        <span>{% firstof previous.recorded_by.get_full_name previous.recorded_by.username %}</span>
+
+                                <article class="p-2.5">
+
+                                    <header
+                                        class="
+                                            mb-2
+                                            flex items-start
+                                            justify-between
+                                            gap-2
+                                        "
+                                    >
+
+                                        <time
+                                            datetime="{{ previous.recorded_at|date:'c' }}"
+                                            class="
+                                                text-[9px] font-semibold
+                                                text-slate-700
+                                            "
+                                        >
+                                            {{ previous.recorded_at|date:"M j, Y g:i A" }}
+                                        </time>
+
+
+                                        {% if previous.recorded_by %}
+
+                                            <span
+                                                class="
+                                                    max-w-[100px]
+                                                    truncate
+                                                    text-[8px]
+                                                    text-slate-400
+                                                "
+                                            >
+                                                {% firstof previous.recorded_by.get_full_name previous.recorded_by.username %}
+                                            </span>
+
+                                        {% endif %}
+
                                     </header>
-                                    <dl class="vitals-comparison-grid">
-                                        <div><dt>BP</dt><dd>{{ previous.blood_pressure_display }}</dd></div>
-                                        <div><dt>HR</dt><dd>{% if previous.heart_rate %}{{ previous.heart_rate }} bpm{% else %}—{% endif %}</dd></div>
-                                        <div><dt>RR</dt><dd>{% if previous.respiratory_rate %}{{ previous.respiratory_rate }}/min{% else %}—{% endif %}</dd></div>
-                                        <div><dt>Temp</dt><dd>{% if previous.temperature_fahrenheit_display %}{{ previous.temperature_fahrenheit_display }} °F{% else %}—{% endif %}</dd></div>
-                                        <div><dt>SpO₂</dt><dd>{% if previous.oxygen_saturation is not None %}{{ previous.oxygen_saturation }}%{% else %}—{% endif %}</dd></div>
-                                        <div><dt>Pain</dt><dd>{% if previous.pain_score is not None %}{{ previous.pain_score }}/10{% else %}—{% endif %}</dd></div>
+
+
+                                    <dl
+                                        class="
+                                            grid
+                                            grid-cols-3
+                                            overflow-hidden
+                                            rounded
+                                            border border-slate-200
+                                            text-center
+                                        "
+                                    >
+
+                                        <div
+                                            class="
+                                                border-b border-r
+                                                border-slate-200
+                                                px-1 py-1.5
+                                            "
+                                        >
+                                            <dt class="text-[8px] font-semibold text-slate-400">
+                                                BP
+                                            </dt>
+
+                                            <dd class="mt-0.5 text-[10px] font-bold text-slate-700">
+                                                {{ previous.blood_pressure_display|default:"—" }}
+                                            </dd>
+                                        </div>
+
+
+                                        <div
+                                            class="
+                                                border-b border-r
+                                                border-slate-200
+                                                px-1 py-1.5
+                                            "
+                                        >
+                                            <dt class="text-[8px] font-semibold text-slate-400">
+                                                HR
+                                            </dt>
+
+                                            <dd class="mt-0.5 text-[10px] font-bold text-slate-700">
+                                                {{ previous.heart_rate|default:"—" }}
+                                            </dd>
+                                        </div>
+
+
+                                        <div
+                                            class="
+                                                border-b
+                                                border-slate-200
+                                                px-1 py-1.5
+                                            "
+                                        >
+                                            <dt class="text-[8px] font-semibold text-slate-400">
+                                                RR
+                                            </dt>
+
+                                            <dd class="mt-0.5 text-[10px] font-bold text-slate-700">
+                                                {{ previous.respiratory_rate|default:"—" }}
+                                            </dd>
+                                        </div>
+
+
+                                        <div
+                                            class="
+                                                border-r border-slate-200
+                                                px-1 py-1.5
+                                            "
+                                        >
+                                            <dt class="text-[8px] font-semibold text-slate-400">
+                                                Temp
+                                            </dt>
+
+                                            <dd class="mt-0.5 text-[10px] font-bold text-slate-700">
+                                                {% if previous.temperature_fahrenheit_display %}
+                                                    {{ previous.temperature_fahrenheit_display }}°
+                                                {% else %}
+                                                    —
+                                                {% endif %}
+                                            </dd>
+                                        </div>
+
+
+                                        <div
+                                            class="
+                                                border-r border-slate-200
+                                                px-1 py-1.5
+                                            "
+                                        >
+                                            <dt class="text-[8px] font-semibold text-slate-400">
+                                                SpO₂
+                                            </dt>
+
+                                            <dd class="mt-0.5 text-[10px] font-bold text-slate-700">
+                                                {% if previous.oxygen_saturation is not None %}
+                                                    {{ previous.oxygen_saturation }}%
+                                                {% else %}
+                                                    —
+                                                {% endif %}
+                                            </dd>
+                                        </div>
+
+
+                                        <div class="px-1 py-1.5">
+
+                                            <dt class="text-[8px] font-semibold text-slate-400">
+                                                Pain
+                                            </dt>
+
+                                            <dd class="mt-0.5 text-[10px] font-bold text-slate-700">
+                                                {% if previous.pain_score is not None %}
+                                                    {{ previous.pain_score }}/10
+                                                {% else %}
+                                                    —
+                                                {% endif %}
+                                            </dd>
+
+                                        </div>
+
                                     </dl>
+
                                 </article>
+
                             {% endfor %}
+
                         </div>
+
+
                     {% else %}
-                        <p class="vitals-comparison-empty">No previous vital observations.</p>
+
+                        <div
+                            class="
+                                px-3 py-8
+                                text-center
+                                text-[10px]
+                                text-slate-500
+                            "
+                        >
+                            No previous vital observations.
+                        </div>
+
                     {% endif %}
+
                 </aside>
+
             </div>
 
         </div>
 
-        <!-- =====================================================
 
+        <!-- =================================================
              ACTION BAR
-
-        ====================================================== -->
+        ================================================== -->
 
         <footer
-
             class="
-
                 flex items-center
-
-                justify-end gap-2
-
+                justify-between
                 border-t border-slate-300
-
                 bg-slate-100
-
                 px-3 py-2
-
             "
-
         >
 
-            {% if vital %}
-
-                <a
-
-                    href="{% url 'vitals:detail' pk=vital.pk %}"
-
-                    hx-boost="false"
-
-                    class="
-
-                        inline-flex h-8
-
-                        items-center justify-center
-
-                        rounded-md
-
-                        border border-slate-300
-
-                        bg-white px-3
-
-                        text-[10px] font-semibold
-
-                        text-slate-700
-
-                        hover:bg-slate-50
-
-                    "
-
-                >
-
-                    Cancel
-
-                </a>
-
-            {% elif active_encounter %}
-
-                <a
-
-                    href="{% url 'vitals:encounter_list' encounter_id=active_encounter.pk %}"
-
-                    hx-boost="false"
-
-                    class="
-
-                        inline-flex h-8
-
-                        items-center justify-center
-
-                        rounded-md
-
-                        border border-slate-300
-
-                        bg-white px-3
-
-                        text-[10px] font-semibold
-
-                        text-slate-700
-
-                        hover:bg-slate-50
-
-                    "
-
-                >
-
-                    Cancel
-
-                </a>
-
-            {% elif selected_patient %}
-
-                <a
-
-                    href="{% url 'vitals:patient_history' patient_id=selected_patient.pk %}"
-
-                    hx-boost="false"
-
-                    class="
-
-                        inline-flex h-8
-
-                        items-center justify-center
-
-                        rounded-md
-
-                        border border-slate-300
-
-                        bg-white px-3
-
-                        text-[10px] font-semibold
-
-                        text-slate-700
-
-                        hover:bg-slate-50
-
-                    "
-
-                >
-
-                    Cancel
-
-                </a>
-
-            {% else %}
-
-                <a
-
-                    href="{% url 'vitals:list' %}"
-
-                    hx-boost="false"
-
-                    class="
-
-                        inline-flex h-8
-
-                        items-center justify-center
-
-                        rounded-md
-
-                        border border-slate-300
-
-                        bg-white px-3
-
-                        text-[10px] font-semibold
-
-                        text-slate-700
-
-                        hover:bg-slate-50
-
-                    "
-
-                >
-
-                    Cancel
-
-                </a>
-
-            {% endif %}
-
-            <button
-
-                id="vital-submit-button"
-
-                type="submit"
-
+            <p
                 class="
-
-                    inline-flex h-8
-
-                    items-center justify-center
-
-                    rounded-md
-
-                    border border-emerald-800
-
-                    bg-emerald-700
-
-                    px-4
-
-                    text-[10px] font-bold
-
-                    text-white
-
-                    shadow-sm
-
-                    transition
-
-                    hover:bg-emerald-800
-
-                    focus:outline-none
-
-                    focus:ring-2
-
-                    focus:ring-emerald-500/30
-
-                    disabled:cursor-wait
-
-                    disabled:opacity-60
-
+                    hidden
+                    text-[9px]
+                    text-slate-500
+                    sm:block
                 "
-
-                style="
-
-                    background-color:#047857;
-
-                    color:#ffffff;
-
-                "
-
             >
+                Observation time is recorded automatically.
+            </p>
 
-                {{ submit_label|default:"Save Vital Signs" }}
 
-            </button>
+            <div class="ml-auto flex items-center gap-2">
+
+                {% if vital %}
+
+                    <a
+                        href="{% url 'vitals:detail' pk=vital.pk %}"
+                        hx-boost="false"
+                        class="
+                            inline-flex h-8
+                            items-center justify-center
+                            rounded-md
+                            border border-slate-300
+                            bg-white
+                            px-3
+                            text-[10px] font-semibold
+                            text-slate-700
+                            hover:bg-slate-50
+                        "
+                    >
+                        Cancel
+                    </a>
+
+
+                {% elif active_encounter %}
+
+                    <a
+                        href="{% url 'vitals:encounter_list' encounter_id=active_encounter.pk %}"
+                        hx-boost="false"
+                        class="
+                            inline-flex h-8
+                            items-center justify-center
+                            rounded-md
+                            border border-slate-300
+                            bg-white
+                            px-3
+                            text-[10px] font-semibold
+                            text-slate-700
+                            hover:bg-slate-50
+                        "
+                    >
+                        Cancel
+                    </a>
+
+
+                {% elif selected_patient %}
+
+                    <a
+                        href="{% url 'vitals:patient_history' patient_id=selected_patient.pk %}"
+                        hx-boost="false"
+                        class="
+                            inline-flex h-8
+                            items-center justify-center
+                            rounded-md
+                            border border-slate-300
+                            bg-white
+                            px-3
+                            text-[10px] font-semibold
+                            text-slate-700
+                            hover:bg-slate-50
+                        "
+                    >
+                        Cancel
+                    </a>
+
+
+                {% else %}
+
+                    <a
+                        href="{% url 'vitals:list' %}"
+                        hx-boost="false"
+                        class="
+                            inline-flex h-8
+                            items-center justify-center
+                            rounded-md
+                            border border-slate-300
+                            bg-white
+                            px-3
+                            text-[10px] font-semibold
+                            text-slate-700
+                            hover:bg-slate-50
+                        "
+                    >
+                        Cancel
+                    </a>
+
+                {% endif %}
+
+
+                <button
+                    id="vital-submit-button"
+                    type="submit"
+
+                    class="
+                        inline-flex h-8
+                        items-center justify-center
+                        rounded-md
+                        bg-emerald-700
+                        px-4
+                        text-[10px] font-bold
+                        text-white
+                        shadow-sm
+                        transition
+                        hover:bg-emerald-800
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-emerald-500/30
+                        disabled:cursor-wait
+                        disabled:opacity-60
+                    "
+                >
+                    {{ submit_label|default:"Save Vital Signs" }}
+                </button>
+
+            </div>
 
         </footer>
 

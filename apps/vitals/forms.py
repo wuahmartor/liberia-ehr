@@ -1,6 +1,8 @@
-from django import forms
+from __future__ import annotations
 
 from decimal import Decimal, ROUND_HALF_UP
+
+from django import forms
 
 from django.core.exceptions import ValidationError
 
@@ -16,13 +18,13 @@ from .models import VitalObservation
 
 CELL_CLASS = (
 
-    "block h-8 w-full "
+    "block h-7 w-full "
 
-    "border-0 bg-transparent "
+    "rounded-none border-0 bg-transparent "
 
-    "px-2 py-1 "
+    "px-1 py-0 "
 
-    "text-center text-xs font-semibold "
+    "text-center text-[11px] font-semibold "
 
     "text-slate-900 "
 
@@ -30,11 +32,11 @@ CELL_CLASS = (
 
     "outline-none "
 
-    "focus:bg-emerald-50 "
+    "focus:bg-blue-50 "
 
-    "focus:ring-2 focus:ring-inset "
+    "focus:ring-1 focus:ring-inset "
 
-    "focus:ring-emerald-500 "
+    "focus:ring-blue-500 "
 
     "disabled:cursor-not-allowed "
 
@@ -46,23 +48,23 @@ CELL_CLASS = (
 
 SELECT_CLASS = (
 
-    "block h-8 w-full "
+    "block h-7 w-full "
 
-    "border-0 bg-transparent "
+    "rounded-none border-0 bg-transparent "
 
-    "px-2 py-1 "
+    "px-1 py-0 "
 
-    "text-xs font-medium "
+    "text-[10px] font-medium "
 
-    "text-slate-900 "
+    "text-slate-800 "
 
     "outline-none "
 
-    "focus:bg-emerald-50 "
+    "focus:bg-blue-50 "
 
-    "focus:ring-2 focus:ring-inset "
+    "focus:ring-1 focus:ring-inset "
 
-    "focus:ring-emerald-500 "
+    "focus:ring-blue-500 "
 
     "disabled:cursor-not-allowed "
 
@@ -74,23 +76,25 @@ SELECT_CLASS = (
 
 TEXTAREA_CLASS = (
 
-    "block min-h-16 w-full resize-y "
+    "block min-h-12 w-full resize-y "
 
-    "border-0 bg-transparent "
+    "rounded-none border-0 bg-transparent "
 
-    "px-2 py-1.5 "
+    "px-1.5 py-1 "
 
-    "text-xs text-slate-900 "
+    "text-[10px] leading-4 "
+
+    "text-slate-800 "
 
     "placeholder:text-slate-300 "
 
     "outline-none "
 
-    "focus:bg-emerald-50 "
+    "focus:bg-blue-50 "
 
-    "focus:ring-2 focus:ring-inset "
+    "focus:ring-1 focus:ring-inset "
 
-    "focus:ring-emerald-500 "
+    "focus:ring-blue-500 "
 
     "disabled:cursor-not-allowed "
 
@@ -114,64 +118,149 @@ class VitalObservationForm(forms.ModelForm):
 
     Workflow:
 
-    - Patient comes from the selected patient workspace.
+    - Patient comes from selected patient context.
 
-    - Encounter comes from the active encounter context.
+    - Encounter comes from active encounter context.
 
-    - Observation date/time is generated automatically.
+    - recorded_at is generated automatically.
 
-    - Recorder is generated automatically from request.user.
+    - recorded_by is handled by the audited model save.
 
     - New observations default to FINAL.
 
-    - Only clinical measurements are presented to the clinician.
+    - Previously finalized observations require a correction reason
+
+      when clinical data is changed.
 
     """
 
+    # --------------------------------------------------------
+
+    # NON-MODEL TEMPERATURE DISPLAY UNIT
+
+    # --------------------------------------------------------
+
     temperature_unit = forms.ChoiceField(
+
         choices=(
+
             ("F", "°F"),
+
             ("C", "°C"),
+
         ),
+
         initial="F",
+
         required=False,
+
         widget=forms.Select(
+
             attrs={
+
                 "class": SELECT_CLASS,
+
                 "aria-label": "Temperature unit",
-            },
+
+            }
+
         ),
+
     )
+
+    # --------------------------------------------------------
+
+    # TEMPERATURE ENTRY FIELD
+
+    #
+
+    # Despite the transitional field name, this input may receive
+
+    # either Fahrenheit or Celsius depending on temperature_unit.
+
+    # clean() converts the value to Fahrenheit before model save.
+
+    # --------------------------------------------------------
 
     temperature_fahrenheit = forms.DecimalField(
+
+        label="Temperature",
+
         required=False,
+
         max_digits=5,
+
         decimal_places=1,
+
         widget=forms.NumberInput(
+
             attrs={
+
                 "class": CELL_CLASS,
+
                 "step": "0.1",
+
                 "min": "25",
+
                 "max": "113",
+
                 "inputmode": "decimal",
+
                 "placeholder": "—",
+
                 "autocomplete": "off",
+
                 "aria-label": "Temperature value",
-            },
+
+            }
+
         ),
+
     )
 
+    # --------------------------------------------------------
+
+    # PAIN LOCATION
+
+    #
+
+    # Keep this as a ChoiceField if PainLocation.choices contains
+
+    # every body-map value that may be submitted.
+
+    # --------------------------------------------------------
+
     pain_location = forms.ChoiceField(
+
+        label="Pain location",
+
         choices=VitalObservation.PainLocation.choices,
+
         required=False,
+
         widget=forms.Select(
+
             attrs={
+
                 "class": SELECT_CLASS,
+
                 "aria-label": "Pain location",
+
                 "x-model": "painLocation",
-            },
+
+                "x-ref": "painLocation",
+
+            }
+
         ),
+
     )
+
+    # ========================================================
+
+    # META
+
+    # ========================================================
 
     class Meta:
 
@@ -179,7 +268,7 @@ class VitalObservationForm(forms.ModelForm):
 
         # Patient, encounter, recorded_at, recorded_by, and status
 
-        # are intentionally not exposed as routine intake fields.
+        # intentionally remain outside routine clinician entry.
 
         fields = [
 
@@ -257,7 +346,7 @@ class VitalObservationForm(forms.ModelForm):
 
             "oxygen_flow_lpm": "O₂ flow",
 
-            "pain_status": "Pain present",
+            "pain_status": "Pain status",
 
             "pain_score": "Pain score",
 
@@ -279,13 +368,7 @@ class VitalObservationForm(forms.ModelForm):
 
         help_texts = {
 
-            "temperature_fahrenheit": "°F stored",
-
             "heart_rate": "bpm",
-
-            "heart_rhythm": "regularity",
-
-            "heart_rate_method": "method",
 
             "respiratory_rate": "/min",
 
@@ -309,11 +392,11 @@ class VitalObservationForm(forms.ModelForm):
 
         widgets = {
 
-            # ----------------------------------------------------
+            # ------------------------------------------------
 
-            # CONTEXT
+            # POSITION
 
-            # ----------------------------------------------------
+            # ------------------------------------------------
 
             "position": forms.Select(
 
@@ -323,39 +406,21 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Patient position",
 
-                },
+                }
 
             ),
 
-            # ----------------------------------------------------
+            # ------------------------------------------------
 
             # TEMPERATURE
 
-            # ----------------------------------------------------
+            #
 
-            "temperature_fahrenheit": forms.NumberInput(
+            # temperature_fahrenheit is explicitly declared above,
 
-                attrs={
+            # so its widget does not belong here.
 
-                    "class": CELL_CLASS,
-
-                    "step": "0.1",
-
-                    "min": "25",
-
-                    "max": "113",
-
-                    "inputmode": "decimal",
-
-                    "placeholder": "—",
-
-                    "autocomplete": "off",
-
-                    "aria-label": "Temperature value",
-
-                },
-
-            ),
+            # ------------------------------------------------
 
             "temperature_site": forms.Select(
 
@@ -365,15 +430,15 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Temperature site",
 
-                },
+                }
 
             ),
 
-            # ----------------------------------------------------
+            # ------------------------------------------------
 
             # CARDIOVASCULAR
 
-            # ----------------------------------------------------
+            # ------------------------------------------------
 
             "heart_rate": forms.NumberInput(
 
@@ -395,7 +460,7 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Heart rate",
 
-                },
+                }
 
             ),
 
@@ -407,7 +472,7 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Heart rhythm",
 
-                },
+                }
 
             ),
 
@@ -419,7 +484,7 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Pulse method",
 
-                },
+                }
 
             ),
 
@@ -443,7 +508,7 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Systolic blood pressure",
 
-                },
+                }
 
             ),
 
@@ -467,15 +532,27 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Diastolic blood pressure",
 
-                },
+                }
 
             ),
 
-            # ----------------------------------------------------
+            "blood_pressure_location": forms.Select(
+
+                attrs={
+
+                    "class": SELECT_CLASS,
+
+                    "aria-label": "Blood pressure location",
+
+                }
+
+            ),
+
+            # ------------------------------------------------
 
             # RESPIRATORY
 
-            # ----------------------------------------------------
+            # ------------------------------------------------
 
             "respiratory_rate": forms.NumberInput(
 
@@ -497,19 +574,7 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Respiratory rate",
 
-                },
-
-            ),
-
-            "blood_pressure_location": forms.Select(
-
-                attrs={
-
-                    "class": SELECT_CLASS,
-
-                    "aria-label": "Blood pressure location",
-
-                },
+                }
 
             ),
 
@@ -533,7 +598,7 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Oxygen saturation",
 
-                },
+                }
 
             ),
 
@@ -547,9 +612,19 @@ class VitalObservationForm(forms.ModelForm):
 
                     "x-model": "oxygenMethod",
 
-                    "@change": "if (oxygenMethod === 'room_air') $refs.oxygenFlow.value = ''",
+                    "@change": (
 
-                },
+                        "if (oxygenMethod === 'room_air' "
+
+                        "&& $refs.oxygenFlow) { "
+
+                        "$refs.oxygenFlow.value = ''; "
+
+                        "}"
+
+                    ),
+
+                }
 
             ),
 
@@ -563,6 +638,8 @@ class VitalObservationForm(forms.ModelForm):
 
                     "min": "0",
 
+                    "max": "60",
+
                     "inputmode": "decimal",
 
                     "placeholder": "—",
@@ -573,15 +650,19 @@ class VitalObservationForm(forms.ModelForm):
 
                     "x-ref": "oxygenFlow",
 
-                },
+                }
 
             ),
 
-            # ----------------------------------------------------
+            # ------------------------------------------------
 
             # PAIN
 
-            # ----------------------------------------------------
+            #
+
+            # pain_location is explicitly declared above.
+
+            # ------------------------------------------------
 
             "pain_status": forms.Select(
 
@@ -593,41 +674,9 @@ class VitalObservationForm(forms.ModelForm):
 
                     "x-model": "painPresent",
 
-                },
+                    "x-ref": "painStatus",
 
-            ),
-
-            "pain_location": forms.TextInput(
-
-                attrs={
-
-                    "class": CELL_CLASS,
-
-                    "placeholder": "Select body region",
-
-                    "autocomplete": "off",
-
-                    "aria-label": "Pain location",
-
-                    "x-model": "painLocation",
-
-                },
-
-            ),
-
-            "pain_characteristics": forms.Textarea(
-
-                attrs={
-
-                    "class": TEXTAREA_CLASS,
-
-                    "rows": 2,
-
-                    "placeholder": "Describe quality, onset, and pattern",
-
-                    "aria-label": "Pain characteristics",
-
-                },
+                }
 
             ),
 
@@ -651,15 +700,37 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Pain score",
 
-                },
+                }
 
             ),
 
-            # ----------------------------------------------------
+            "pain_characteristics": forms.Textarea(
+
+                attrs={
+
+                    "class": TEXTAREA_CLASS,
+
+                    "rows": 2,
+
+                    "placeholder": (
+
+                        "Describe quality, onset, pattern, "
+
+                        "or aggravating/relieving factors."
+
+                    ),
+
+                    "aria-label": "Pain characteristics",
+
+                }
+
+            ),
+
+            # ------------------------------------------------
 
             # ANTHROPOMETRICS
 
-            # ----------------------------------------------------
+            # ------------------------------------------------
 
             "height_cm": forms.NumberInput(
 
@@ -679,9 +750,9 @@ class VitalObservationForm(forms.ModelForm):
 
                     "autocomplete": "off",
 
-                    "aria-label": "Height centimeters",
+                    "aria-label": "Height in centimeters",
 
-                },
+                }
 
             ),
 
@@ -703,17 +774,17 @@ class VitalObservationForm(forms.ModelForm):
 
                     "autocomplete": "off",
 
-                    "aria-label": "Weight kilograms",
+                    "aria-label": "Weight in kilograms",
 
-                },
+                }
 
             ),
 
-            # ----------------------------------------------------
+            # ------------------------------------------------
 
             # GLUCOSE
 
-            # ----------------------------------------------------
+            # ------------------------------------------------
 
             "blood_glucose_mg_dl": forms.NumberInput(
 
@@ -735,15 +806,15 @@ class VitalObservationForm(forms.ModelForm):
 
                     "aria-label": "Blood glucose",
 
-                },
+                }
 
             ),
 
-            # ----------------------------------------------------
+            # ------------------------------------------------
 
             # DOCUMENTATION
 
-            # ----------------------------------------------------
+            # ------------------------------------------------
 
             "notes": forms.Textarea(
 
@@ -761,7 +832,9 @@ class VitalObservationForm(forms.ModelForm):
 
                     ),
 
-                },
+                    "aria-label": "Vital-sign comments",
+
+                }
 
             ),
 
@@ -781,17 +854,19 @@ class VitalObservationForm(forms.ModelForm):
 
                     ),
 
-                },
+                    "aria-label": "Correction reason",
+
+                }
 
             ),
 
         }
 
-    # ============================================================
+    # ========================================================
 
     # INITIALIZATION
 
-    # ============================================================
+    # ========================================================
 
     def __init__(
 
@@ -813,33 +888,27 @@ class VitalObservationForm(forms.ModelForm):
 
         self.current_user = current_user
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         # CREATE / UPDATE STATE
 
         #
 
-        # UUID primary keys may exist before the object is saved,
+        # UUID primary keys may exist before save, therefore
 
-        # so instance.pk must not be used to determine create mode.
+        # instance.pk is not reliable for determining create mode.
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         self.is_create = self.instance._state.adding
 
         self.is_update = not self.instance._state.adding
 
-        if self.is_update and self.instance.temperature_celsius is not None and self.instance.temperature_fahrenheit is None:
-            self.fields["temperature_unit"].initial = "C"
-            self.initial["temperature_fahrenheit"] = self.instance.temperature_celsius
-        else:
-            self.fields["temperature_unit"].initial = "F"
+        # ----------------------------------------------------
 
-        # --------------------------------------------------------
+        # PATIENT / ENCOUNTER CONTEXT
 
-        # CONTEXT PASSED FROM VIEW
-
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         self.selected_patient = patient
 
@@ -851,13 +920,7 @@ class VitalObservationForm(forms.ModelForm):
 
             self.selected_patient = self.selected_encounter.patient
 
-        # --------------------------------------------------------
-
-        # UPDATE MODE
-
-        # Existing saved observation becomes authoritative.
-
-        # --------------------------------------------------------
+        # A persisted observation is authoritative during update.
 
         if self.is_update:
 
@@ -865,25 +928,39 @@ class VitalObservationForm(forms.ModelForm):
 
             self.selected_encounter = self.instance.encounter
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
-        # AUTOMATIC OBSERVATION DATE/TIME
+        # TEMPERATURE DISPLAY UNIT
 
-        #
+        # ----------------------------------------------------
 
-        # Create:
+        if (
 
-        # - current local date/time
+            self.is_update
 
-        # - minute precision
+            and self.instance.temperature_celsius is not None
 
-        #
+            and self.instance.temperature_fahrenheit is None
 
-        # Update:
+        ):
 
-        # - preserve original recorded_at
+            self.fields["temperature_unit"].initial = "C"
 
-        # --------------------------------------------------------
+            self.initial["temperature_fahrenheit"] = (
+
+                self.instance.temperature_celsius
+
+            )
+
+        else:
+
+            self.fields["temperature_unit"].initial = "F"
+
+        # ----------------------------------------------------
+
+        # AUTOMATIC OBSERVATION DATE / TIME
+
+        # ----------------------------------------------------
 
         if self.is_update and self.instance.recorded_at:
 
@@ -909,13 +986,19 @@ class VitalObservationForm(forms.ModelForm):
 
             )
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
-        # OPTIONAL FIELDS
+        # ROUTINE VITAL FIELDS ARE OPTIONAL
 
-        # --------------------------------------------------------
+        #
 
-        optional_fields = [
+        # The form-level validation below determines whether a
+
+        # clinically meaningful combination has been supplied.
+
+        # ----------------------------------------------------
+
+        optional_fields = (
 
             "position",
 
@@ -934,6 +1017,8 @@ class VitalObservationForm(forms.ModelForm):
             "systolic_blood_pressure",
 
             "diastolic_blood_pressure",
+
+            "blood_pressure_location",
 
             "oxygen_saturation",
 
@@ -957,56 +1042,53 @@ class VitalObservationForm(forms.ModelForm):
 
             "notes",
 
-        ]
+        )
 
         for field_name in optional_fields:
 
-            if field_name in self.fields:
+            field = self.fields.get(field_name)
 
-                self.fields[field_name].required = False
+            if field is not None:
 
-        # --------------------------------------------------------
+                field.required = False
 
-        # SELECT EMPTY LABELS
+        # ----------------------------------------------------
 
-        # --------------------------------------------------------
+        # EMPTY SELECT LABELS
 
-        if "position" in self.fields:
+        # ----------------------------------------------------
 
-            self.fields["position"].empty_label = "—"
+        select_fields = (
 
-        if "temperature_site" in self.fields:
+            "position",
 
-            self.fields["temperature_site"].empty_label = "—"
+            "temperature_site",
 
-        if "oxygen_delivery_method" in self.fields:
-
-            self.fields[
-
-                "oxygen_delivery_method"
-
-            ].empty_label = "—"
-
-        for field_name in (
             "heart_rhythm",
-            "heart_rate_method",
-            "blood_pressure_location",
-            "pain_status",
-        ):
-            if field_name in self.fields:
-                self.fields[field_name].empty_label = "—"
 
-        # --------------------------------------------------------
+            "heart_rate_method",
+
+            "blood_pressure_location",
+
+            "oxygen_delivery_method",
+
+            "pain_status",
+
+        )
+
+        for field_name in select_fields:
+
+            field = self.fields.get(field_name)
+
+            if field is not None and hasattr(field, "empty_label"):
+
+                field.empty_label = "—"
+
+        # ----------------------------------------------------
 
         # CORRECTION REASON
 
-        #
-
-        # Hidden for new observations.
-
-        # Visible for updates.
-
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         self.fields["correction_reason"].required = False
 
@@ -1018,11 +1100,11 @@ class VitalObservationForm(forms.ModelForm):
 
             )
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
-        # ENTERED-IN-ERROR OBSERVATIONS ARE READ ONLY
+        # ENTERED-IN-ERROR RECORDS ARE READ-ONLY
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         if (
 
@@ -1038,21 +1120,21 @@ class VitalObservationForm(forms.ModelForm):
 
                 field.disabled = True
 
-    # ============================================================
+    # ========================================================
 
     # TEMPLATE DISPLAY HELPERS
 
-    # ============================================================
+    # ========================================================
 
     @property
 
-    def observation_date_display(self):
+    def observation_date_display(self) -> str:
 
         """
 
         Example:
 
-            08/06/2026
+            08/10/2026
 
         """
 
@@ -1064,7 +1146,7 @@ class VitalObservationForm(forms.ModelForm):
 
     @property
 
-    def observation_time_display(self):
+    def observation_time_display(self) -> str:
 
         """
 
@@ -1082,13 +1164,13 @@ class VitalObservationForm(forms.ModelForm):
 
     @property
 
-    def observation_datetime_display(self):
+    def observation_datetime_display(self) -> str:
 
         """
 
         Example:
 
-            08/06/2026 7:42 PM
+            08/10/2026 7:42 PM
 
         """
 
@@ -1098,44 +1180,57 @@ class VitalObservationForm(forms.ModelForm):
 
         )
 
-    # ============================================================
+    # ========================================================
+
+    # INTERNAL HELPERS
+
+    # ========================================================
+
+    def _changed_clinical_fields(self) -> list[str]:
+
+        """
+
+        Return fields representing actual clinical record changes.
+
+        temperature_unit is a presentation/input preference and is
+
+        intentionally excluded from correction auditing.
+
+        """
+
+        ignored_fields = {
+
+            "correction_reason",
+
+            "temperature_unit",
+
+        }
+
+        return [
+
+            field_name
+
+            for field_name in self.changed_data
+
+            if field_name not in ignored_fields
+
+        ]
+
+    # ========================================================
 
     # VALIDATION
 
-    # ============================================================
+    # ========================================================
 
     def clean(self):
 
         cleaned_data = super().clean()
 
-        temperature = cleaned_data.get("temperature_fahrenheit")
-        temperature_unit = cleaned_data.get("temperature_unit") or "F"
+        # ----------------------------------------------------
 
-        if temperature is not None:
-            if temperature_unit == "C":
-                if not Decimal("25.0") <= temperature <= Decimal("45.0"):
-                    self.add_error(
-                        "temperature_fahrenheit",
-                        "Enter a Celsius temperature between 25.0 and 45.0.",
-                    )
-                else:
-                    temperature = ((temperature * Decimal("9")) / Decimal("5") + Decimal("32"))
-            elif not Decimal("77.0") <= temperature <= Decimal("113.0"):
-                self.add_error(
-                    "temperature_fahrenheit",
-                    "Enter a Fahrenheit temperature between 77.0 and 113.0.",
-                )
+        # PATIENT CONTEXT
 
-            cleaned_data["temperature_fahrenheit"] = temperature.quantize(
-                Decimal("0.1"),
-                rounding=ROUND_HALF_UP,
-            )
-
-        # --------------------------------------------------------
-
-        # PATIENT CONTEXT REQUIRED
-
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         if self.selected_patient is None:
 
@@ -1151,11 +1246,11 @@ class VitalObservationForm(forms.ModelForm):
 
             )
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         # ENCOUNTER / PATIENT CONSISTENCY
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         if self.selected_encounter is not None:
 
@@ -1179,13 +1274,125 @@ class VitalObservationForm(forms.ModelForm):
 
                 )
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
+
+        # TEMPERATURE
+
+        # ----------------------------------------------------
+
+        temperature = cleaned_data.get(
+
+            "temperature_fahrenheit"
+
+        )
+
+        temperature_unit = (
+
+            cleaned_data.get("temperature_unit")
+
+            or "F"
+
+        )
+
+        if temperature is not None:
+
+            if temperature_unit == "C":
+
+                if not (
+
+                    Decimal("25.0")
+
+                    <= temperature
+
+                    <= Decimal("45.0")
+
+                ):
+
+                    self.add_error(
+
+                        "temperature_fahrenheit",
+
+                        (
+
+                            "Enter a Celsius temperature "
+
+                            "between 25.0 and 45.0."
+
+                        ),
+
+                    )
+
+                else:
+
+                    temperature = (
+
+                        (
+
+                            temperature
+
+                            * Decimal("9")
+
+                        )
+
+                        / Decimal("5")
+
+                        + Decimal("32")
+
+                    )
+
+            else:
+
+                if not (
+
+                    Decimal("77.0")
+
+                    <= temperature
+
+                    <= Decimal("113.0")
+
+                ):
+
+                    self.add_error(
+
+                        "temperature_fahrenheit",
+
+                        (
+
+                            "Enter a Fahrenheit temperature "
+
+                            "between 77.0 and 113.0."
+
+                        ),
+
+                    )
+
+            if (
+
+                "temperature_fahrenheit"
+
+                not in self.errors
+
+            ):
+
+                cleaned_data[
+
+                    "temperature_fahrenheit"
+
+                ] = temperature.quantize(
+
+                    Decimal("0.1"),
+
+                    rounding=ROUND_HALF_UP,
+
+                )
+
+        # ----------------------------------------------------
 
         # REQUIRE AT LEAST ONE MEASUREMENT
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
-        measurement_fields = [
+        measurement_fields = (
 
             "temperature_fahrenheit",
 
@@ -1207,7 +1414,7 @@ class VitalObservationForm(forms.ModelForm):
 
             "blood_glucose_mg_dl",
 
-        ]
+        )
 
         has_measurement = any(
 
@@ -1231,11 +1438,11 @@ class VitalObservationForm(forms.ModelForm):
 
             )
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
-        # BLOOD PRESSURE VALIDATION
+        # BLOOD PRESSURE
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         systolic = cleaned_data.get(
 
@@ -1285,42 +1492,131 @@ class VitalObservationForm(forms.ModelForm):
 
                 (
 
-                    "Systolic blood pressure must be greater "
+                    "Systolic blood pressure must be "
 
-                    "than diastolic pressure."
+                    "greater than diastolic pressure."
 
                 ),
 
             )
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
-        # PAIN VALIDATION
+        # PAIN
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
-        pain_status = cleaned_data.get("pain_status")
+        pain_status = cleaned_data.get(
+
+            "pain_status"
+
+        )
+
+        pain_score = cleaned_data.get(
+
+            "pain_score"
+
+        )
+
+        pain_location = (
+
+            cleaned_data.get("pain_location")
+
+            or ""
+
+        ).strip()
+
+        pain_characteristics = (
+
+            cleaned_data.get("pain_characteristics")
+
+            or ""
+
+        ).strip()
 
         if pain_status == VitalObservation.PainStatus.YES:
-            if not (cleaned_data.get("pain_location") or "").strip():
+
+            if pain_score is None:
+
                 self.add_error(
+
+                    "pain_score",
+
+                    (
+
+                        "Enter a pain score when pain "
+
+                        "is present."
+
+                    ),
+
+                )
+
+            if not pain_location:
+
+                self.add_error(
+
                     "pain_location",
-                    "Select or enter the pain location.",
+
+                    "Select the pain location.",
+
                 )
-            if not (cleaned_data.get("pain_characteristics") or "").strip():
+
+            if not pain_characteristics:
+
                 self.add_error(
+
                     "pain_characteristics",
-                    "Describe the pain characteristics.",
+
+                    (
+
+                        "Describe the pain "
+
+                        "characteristics."
+
+                    ),
+
                 )
-        else:
+
+        elif str(pain_status) == "no":
+
+            # Explicit absence of pain is represented as 0/10.
+
+            cleaned_data["pain_score"] = 0
+
             cleaned_data["pain_location"] = ""
+
             cleaned_data["pain_characteristics"] = ""
 
-        # --------------------------------------------------------
+        else:
 
-        # OXYGEN VALIDATION
+            # Not assessed / blank should not imply a score.
 
-        # --------------------------------------------------------
+            if pain_status and pain_score is not None:
+
+                self.add_error(
+
+                    "pain_score",
+
+                    (
+
+                        "A pain score should only be entered "
+
+                        "when pain assessment is documented."
+
+                    ),
+
+                )
+
+            cleaned_data["pain_location"] = ""
+
+            cleaned_data["pain_characteristics"] = ""
+
+        # ----------------------------------------------------
+
+        # OXYGEN
+
+        # ----------------------------------------------------
 
         oxygen_method = cleaned_data.get(
 
@@ -1334,37 +1630,43 @@ class VitalObservationForm(forms.ModelForm):
 
         )
 
+        if oxygen_flow is not None and not oxygen_method:
+
+            self.add_error(
+
+                "oxygen_delivery_method",
+
+                (
+
+                    "Select an oxygen delivery method "
+
+                    "when documenting oxygen flow."
+
+                ),
+
+            )
+
         if (
 
             oxygen_method
 
             == VitalObservation.OxygenDeliveryMethod.ROOM_AIR
 
-            and oxygen_flow is not None
-
-            and oxygen_flow > 0
-
         ):
 
-            self.add_error(
+            # Room air cannot have supplemental oxygen flow.
 
-                "oxygen_flow_lpm",
+            # Clearing the value also protects against stale hidden
 
-                (
+            # values after the clinician changes the selection.
 
-                    "Oxygen flow should be blank or zero "
+            cleaned_data["oxygen_flow_lpm"] = None
 
-                    "when the patient is on room air."
+        # ----------------------------------------------------
 
-                ),
+        # UPDATE / CORRECTION
 
-            )
-
-        # --------------------------------------------------------
-
-        # CORRECTION VALIDATION
-
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         if self.is_update:
 
@@ -1380,15 +1682,11 @@ class VitalObservationForm(forms.ModelForm):
 
             ).strip()
 
-            changed_clinical_fields = [
+            changed_clinical_fields = (
 
-                field_name
+                self._changed_clinical_fields()
 
-                for field_name in self.changed_data
-
-                if field_name != "correction_reason"
-
-            ]
+            )
 
             if (
 
@@ -1414,11 +1712,11 @@ class VitalObservationForm(forms.ModelForm):
 
         return cleaned_data
 
-    # ============================================================
+    # ========================================================
 
     # SAVE
 
-    # ============================================================
+    # ========================================================
 
     def save(self, commit=True):
 
@@ -1428,21 +1726,21 @@ class VitalObservationForm(forms.ModelForm):
 
         )
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         # PATIENT / ENCOUNTER
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         instance.patient = self.selected_patient
 
         instance.encounter = self.selected_encounter
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         # CREATE
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         if self.is_create:
 
@@ -1458,25 +1756,15 @@ class VitalObservationForm(forms.ModelForm):
 
             )
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         # UPDATE / CORRECTION
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         elif self.is_update:
 
-            changed_clinical_fields = [
-
-                field_name
-
-                for field_name in self.changed_data
-
-                if field_name != "correction_reason"
-
-            ]
-
-            if changed_clinical_fields:
+            if self._changed_clinical_fields():
 
                 instance.status = (
 
@@ -1484,11 +1772,11 @@ class VitalObservationForm(forms.ModelForm):
 
                 )
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         # AUDITED SAVE
 
-        # --------------------------------------------------------
+        # ----------------------------------------------------
 
         if commit:
 
@@ -1536,7 +1824,15 @@ class VitalEnteredInErrorForm(forms.Form):
 
                 ),
 
-            },
+                "aria-label": (
+
+                    "Reason vital observation was "
+
+                    "entered in error"
+
+                ),
+
+            }
 
         ),
 

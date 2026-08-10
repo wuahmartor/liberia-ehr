@@ -12,11 +12,12 @@ Expected context:
 
 
 <div class="min-w-0">
+
     <label
         for="{{ field.id_for_label }}"
         class="
             mb-1 block
-            text-[11px] font-semibold
+            text-[10px] font-semibold
             text-slate-700
         "
     >
@@ -27,17 +28,38 @@ Expected context:
         {% endif %}
     </label>
 
+
     {{ field }}
 
-    {% if field.help_text %}
-        <p class="mt-1 text-[10px] leading-4 text-slate-500">
-            {{ field.help_text }}
-        </p>
-    {% endif %}
 
     {% for error in field.errors %}
-        <p class="mt-1 text-[11px] font-medium text-red-600">
+
+        <p
+            class="
+                mt-1
+                text-[9px] font-medium
+                text-red-600
+            "
+        >
             {{ error }}
         </p>
+
     {% endfor %}
+
+
+    {% if field.help_text %}
+
+        <p
+            class="
+                mt-1
+                text-[9px]
+                leading-4
+                text-slate-500
+            "
+        >
+            {{ field.help_text }}
+        </p>
+
+    {% endif %}
+
 </div>
