@@ -1,10 +1,14 @@
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from apps.encounters.models import Encounter
 from apps.patients.models import Patient
 
+from .forms import MedicationAdministrationForm
+from .models import MedicationAdministration
 
 def medication_context(
     *,
@@ -75,6 +79,40 @@ def medication_administration_record(
         pk=encounter_id,
     )
 
+    if not encounter.is_open:
+        messages.error(
+            request,
+            "Medication administrations can only be recorded for an open encounter.",
+        )
+        return redirect(
+            "medications:patient-list",
+            patient_id=encounter.patient_id,
+        )
+
+    if request.method == "POST":
+        form = MedicationAdministrationForm(request.POST)
+        if form.is_valid():
+            administration = form.save(commit=False)
+            administration.patient = encounter.patient
+            administration.encounter = encounter
+            administration.administered_by = request.user
+            administration.save()
+            messages.success(request, "Medication administration recorded.")
+            return redirect(
+                reverse(
+                    "medications:mar",
+                    kwargs={"encounter_id": encounter.pk},
+                )
+            )
+    else:
+        form = MedicationAdministrationForm()
+
+    administrations = (
+        MedicationAdministration.objects.filter(encounter=encounter)
+        .select_related("medication", "administered_by")
+        .order_by("-administered_at")
+    )
+
     return render(
         request,
         "medications/mar.html",
@@ -82,7 +120,11 @@ def medication_administration_record(
             section="mar",
             selected_patient=encounter.patient,
             active_encounter=encounter,
-        ),
+        )
+        | {
+            "form": form,
+            "administrations": administrations,
+        },
     )
 
 

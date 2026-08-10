@@ -2,7 +2,7 @@
 
 
 
-{% extends "app_shell.html" %}
+{% extends "layouts/app_shell.html" %}
 
 {% block title %}
     Pharmacy Dashboard | Liberia EHR
@@ -53,7 +53,7 @@
                     </p>
 
                     <p class="dashboard-card-value">
-                        0
+                        {{ catalog_count }}
                     </p>
                 </div>
             </div>
@@ -107,7 +107,7 @@
                     </p>
 
                     <p class="dashboard-card-value">
-                        0
+                        {{ low_stock_count }}
                     </p>
                 </div>
             </div>

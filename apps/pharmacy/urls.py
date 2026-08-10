@@ -44,6 +44,26 @@ urlpatterns = [
         name="medication-catalog",
     ),
     path(
+        "medication-catalog/new/",
+        views.MedicationCatalogCreateView.as_view(),
+        name="medication-catalog-create",
+    ),
+    path(
+        "medication-catalog/<int:pk>/edit/",
+        views.MedicationCatalogUpdateView.as_view(),
+        name="medication-catalog-update",
+    ),
+    path(
+        "medication-catalog/<int:pk>/delete/",
+        views.MedicationCatalogDeleteView.as_view(),
+        name="medication-catalog-delete",
+    ),
+    path(
+        "api/medications/",
+        views.medication_list_api,
+        name="medication-list-api",
+    ),
+    path(
         "interactions/",
         views.interactions,
         name="interactions",

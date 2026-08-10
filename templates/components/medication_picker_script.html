@@ -1,0 +1,55 @@
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll("[data-medication-picker]").forEach((picker) => {
+            const select = picker.querySelector("[data-medication-select]");
+            const search = picker.querySelector("[data-medication-search]");
+            const status = picker.querySelector("[data-medication-status]");
+            const apiUrl = select.dataset.medicationApi;
+
+            const loadMedications = async (query = "") => {
+                status.textContent = "Loading medications...";
+
+                try {
+                    const response = await fetch(
+                        `${apiUrl}?q=${encodeURIComponent(query)}`,
+                        { credentials: "same-origin" },
+                    );
+                    if (!response.ok) {
+                        throw new Error("Medication catalog could not be loaded.");
+                    }
+
+                    const medications = await response.json();
+                    const selectedValue = select.value;
+                    select.replaceChildren(new Option("Select a medication", ""));
+
+                    medications.forEach((medication) => {
+                        const option = new Option(
+                            `${medication.display_name} — ${medication.available_quantity} available`,
+                            medication.id,
+                        );
+                        option.dataset.route = medication.route;
+                        select.add(option);
+                    });
+
+                    select.value = selectedValue;
+                    status.textContent = medications.length
+                        ? `${medications.length} medication${medications.length === 1 ? "" : "s"} available.`
+                        : "No matching active medications.";
+                } catch (error) {
+                    status.textContent = error.message;
+                }
+            };
+
+            search.addEventListener("input", () => loadMedications(search.value));
+            select.addEventListener("change", () => {
+                const option = select.selectedOptions[0];
+                const route = picker.querySelector("[data-medication-route]");
+                if (option && option.dataset.route && !route.value) {
+                    route.value = option.dataset.route;
+                }
+            });
+
+            loadMedications();
+        });
+    });
+</script>
