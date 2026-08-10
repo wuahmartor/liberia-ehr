@@ -7,6 +7,7 @@ from .models import Medication
 class MedicationAdmin(admin.ModelAdmin):
     list_display = (
         "code",
+        "rxnorm_rxcui",
         "generic_name",
         "brand_name",
         "strength",
@@ -26,6 +27,7 @@ class MedicationAdmin(admin.ModelAdmin):
     )
     search_fields = (
         "code",
+        "rxnorm_rxcui",
         "generic_name",
         "brand_name",
         "strength",

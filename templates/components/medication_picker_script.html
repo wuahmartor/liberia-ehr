@@ -5,6 +5,8 @@
             const search = picker.querySelector("[data-medication-search]");
             const status = picker.querySelector("[data-medication-status]");
             const apiUrl = select.dataset.medicationApi;
+            const usApiUrl = select.dataset.usMedicationApi;
+            const usImportApiUrl = select.dataset.usMedicationImportApi;
 
             const loadMedications = async (query = "") => {
                 status.textContent = "Loading medications...";
@@ -31,18 +33,74 @@
                         select.add(option);
                     });
 
+                    if (query.length >= 2) {
+                        const usResponse = await fetch(
+                            `${usApiUrl}?q=${encodeURIComponent(query)}`,
+                            { credentials: "same-origin" },
+                        );
+                        if (!usResponse.ok) {
+                            const error = await usResponse.json();
+                            throw new Error(error.detail || "The US medication directory could not be loaded.");
+                        }
+
+                        const usMedications = await usResponse.json();
+                        if (usMedications.length) {
+                            const group = document.createElement("optgroup");
+                            group.label = "US RxNorm directory — import to formulary";
+                            usMedications.forEach((medication) => {
+                                const option = new Option(
+                                    `${medication.display_name}${medication.is_imported ? " — already in formulary" : ""}`,
+                                    `rxnorm:${medication.rxcui}`,
+                                );
+                                option.dataset.rxcui = medication.rxcui;
+                                group.append(option);
+                            });
+                            select.append(group);
+                        }
+                    }
+
                     select.value = selectedValue;
                     status.textContent = medications.length
-                        ? `${medications.length} medication${medications.length === 1 ? "" : "s"} available.`
-                        : "No matching active medications.";
+                        ? `${medications.length} formulary medication${medications.length === 1 ? "" : "s"} available.`
+                        : "Search the US RxNorm directory below.";
                 } catch (error) {
                     status.textContent = error.message;
                 }
             };
 
             search.addEventListener("input", () => loadMedications(search.value));
-            select.addEventListener("change", () => {
+            select.addEventListener("change", async () => {
                 const option = select.selectedOptions[0];
+                if (option?.dataset.rxcui) {
+                    status.textContent = "Importing medication to formulary...";
+                    try {
+                        const response = await fetch(usImportApiUrl, {
+                            method: "POST",
+                            credentials: "same-origin",
+                            headers: {
+                                "Content-Type": "application/x-www-form-urlencoded",
+                                "X-CSRFToken": document.cookie
+                                    .split("; ")
+                                    .find((cookie) => cookie.startsWith("csrftoken="))
+                                    ?.split("=")[1] || "",
+                            },
+                            body: new URLSearchParams({ rxcui: option.dataset.rxcui }),
+                        });
+                        const medication = await response.json();
+                        if (!response.ok) {
+                            throw new Error(medication.detail || "Medication could not be imported.");
+                        }
+                        option.value = medication.id;
+                        option.dataset.route = medication.route;
+                        option.dataset.rxcui = "";
+                        status.textContent = "Imported to formulary. Review its details in the Pharmacy Catalog.";
+                    } catch (error) {
+                        select.value = "";
+                        status.textContent = error.message;
+                        return;
+                    }
+                }
+
                 const route = picker.querySelector("[data-medication-route]");
                 if (option && option.dataset.route && !route.value) {
                     route.value = option.dataset.route;

@@ -64,6 +64,16 @@ urlpatterns = [
         name="medication-list-api",
     ),
     path(
+        "api/us-medications/",
+        views.us_medication_search_api,
+        name="us-medication-search-api",
+    ),
+    path(
+        "api/us-medications/import/",
+        views.import_us_medication,
+        name="us-medication-import-api",
+    ),
+    path(
         "interactions/",
         views.interactions,
         name="interactions",

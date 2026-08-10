@@ -1,10 +1,12 @@
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .models import Medication
+from .rxnorm import RxNormMedication, RxNormUnavailable
 
 
 @override_settings(SECURE_SSL_REDIRECT=False)
@@ -184,3 +186,91 @@ class MedicationCatalogViewTests(TestCase):
             reverse("pharmacy:medication-catalog"),
         )
         self.assertFalse(Medication.objects.filter(pk=medication.pk).exists())
+
+
+@override_settings(SECURE_SSL_REDIRECT=False)
+class UsMedicationDirectoryApiTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="us-drug-user",
+            password="test-password",
+        )
+        self.client.force_login(self.user)
+
+    @patch("apps.pharmacy.views.RxNormClient")
+    def test_search_returns_rxnorm_results_and_import_status(self, client_class):
+        Medication.objects.create(
+            code="RXNORM-723",
+            rxnorm_rxcui="723",
+            generic_name="Amoxicillin",
+            dosage_form="Unspecified",
+            strength="Unspecified",
+            route="Unspecified",
+            unit_of_measure="unit",
+        )
+        client_class.return_value.search.return_value = [
+            RxNormMedication(
+                rxcui="723",
+                name="Amoxicillin",
+                term_type="IN",
+            ),
+            RxNormMedication(
+                rxcui="308192",
+                name="amoxicillin 500 MG Oral Tablet",
+                term_type="SCD",
+            ),
+        ]
+
+        response = self.client.get(
+            reverse("pharmacy:us-medication-search-api"),
+            {"q": "amoxicillin"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()[0],
+            {
+                "rxcui": "723",
+                "display_name": "Amoxicillin",
+                "term_type": "IN",
+                "is_imported": True,
+            },
+        )
+
+    @patch("apps.pharmacy.views.RxNormClient")
+    def test_import_creates_local_formulary_medication(self, client_class):
+        client_class.return_value.get.return_value = RxNormMedication(
+            rxcui="308192",
+            name="amoxicillin 500 MG Oral Tablet",
+            term_type="SCD",
+        )
+
+        response = self.client.post(
+            reverse("pharmacy:us-medication-import-api"),
+            {"rxcui": "308192"},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        medication = Medication.objects.get(rxnorm_rxcui="308192")
+        self.assertEqual(medication.code, "RXNORM-308192")
+        self.assertEqual(
+            response.json()["id"],
+            medication.pk,
+        )
+
+    @patch("apps.pharmacy.views.RxNormClient")
+    def test_search_surfaces_rxnorm_availability_error(self, client_class):
+        client_class.return_value.search.side_effect = RxNormUnavailable(
+            "The US medication directory is temporarily unavailable."
+        )
+
+        response = self.client.get(
+            reverse("pharmacy:us-medication-search-api"),
+            {"q": "amoxicillin"},
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(
+            response.json()["detail"],
+            "The US medication directory is temporarily unavailable.",
+        )

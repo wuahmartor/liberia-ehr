@@ -39,20 +39,21 @@
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
                 <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <tr><th class="px-4 py-3">Medication</th><th class="px-4 py-3">Code</th><th class="px-4 py-3">Route</th><th class="px-4 py-3">Available</th><th class="px-4 py-3">Status</th><th class="px-4 py-3"></th></tr>
+                    <tr><th class="px-4 py-3">Medication</th><th class="px-4 py-3">Code</th><th class="px-4 py-3">US RxNorm</th><th class="px-4 py-3">Route</th><th class="px-4 py-3">Available</th><th class="px-4 py-3">Status</th><th class="px-4 py-3"></th></tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
                     {% for medication in medications %}
                         <tr>
                             <td class="px-4 py-3 font-medium text-slate-900">{{ medication.display_name }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ medication.code }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ medication.rxnorm_rxcui|default:"—" }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ medication.route }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ medication.quantity_on_hand }} {{ medication.unit_of_measure }}</td>
                             <td class="px-4 py-3">{% if medication.is_active %}<span class="text-emerald-700">Active</span>{% else %}<span class="text-slate-500">Inactive</span>{% endif %}</td>
                             <td class="px-4 py-3 text-right"><a href="{% url 'pharmacy:medication-catalog-update' medication.pk %}" class="text-emerald-700 hover:text-emerald-900">Edit</a> <a href="{% url 'pharmacy:medication-catalog-delete' medication.pk %}" class="ml-3 text-red-700 hover:text-red-900">Remove</a></td>
                         </tr>
                     {% empty %}
-                        <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No medications are in the catalog yet.</td></tr>
+                        <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No medications are in the catalog yet.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

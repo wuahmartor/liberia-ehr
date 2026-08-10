@@ -22,6 +22,8 @@ class MedicationAdministrationForm(forms.ModelForm):
                 attrs={
                     "data-medication-select": "",
                     "data-medication-api": "/pharmacy/api/medications/",
+                    "data-us-medication-api": "/pharmacy/api/us-medications/",
+                    "data-us-medication-import-api": "/pharmacy/api/us-medications/import/",
                 }
             ),
             "route": forms.TextInput(

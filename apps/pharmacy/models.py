@@ -30,6 +30,13 @@ class Medication(models.Model):
         unique=True,
         help_text="Stable pharmacy catalog code.",
     )
+    rxnorm_rxcui = models.CharField(
+        max_length=20,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="RxNorm concept identifier for US drug directory imports.",
+    )
     generic_name = models.CharField(max_length=200)
     brand_name = models.CharField(max_length=200, blank=True)
     dosage_form = models.CharField(

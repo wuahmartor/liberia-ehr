@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("encounters", "0003_encounter_cancelled_at_encounter_check_in_user_and_more"),
+        ("encounters", "0003_encounter_cancelled_at_encounter_cancelled_by_and_more"),
         ("pharmacy", "0001_initial"),
     ]
 
