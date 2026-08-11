@@ -2023,83 +2023,45 @@ MAR | Liberia EHR
                                                 ================== -->
 
                                                 <form
-
                                                     method="post"
-
                                                     action="{{ request.path }}"
-
                                                     class="inline"
-
-                                                    hx-post="{{ request.path }}"
-
-                                                    hx-target="#mar-workspace"
-
-                                                    hx-swap="outerHTML"
-
-                                                    hx-disabled-elt="button"
-
+                                                    hx-boost="false"
                                                 >
 
                                                     {% csrf_token %}
 
                                                     <input
-
                                                         type="hidden"
-
                                                         name="mar_action"
-
                                                         value="give"
-
                                                     >
 
                                                     <input
-
                                                         type="hidden"
-
                                                         name="medication_order"
-
                                                         value="{{ order.pk }}"
-
                                                     >
 
                                                     <button
-
                                                         type="submit"
-
                                                         class="
-
                                                             h-6
-
                                                             rounded
-
                                                             bg-emerald-700
-
                                                             px-2
-
                                                             text-[8px]
-
                                                             font-semibold
-
                                                             text-white
-
                                                             hover:bg-emerald-800
-
                                                             disabled:opacity-50
-
                                                         "
-
                                                     >
-
                                                         {% if order.frequency == "prn" %}
-
                                                             Give PRN
-
                                                         {% else %}
-
                                                             Give
-
                                                         {% endif %}
-
                                                     </button>
 
                                                 </form>
