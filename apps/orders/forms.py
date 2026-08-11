@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from django import forms
 
+from django.utils import timezone
+
 from apps.pharmacy.models import Medication
 
 from .models import MedicationOrder
 
 # ============================================================
 
-# SHARED ORDER FIELD STYLES
+# TAILWIND FIELD CLASSES
 
 # ============================================================
 
@@ -46,11 +48,27 @@ SELECT_CLASS = (
 
 TEXTAREA_CLASS = (
 
-    "block min-h-16 w-full resize-y rounded-md "
+    "block min-h-20 w-full rounded-md "
 
     "border border-slate-300 bg-white "
 
-    "px-2 py-1.5 text-xs text-slate-900 "
+    "px-2 py-2 text-xs text-slate-900 "
+
+    "outline-none "
+
+    "focus:border-emerald-500 "
+
+    "focus:ring-1 focus:ring-emerald-500"
+
+)
+
+DATE_TIME_CLASS = (
+
+    "block h-8 w-full rounded-md "
+
+    "border border-slate-300 bg-white "
+
+    "px-2 text-xs text-slate-900 "
 
     "outline-none "
 
@@ -66,27 +84,11 @@ TEXTAREA_CLASS = (
 
 # ============================================================
 
-class MedicationOrderForm(forms.ModelForm):
+class MedicationOrderForm(
 
-    """
+    forms.ModelForm,
 
-    Provider medication-order entry form.
-
-    Pharmacy owns Medication.
-
-    Orders owns MedicationOrder.
-
-    The visible medication search is handled by the medication
-
-    picker JavaScript.
-
-    The actual submitted medication value remains this Django
-
-    ModelChoiceField and therefore must reference a local
-
-    pharmacy.Medication record.
-
-    """
+):
 
     class Meta:
 
@@ -98,11 +100,17 @@ class MedicationOrderForm(forms.ModelForm):
 
             "dose",
 
+            "dose_unit",
+
             "route",
 
             "frequency",
 
             "quantity",
+
+            "start_datetime",
+
+            "stop_date",
 
             "instructions",
 
@@ -110,17 +118,23 @@ class MedicationOrderForm(forms.ModelForm):
 
         widgets = {
 
+            # =================================================
+
+            # MEDICATION
+
+            # =================================================
+
             "medication": forms.Select(
 
                 attrs={
 
                     "class": SELECT_CLASS,
 
-                    # Used by medication_picker_script.html.
+                    # JavaScript medication picker hook.
 
                     "data-medication-select": "",
 
-                    # Local Pharmacy medication search.
+                    # LOCAL database only.
 
                     "data-medication-api": (
 
@@ -128,27 +142,15 @@ class MedicationOrderForm(forms.ModelForm):
 
                     ),
 
-                    # External RxNorm search.
-
-                    "data-us-medication-api": (
-
-                        "/pharmacy/api/us-medications/"
-
-                    ),
-
-                    # Convert selected RxNorm medication into a
-
-                    # local pharmacy.Medication record.
-
-                    "data-us-medication-import-api": (
-
-                        "/pharmacy/api/us-medications/import/"
-
-                    ),
-
                 }
 
             ),
+
+            # =================================================
+
+            # DOSE
+
+            # =================================================
 
             "dose": forms.TextInput(
 
@@ -156,23 +158,47 @@ class MedicationOrderForm(forms.ModelForm):
 
                     "class": INPUT_CLASS,
 
-                    "autocomplete": "off",
+                    "placeholder": "e.g. 500",
 
-                    "placeholder": "e.g. 500 mg",
+                    "inputmode": "decimal",
+
+                    "autocomplete": "off",
 
                 }
 
             ),
 
-            "route": forms.TextInput(
+            # =================================================
+
+            # DOSE UNIT
+
+            # =================================================
+
+            "dose_unit": forms.Select(
 
                 attrs={
 
-                    "class": INPUT_CLASS,
+                    "class": SELECT_CLASS,
 
-                    "autocomplete": "off",
+                }
 
-                    "placeholder": "e.g. Oral",
+            ),
+
+            # =================================================
+
+            # ROUTE
+
+            # =================================================
+
+            "route": forms.Select(
+
+                attrs={
+
+                    "class": SELECT_CLASS,
+
+                    # Allows medication picker to populate
+
+                    # the route when the medication has one.
 
                     "data-medication-route": "",
 
@@ -180,19 +206,27 @@ class MedicationOrderForm(forms.ModelForm):
 
             ),
 
-            "frequency": forms.TextInput(
+            # =================================================
+
+            # FREQUENCY
+
+            # =================================================
+
+            "frequency": forms.Select(
 
                 attrs={
 
-                    "class": INPUT_CLASS,
-
-                    "autocomplete": "off",
-
-                    "placeholder": "e.g. BID",
+                    "class": SELECT_CLASS,
 
                 }
 
             ),
+
+            # =================================================
+
+            # QUANTITY
+
+            # =================================================
 
             "quantity": forms.NumberInput(
 
@@ -200,15 +234,61 @@ class MedicationOrderForm(forms.ModelForm):
 
                     "class": INPUT_CLASS,
 
-                    "min": "0",
+                    "placeholder": "e.g. 30",
 
                     "step": "0.001",
 
-                    "placeholder": "Optional",
+                    "min": "0",
 
                 }
 
             ),
+
+            # =================================================
+
+            # START DATE / TIME
+
+            # =================================================
+
+            "start_datetime": forms.DateTimeInput(
+
+                attrs={
+
+                    "class": DATE_TIME_CLASS,
+
+                    "type": "datetime-local",
+
+                },
+
+                format="%Y-%m-%dT%H:%M",
+
+            ),
+
+            # =================================================
+
+            # STOP DATE
+
+            # =================================================
+
+            "stop_date": forms.DateInput(
+
+                attrs={
+
+                    "class": DATE_TIME_CLASS,
+
+                    "type": "date",
+
+                },
+
+                format="%Y-%m-%d",
+
+            ),
+
+            # =================================================
+
+            # INSTRUCTIONS
+
+            # =================================================
 
             "instructions": forms.Textarea(
 
@@ -216,11 +296,13 @@ class MedicationOrderForm(forms.ModelForm):
 
                     "class": TEXTAREA_CLASS,
 
-                    "rows": 2,
+                    "rows": 3,
 
                     "placeholder": (
 
-                        "Additional administration instructions"
+                        "Additional administration "
+
+                        "instructions..."
 
                     ),
 
@@ -236,11 +318,39 @@ class MedicationOrderForm(forms.ModelForm):
 
     # ========================================================
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
 
-        super().__init__(*args, **kwargs)
+        self,
 
-        medication_field = self.fields["medication"]
+        *args,
+
+        **kwargs,
+
+    ):
+
+        super().__init__(
+
+            *args,
+
+            **kwargs,
+
+        )
+
+        # ====================================================
+
+        # MEDICATION QUERYSET
+
+        # ====================================================
+
+        medication_field = (
+
+            self.fields[
+
+                "medication"
+
+            ]
+
+        )
 
         medication_field.queryset = (
 
@@ -258,6 +368,8 @@ class MedicationOrderForm(forms.ModelForm):
 
                 "dosage_form",
 
+                "route",
+
                 "code",
 
             )
@@ -266,21 +378,153 @@ class MedicationOrderForm(forms.ModelForm):
 
         medication_field.empty_label = (
 
-            "Search or select medication"
+            "Search medication"
 
         )
 
         medication_field.help_text = (
 
-            "Type at least 4 letters to search medications. "
+            "Type at least 4 letters to search "
 
-            "Local formulary medications can be selected directly. "
-
-            "RxNorm medications are converted to a local medication "
-
-            "record when selected."
+            "the local medication database."
 
         )
+
+        # ====================================================
+
+        # DOSE UNIT
+
+        # ====================================================
+
+        self.fields[
+
+            "dose_unit"
+
+        ].choices = [
+
+            (
+
+                "",
+
+                "Select unit",
+
+            ),
+
+            *MedicationOrder.DoseUnit.choices,
+
+        ]
+
+        # ====================================================
+
+        # ROUTE
+
+        # ====================================================
+
+        self.fields[
+
+            "route"
+
+        ].choices = [
+
+            (
+
+                "",
+
+                "Select route",
+
+            ),
+
+            *MedicationOrder.Route.choices,
+
+        ]
+
+        # ====================================================
+
+        # FREQUENCY
+
+        # ====================================================
+
+        self.fields[
+
+            "frequency"
+
+        ].choices = [
+
+            (
+
+                "",
+
+                "Select frequency",
+
+            ),
+
+            *MedicationOrder.Frequency.choices,
+
+        ]
+
+        # ====================================================
+
+        # DATE/TIME INPUT FORMATS
+
+        # ====================================================
+
+        self.fields[
+
+            "start_datetime"
+
+        ].input_formats = [
+
+            "%Y-%m-%dT%H:%M",
+
+        ]
+
+        self.fields[
+
+            "stop_date"
+
+        ].input_formats = [
+
+            "%Y-%m-%d",
+
+        ]
+
+        # ====================================================
+
+        # DEFAULT START TIME
+
+        # ====================================================
+
+        if (
+
+            not self.is_bound
+
+            and not self.instance.pk
+
+        ):
+
+            self.initial[
+
+                "start_datetime"
+
+            ] = (
+
+                timezone.localtime()
+
+                .replace(
+
+                    second=0,
+
+                    microsecond=0,
+
+                )
+
+                .strftime(
+
+                    "%Y-%m-%dT%H:%M"
+
+                )
+
+            )
 
     # ========================================================
 
@@ -288,9 +532,19 @@ class MedicationOrderForm(forms.ModelForm):
 
     # ========================================================
 
-    def clean_medication(self):
+    def clean_medication(
 
-        medication = self.cleaned_data.get("medication")
+        self,
+
+    ):
+
+        medication = (
+
+            self.cleaned_data
+
+            .get("medication")
+
+        )
 
         if medication is None:
 
@@ -304,7 +558,7 @@ class MedicationOrderForm(forms.ModelForm):
 
             raise forms.ValidationError(
 
-                "This medication is not currently available for ordering."
+                "This medication is inactive."
 
             )
 
@@ -312,7 +566,7 @@ class MedicationOrderForm(forms.ModelForm):
 
             raise forms.ValidationError(
 
-                "A retired medication cannot be ordered."
+                "This medication has been retired."
 
             )
 
@@ -320,46 +574,124 @@ class MedicationOrderForm(forms.ModelForm):
 
     # ========================================================
 
-    # TEXT NORMALIZATION
+    # DOSE VALIDATION
 
     # ========================================================
 
-    def clean_dose(self):
+    def clean_dose(
 
-        value = self.cleaned_data.get("dose") or ""
+        self,
 
-        return " ".join(
+    ):
 
-            value.split()
+        dose = (
 
-        ).strip()
+            self.cleaned_data
 
-    def clean_route(self):
+            .get(
 
-        value = self.cleaned_data.get("route") or ""
+                "dose",
 
-        return " ".join(
+                "",
 
-            value.split()
+            )
 
-        ).strip()
+        )
 
-    def clean_frequency(self):
+        dose = (
 
-        value = self.cleaned_data.get("frequency") or ""
+            " ".join(
 
-        return " ".join(
+                str(dose).split()
 
-            value.split()
+            )
 
-        ).strip()
+            .strip()
 
-    def clean_instructions(self):
+        )
 
-        return (
+        if not dose:
 
-            self.cleaned_data.get("instructions")
+            raise forms.ValidationError(
 
-            or ""
+                "Enter a medication dose."
 
-        ).strip()
+            )
+
+        return dose
+
+    # ========================================================
+
+    # FORM VALIDATION
+
+    # ========================================================
+
+    def clean(
+
+        self,
+
+    ):
+
+        cleaned_data = (
+
+            super().clean()
+
+        )
+
+        start_datetime = (
+
+            cleaned_data
+
+            .get(
+
+                "start_datetime"
+
+            )
+
+        )
+
+        stop_date = (
+
+            cleaned_data
+
+            .get(
+
+                "stop_date"
+
+            )
+
+        )
+
+        # ====================================================
+
+        # START / STOP VALIDATION
+
+        # ====================================================
+
+        if (
+
+            start_datetime
+
+            and stop_date
+
+            and stop_date
+
+            < start_datetime.date()
+
+        ):
+
+            self.add_error(
+
+                "stop_date",
+
+                (
+
+                    "Stop date cannot be "
+
+                    "before the start date."
+
+                ),
+
+            )
+
+        return cleaned_data

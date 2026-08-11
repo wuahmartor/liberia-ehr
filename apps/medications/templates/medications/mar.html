@@ -1,132 +1,546 @@
 {% extends "layouts/app_shell.html" %}
 
-{% block title %}
-MAR | Liberia EHR
-{% endblock %}
+{% comment %}
 
+============================================================
+
+MEDICATION ADMINISTRATION RECORD — MAR
+
+File:
+
+apps/medications/templates/medications/mar.html
+
+Purpose:
+
+- Compact interactive bedside MAR.
+
+- One medication order per row.
+
+- Support scheduled and PRN medication orders.
+
+- Give medication immediately without opening a large form.
+
+- Record server-side current administration time.
+
+- Require compact reason entry only for:
+
+    - Not Given
+
+    - Held
+
+- Show due, overdue, scheduled, PRN, and held states.
+
+- Show last administration details.
+
+- Preserve active encounter and patient context.
+
+POST contract expected by MAR view:
+
+Give:
+
+- mar_action = give
+
+- medication_order = <order UUID>
+
+Not Given:
+
+- mar_action = not_given
+
+- medication_order = <order UUID>
+
+- reason = <text>
+
+Hold:
+
+- mar_action = hold
+
+- medication_order = <order UUID>
+
+- reason = <text>
+
+IMPORTANT:
+
+- administered_at for "give" should be set by the Django view
+
+  using timezone.now(), not trusted from browser JavaScript.
+
+============================================================
+
+{% endcomment %}
+
+{% block title %}
+
+MAR | Liberia EHR
+
+{% endblock %}
 
 {% block workspace %}
 
 <section
+
     id="mar-workspace"
-    x-data="{
-        formOpen: false,
-        status: '{{ form.status.value|default:"administered" }}'
-    }"
+
+    x-data="marWorkspace()"
+
+    x-init="init()"
 
     class="
+
         flex h-full min-h-0
+
         flex-col
-        bg-slate-50
+
+        overflow-hidden
+
+        bg-slate-100
+
     "
 
-    hx-boost="true"
 >
 
     <!-- =====================================================
+
          HEADER
+
     ====================================================== -->
 
     <header
+
         class="
+
             shrink-0
-            border-b border-slate-200
+
+            border-b border-slate-300
+
             bg-white
-            px-4 py-3
+
         "
+
     >
 
         <div
+
             class="
-                flex flex-col gap-3
-                sm:flex-row
-                sm:items-center
-                sm:justify-between
+
+                flex flex-col gap-2
+
+                px-4 py-2
+
+                lg:flex-row
+
+                lg:items-center
+
+                lg:justify-between
+
             "
+
         >
 
-            <div>
+            <div class="min-w-0">
 
-                <div class="flex items-center gap-2">
+                <div
+
+                    class="
+
+                        flex flex-wrap
+
+                        items-center gap-2
+
+                    "
+
+                >
 
                     <h1
+
                         class="
+
                             text-base font-semibold
+
                             text-slate-900
+
                         "
+
                     >
+
                         Medication Administration Record
+
                     </h1>
 
                     {% if active_encounter.is_open %}
 
                         <span
+
                             class="
+
+                                inline-flex
+
+                                items-center gap-1
+
                                 rounded-full
+
                                 bg-emerald-100
+
                                 px-2 py-0.5
-                                text-[10px] font-semibold
+
+                                text-[10px]
+
+                                font-semibold
+
                                 text-emerald-800
+
                             "
+
                         >
-                            Open Encounter
+
+                            <span
+
+                                class="
+
+                                    h-1.5 w-1.5
+
+                                    rounded-full
+
+                                    bg-emerald-600
+
+                                "
+
+                            ></span>
+
+                            Active
+
+                        </span>
+
+                    {% else %}
+
+                        <span
+
+                            class="
+
+                                rounded-full
+
+                                bg-slate-100
+
+                                px-2 py-0.5
+
+                                text-[10px]
+
+                                font-semibold
+
+                                text-slate-600
+
+                            "
+
+                        >
+
+                            Closed
+
                         </span>
 
                     {% endif %}
 
                 </div>
 
+                <div
 
-                <p
                     class="
+
                         mt-0.5
-                        text-xs
+
+                        flex flex-wrap
+
+                        items-center
+
+                        gap-x-3 gap-y-0.5
+
+                        text-[10px]
+
                         text-slate-500
+
                     "
+
                 >
-                    {{ selected_patient.display_name }}
+
+                    <span>
+
+                        {{ selected_patient.display_name }}
+
+                    </span>
 
                     {% if selected_patient.mrn %}
-                        · MRN {{ selected_patient.mrn }}
+
+                        <span>
+
+                            MRN {{ selected_patient.mrn }}
+
+                        </span>
+
                     {% endif %}
-                </p>
+
+                    <span>
+
+                        {{ active_encounter }}
+
+                    </span>
+
+                </div>
 
             </div>
 
+            <div
 
-            <div class="flex items-center gap-2">
+                class="
+
+                    flex flex-wrap
+
+                    items-center gap-2
+
+                "
+
+            >
+
+                <div
+
+                    class="
+
+                        hidden
+
+                        rounded-md
+
+                        border border-slate-200
+
+                        bg-slate-50
+
+                        px-2 py-1
+
+                        text-right
+
+                        sm:block
+
+                    "
+
+                >
+
+                    <div
+
+                        class="
+
+                            text-[8px]
+
+                            font-semibold
+
+                            uppercase
+
+                            tracking-wide
+
+                            text-slate-400
+
+                        "
+
+                    >
+
+                        Current Time
+
+                    </div>
+
+                    <div
+
+                        class="
+
+                            font-mono
+
+                            text-[10px]
+
+                            font-semibold
+
+                            text-slate-800
+
+                        "
+
+                        x-text="currentTimeLabel"
+
+                    ></div>
+
+                </div>
 
                 <a
+
                     href="{% url 'medications:patient-list' patient_id=selected_patient.pk %}"
+
                     class="
+
+                        inline-flex h-7
+
+                        items-center
+
                         rounded-md
+
                         border border-slate-300
+
                         bg-white
-                        px-3 py-2
-                        text-xs font-medium
+
+                        px-2.5
+
+                        text-[10px]
+
+                        font-medium
+
                         text-slate-700
+
                         hover:bg-slate-50
+
                     "
+
                 >
+
                     Medication Record
+
                 </a>
 
+            </div>
 
-                <button
-                    type="button"
-                    @click="formOpen = !formOpen"
+        </div>
+
+        <!-- =================================================
+
+             SAFETY STRIP
+
+        ================================================== -->
+
+        <div
+
+            class="
+
+                border-t border-slate-100
+
+                bg-slate-50
+
+                px-4 py-1.5
+
+            "
+
+        >
+
+            <div
+
+                class="
+
+                    flex flex-wrap
+
+                    items-center
+
+                    gap-x-4 gap-y-1
+
+                    text-[9px]
+
+                "
+
+            >
+
+                <span class="text-slate-600">
+
+                    <strong class="text-slate-800">
+
+                        Patient:
+
+                    </strong>
+
+                    {{ selected_patient.display_name }}
+
+                </span>
+
+                {% if selected_patient.date_of_birth %}
+
+                    <span class="text-slate-600">
+
+                        <strong class="text-slate-800">
+
+                            DOB:
+
+                        </strong>
+
+                        {{ selected_patient.date_of_birth|date:"m/d/Y" }}
+
+                    </span>
+
+                {% endif %}
+
+                {% if selected_patient.get_sex_at_birth_display %}
+
+                    <span class="text-slate-600">
+
+                        <strong class="text-slate-800">
+
+                            Sex:
+
+                        </strong>
+
+                        {{ selected_patient.get_sex_at_birth_display }}
+
+                    </span>
+
+                {% endif %}
+
+                <div
 
                     class="
-                        rounded-md
-                        bg-emerald-700
-                        px-3 py-2
-                        text-xs font-semibold
-                        text-white
-                        hover:bg-emerald-800
+
+                        flex min-w-0
+
+                        flex-wrap
+
+                        items-center gap-1
+
                     "
+
                 >
-                    Record Administration
-                </button>
+
+                    <strong class="text-red-700">
+
+                        Allergies:
+
+                    </strong>
+
+                    {% if allergies %}
+
+                        {% for allergy in allergies %}
+
+                            <span
+
+                                class="
+
+                                    rounded
+
+                                    border border-red-200
+
+                                    bg-red-50
+
+                                    px-1.5 py-0.5
+
+                                    font-semibold
+
+                                    text-red-700
+
+                                "
+
+                            >
+
+                                {{ allergy.substance|default:allergy }}
+
+                            </span>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <span class="text-slate-500">
+
+                            None documented
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
 
             </div>
 
@@ -134,475 +548,2340 @@ MAR | Liberia EHR
 
     </header>
 
-
     <!-- =====================================================
-         PATIENT SAFETY STRIP
+
+         FILTER BAR
+
     ====================================================== -->
 
     <div
+
         class="
+
             shrink-0
-            border-b border-slate-200
+
+            border-b border-slate-300
+
             bg-white
-            px-4 py-2
+
+            px-4 py-1.5
+
         "
+
     >
 
         <div
+
             class="
+
                 flex flex-wrap
-                items-center gap-x-4 gap-y-1
-                text-[10px]
-                text-slate-600
+
+                items-center
+
+                justify-between
+
+                gap-2
+
             "
+
         >
 
-            <span>
-                <strong class="text-slate-800">Patient:</strong>
-                {{ selected_patient.display_name }}
-            </span>
+            <!-- =============================================
 
-            {% if selected_patient.date_of_birth %}
-                <span>
-                    <strong class="text-slate-800">DOB:</strong>
-                    {{ selected_patient.date_of_birth|date:"m/d/Y" }}
-                </span>
-            {% endif %}
+                 ALL OPTIONS ON ONE ROW
 
-            {% if selected_patient.get_sex_at_birth_display %}
-                <span>
-                    <strong class="text-slate-800">Sex:</strong>
-                    {{ selected_patient.get_sex_at_birth_display }}
-                </span>
-            {% endif %}
+            ============================================== -->
 
-            <span>
-                <strong class="text-slate-800">Encounter:</strong>
-                {{ active_encounter }}
-            </span>
+            <div
+
+                class="
+
+                    flex flex-wrap
+
+                    items-center gap-1
+
+                "
+
+            >
+
+                <button
+
+                    type="button"
+
+                    @click="filter = 'all'"
+
+                    :class="
+
+                        filter === 'all'
+
+                            ? 'border-slate-700 bg-slate-700 text-white'
+
+                            : 'border-slate-300 bg-white text-slate-600'
+
+                    "
+
+                    class="
+
+                        rounded
+
+                        border
+
+                        px-2 py-1
+
+                        text-[9px]
+
+                        font-semibold
+
+                    "
+
+                >
+
+                    All
+
+                </button>
+
+                <button
+
+                    type="button"
+
+                    @click="filter = 'due'"
+
+                    :class="
+
+                        filter === 'due'
+
+                            ? 'border-emerald-700 bg-emerald-700 text-white'
+
+                            : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+
+                    "
+
+                    class="
+
+                        rounded
+
+                        border
+
+                        px-2 py-1
+
+                        text-[9px]
+
+                        font-semibold
+
+                    "
+
+                >
+
+                    Due
+
+                    <span x-text="counts.due"></span>
+
+                </button>
+
+                <button
+
+                    type="button"
+
+                    @click="filter = 'overdue'"
+
+                    :class="
+
+                        filter === 'overdue'
+
+                            ? 'border-red-700 bg-red-700 text-white'
+
+                            : 'border-red-200 bg-red-50 text-red-700'
+
+                    "
+
+                    class="
+
+                        rounded
+
+                        border
+
+                        px-2 py-1
+
+                        text-[9px]
+
+                        font-semibold
+
+                    "
+
+                >
+
+                    Overdue
+
+                    <span x-text="counts.overdue"></span>
+
+                </button>
+
+                <button
+
+                    type="button"
+
+                    @click="filter = 'scheduled'"
+
+                    :class="
+
+                        filter === 'scheduled'
+
+                            ? 'border-blue-700 bg-blue-700 text-white'
+
+                            : 'border-blue-200 bg-blue-50 text-blue-700'
+
+                    "
+
+                    class="
+
+                        rounded
+
+                        border
+
+                        px-2 py-1
+
+                        text-[9px]
+
+                        font-semibold
+
+                    "
+
+                >
+
+                    Scheduled
+
+                    <span x-text="counts.scheduled"></span>
+
+                </button>
+
+                <button
+
+                    type="button"
+
+                    @click="filter = 'prn'"
+
+                    :class="
+
+                        filter === 'prn'
+
+                            ? 'border-purple-700 bg-purple-700 text-white'
+
+                            : 'border-purple-200 bg-purple-50 text-purple-700'
+
+                    "
+
+                    class="
+
+                        rounded
+
+                        border
+
+                        px-2 py-1
+
+                        text-[9px]
+
+                        font-semibold
+
+                    "
+
+                >
+
+                    PRN
+
+                    <span x-text="counts.prn"></span>
+
+                </button>
+
+                <button
+
+                    type="button"
+
+                    @click="filter = 'held'"
+
+                    :class="
+
+                        filter === 'held'
+
+                            ? 'border-amber-700 bg-amber-700 text-white'
+
+                            : 'border-amber-200 bg-amber-50 text-amber-700'
+
+                    "
+
+                    class="
+
+                        rounded
+
+                        border
+
+                        px-2 py-1
+
+                        text-[9px]
+
+                        font-semibold
+
+                    "
+
+                >
+
+                    Held
+
+                    <span x-text="counts.held"></span>
+
+                </button>
+
+            </div>
+
+            <div class="w-56">
+
+                <input
+
+                    type="search"
+
+                    x-model.debounce.150ms="search"
+
+                    placeholder="Search MAR"
+
+                    class="
+
+                        block h-7 w-full
+
+                        rounded-md
+
+                        border border-slate-300
+
+                        bg-white
+
+                        px-2
+
+                        text-[9px]
+
+                        text-slate-800
+
+                        outline-none
+
+                        placeholder:text-slate-400
+
+                        focus:border-emerald-500
+
+                        focus:ring-1
+
+                        focus:ring-emerald-500
+
+                    "
+
+                >
+
+            </div>
 
         </div>
 
     </div>
 
-
     <!-- =====================================================
-         BODY
+
+         MAIN
+
     ====================================================== -->
 
-    <div
+    <main
+
         class="
-            flex min-h-0 flex-1
-            overflow-hidden
+
+            min-h-0 flex-1
+
+            overflow-auto
+
+            p-2
+
         "
+
     >
 
-        <!-- ================================================
-             MAR TABLE
-        ================================================= -->
-
-        <main
-            class="
-                min-w-0 flex-1
-                overflow-y-auto
-                p-4
-            "
-        >
-
-            <section
-                class="
-                    overflow-hidden
-                    rounded-lg
-                    border border-slate-200
-                    bg-white
-                "
-            >
-
-                <header
-                    class="
-                        flex items-center justify-between
-                        border-b border-slate-200
-                        px-4 py-3
-                    "
-                >
-
-                    <div>
-
-                        <h2
-                            class="
-                                text-sm font-semibold
-                                text-slate-900
-                            "
-                        >
-                            Current Encounter Medication Orders
-                        </h2>
-
-                        <p
-                            class="
-                                mt-0.5
-                                text-xs
-                                text-slate-500
-                            "
-                        >
-                            Use the active medication order when recording an administration.
-                        </p>
-
-                    </div>
-
-                </header>
-
-
-                <div class="overflow-x-auto">
-
-                    <table class="min-w-full text-xs">
-
-                        <thead class="bg-slate-50 text-slate-600">
-
-                            <tr>
-
-                                <th class="px-3 py-2 text-left font-semibold">
-                                    Medication
-                                </th>
-
-                                <th class="px-3 py-2 text-left font-semibold">
-                                    Route
-                                </th>
-
-                                <th class="px-3 py-2 text-left font-semibold">
-                                    Ordered
-                                </th>
-
-                                <th class="px-3 py-2 text-left font-semibold">
-                                    Safety
-                                </th>
-
-                            </tr>
-
-                        </thead>
-
-
-                        <tbody class="divide-y divide-slate-100">
-
-                            {% for order in medication_orders %}
-
-                                <tr class="hover:bg-slate-50">
-
-                                    <td class="px-3 py-2.5">
-
-                                        <div
-                                            class="
-                                                font-semibold
-                                                text-slate-900
-                                            "
-                                        >
-                                            {{ order.medication.display_name }}
-                                        </div>
-
-                                        <div
-                                            class="
-                                                mt-0.5
-                                                text-[10px]
-                                                text-slate-500
-                                            "
-                                        >
-                                            {{ order.medication.code }}
-                                        </div>
-
-                                    </td>
-
-
-                                    <td class="px-3 py-2.5 text-slate-700">
-
-                                        {% if order.route %}
-                                            {{ order.route }}
-                                        {% else %}
-                                            {{ order.medication.route|default:"—" }}
-                                        {% endif %}
-
-                                    </td>
-
-
-                                    <td class="px-3 py-2.5 text-slate-600">
-                                        {{ order.ordered_at|date:"m/d/Y H:i" }}
-                                    </td>
-
-
-                                    <td class="px-3 py-2.5">
-
-                                        <div class="flex flex-wrap gap-1">
-
-                                            {% if order.medication.is_high_alert %}
-
-                                                <span
-                                                    class="
-                                                        rounded
-                                                        bg-red-100
-                                                        px-1.5 py-0.5
-                                                        text-[9px] font-bold
-                                                        text-red-700
-                                                    "
-                                                >
-                                                    HIGH ALERT
-                                                </span>
-
-                                            {% endif %}
-
-
-                                            {% if order.medication.is_lasa %}
-
-                                                <span
-                                                    class="
-                                                        rounded
-                                                        bg-amber-100
-                                                        px-1.5 py-0.5
-                                                        text-[9px] font-bold
-                                                        text-amber-800
-                                                    "
-                                                >
-                                                    LASA
-                                                </span>
-
-                                            {% endif %}
-
-
-                                            {% if order.medication.is_controlled %}
-
-                                                <span
-                                                    class="
-                                                        rounded
-                                                        bg-purple-100
-                                                        px-1.5 py-0.5
-                                                        text-[9px] font-bold
-                                                        text-purple-700
-                                                    "
-                                                >
-                                                    CONTROLLED
-                                                </span>
-
-                                            {% endif %}
-
-                                        </div>
-
-                                    </td>
-
-                                </tr>
-
-                            {% empty %}
-
-                                <tr>
-
-                                    <td
-                                        colspan="4"
-                                        class="
-                                            px-6 py-10
-                                            text-center
-                                        "
-                                    >
-
-                                        <p
-                                            class="
-                                                text-sm font-medium
-                                                text-slate-700
-                                            "
-                                        >
-                                            No medication orders
-                                        </p>
-
-                                        <p
-                                            class="
-                                                mt-1
-                                                text-xs
-                                                text-slate-500
-                                            "
-                                        >
-                                            Medication administration should normally originate from a provider order.
-                                        </p>
-
-                                    </td>
-
-                                </tr>
-
-                            {% endfor %}
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            </section>
-
-
-            <!-- =============================================
-                 ADMINISTRATION HISTORY
-            ============================================== -->
-
-            <section
-                class="
-                    mt-4
-                    overflow-hidden
-                    rounded-lg
-                    border border-slate-200
-                    bg-white
-                "
-            >
-
-                <header
-                    class="
-                        border-b border-slate-200
-                        px-4 py-3
-                    "
-                >
-                    <h2
-                        class="
-                            text-sm font-semibold
-                            text-slate-900
-                        "
-                    >
-                        Administration History
-                    </h2>
-                </header>
-
-
-                {% include "medications/partials/table_rows.html" %}
-
-            </section>
-
-        </main>
-
-
-        <!-- ================================================
-             ADMINISTRATION DRAWER
-        ================================================= -->
-
-        <aside
-            x-cloak
-            x-show="formOpen"
-
-            x-transition:enter="
-                transition ease-out duration-200
-            "
-
-            x-transition:enter-start="
-                translate-x-full
-            "
-
-            x-transition:enter-end="
-                translate-x-0
-            "
+        <section
 
             class="
-                w-full max-w-md
-                shrink-0
-                overflow-y-auto
-                border-l border-slate-200
+
+                overflow-hidden
+
+                rounded-md
+
+                border border-slate-300
+
                 bg-white
+
             "
+
         >
 
-            <header
+            <div
+
                 class="
-                    sticky top-0 z-10
-                    flex items-center justify-between
-                    border-b border-slate-200
-                    bg-white
-                    px-4 py-3
+
+                    flex items-center
+
+                    justify-between
+
+                    border-b border-slate-300
+
+                    bg-slate-50
+
+                    px-3 py-1.5
+
                 "
+
             >
 
                 <div>
 
                     <h2
+
                         class="
-                            text-sm font-semibold
+
+                            text-[11px]
+
+                            font-semibold
+
                             text-slate-900
+
                         "
+
                     >
-                        Record Administration
+
+                        Active Medication Orders
+
                     </h2>
 
                     <p
+
                         class="
-                            mt-0.5
-                            text-[10px]
+
+                            text-[9px]
+
                             text-slate-500
+
                         "
+
                     >
-                        Document actual bedside administration.
+
+                        Give records immediately. Not Given and Hold require a reason.
+
                     </p>
 
                 </div>
 
+            </div>
 
-                <button
-                    type="button"
-                    @click="formOpen = false"
+            <div class="overflow-x-auto">
+
+                <table
 
                     class="
-                        rounded-md
-                        p-2
-                        text-slate-500
-                        hover:bg-slate-100
+
+                        min-w-full
+
+                        border-collapse
+
+                        text-[9px]
+
                     "
+
                 >
+
+                    <thead
+
+                        class="
+
+                            sticky top-0 z-10
+
+                            bg-slate-100
+
+                            text-slate-600
+
+                        "
+
+                    >
+
+                        <tr
+
+                            class="
+
+                                border-b border-slate-300
+
+                            "
+
+                        >
+
+                            <th
+
+                                class="
+
+                                    whitespace-nowrap
+
+                                    px-2 py-1.5
+
+                                    text-left
+
+                                    font-semibold
+
+                                "
+
+                            >
+
+                                Status
+
+                            </th>
+
+                            <th
+
+                                class="
+
+                                    min-w-48
+
+                                    px-2 py-1.5
+
+                                    text-left
+
+                                    font-semibold
+
+                                "
+
+                            >
+
+                                Medication
+
+                            </th>
+
+                            <th
+
+                                class="
+
+                                    whitespace-nowrap
+
+                                    px-2 py-1.5
+
+                                    text-left
+
+                                    font-semibold
+
+                                "
+
+                            >
+
+                                Dose
+
+                            </th>
+
+                            <th
+
+                                class="
+
+                                    whitespace-nowrap
+
+                                    px-2 py-1.5
+
+                                    text-left
+
+                                    font-semibold
+
+                                "
+
+                            >
+
+                                Route
+
+                            </th>
+
+                            <th
+
+                                class="
+
+                                    whitespace-nowrap
+
+                                    px-2 py-1.5
+
+                                    text-left
+
+                                    font-semibold
+
+                                "
+
+                            >
+
+                                Frequency
+
+                            </th>
+
+                            <th
+
+                                class="
+
+                                    whitespace-nowrap
+
+                                    px-2 py-1.5
+
+                                    text-left
+
+                                    font-semibold
+
+                                "
+
+                            >
+
+                                Due
+
+                            </th>
+
+                            <th
+
+                                class="
+
+                                    whitespace-nowrap
+
+                                    px-2 py-1.5
+
+                                    text-left
+
+                                    font-semibold
+
+                                "
+
+                            >
+
+                                Last Given
+
+                            </th>
+
+                            <th
+
+                                class="
+
+                                    whitespace-nowrap
+
+                                    px-2 py-1.5
+
+                                    text-left
+
+                                    font-semibold
+
+                                "
+
+                            >
+
+                                Safety
+
+                            </th>
+
+                            <th
+
+                                class="
+
+                                    whitespace-nowrap
+
+                                    px-2 py-1.5
+
+                                    text-right
+
+                                    font-semibold
+
+                                "
+
+                            >
+
+                                Administration
+
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody
+
+                        class="
+
+                            divide-y divide-slate-200
+
+                        "
+
+                    >
+
+                        {% for order in medication_orders %}
+
+                            <tr
+
+                                data-mar-row
+
+                                data-order-id="{{ order.pk }}"
+
+                                data-medication-name="{{ order.medication.display_name|lower }}"
+
+                                data-order-status="{{ order.status|default:'active' }}"
+
+                                data-frequency="{{ order.frequency|default:'' }}"
+
+                                data-is-prn="{% if order.frequency == 'prn' %}true{% else %}false{% endif %}"
+
+                                data-held="{% if order.status == 'on_hold' %}true{% else %}false{% endif %}"
+
+                                data-next-due="{% if order.next_due_at %}{{ order.next_due_at|date:'c' }}{% endif %}"
+
+                                x-show="rowVisible($el)"
+
+                                :class="rowClass($el)"
+
+                                class="
+
+                                    transition-colors
+
+                                "
+
+                            >
+
+                                <!-- =========================
+
+                                     STATUS
+
+                                ========================== -->
+
+                                <td
+
+                                    class="
+
+                                        whitespace-nowrap
+
+                                        px-2 py-1.5
+
+                                        align-middle
+
+                                    "
+
+                                >
+
+                                    {% if order.status == "on_hold" %}
+
+                                        <span
+
+                                            class="
+
+                                                rounded
+
+                                                bg-amber-100
+
+                                                px-1.5 py-0.5
+
+                                                font-bold
+
+                                                text-amber-800
+
+                                            "
+
+                                        >
+
+                                            HELD
+
+                                        </span>
+
+                                    {% elif order.frequency == "prn" %}
+
+                                        <span
+
+                                            class="
+
+                                                rounded
+
+                                                bg-purple-100
+
+                                                px-1.5 py-0.5
+
+                                                font-bold
+
+                                                text-purple-700
+
+                                            "
+
+                                        >
+
+                                            PRN
+
+                                        </span>
+
+                                    {% elif order.status == "discontinued" %}
+
+                                        <span
+
+                                            class="
+
+                                                rounded
+
+                                                bg-slate-200
+
+                                                px-1.5 py-0.5
+
+                                                font-bold
+
+                                                text-slate-600
+
+                                            "
+
+                                        >
+
+                                            DC
+
+                                        </span>
+
+                                    {% elif order.status == "completed" %}
+
+                                        <span
+
+                                            class="
+
+                                                rounded
+
+                                                bg-slate-100
+
+                                                px-1.5 py-0.5
+
+                                                font-bold
+
+                                                text-slate-600
+
+                                            "
+
+                                        >
+
+                                            COMPLETE
+
+                                        </span>
+
+                                    {% else %}
+
+                                        <span
+
+                                            class="
+
+                                                rounded
+
+                                                px-1.5 py-0.5
+
+                                                font-bold
+
+                                            "
+
+                                            x-text="statusLabel($el.closest('[data-mar-row]'))"
+
+                                            :class="statusBadgeClass($el.closest('[data-mar-row]'))"
+
+                                        ></span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <!-- =========================
+
+                                     MEDICATION
+
+                                ========================== -->
+
+                                <td
+
+                                    class="
+
+                                        px-2 py-1.5
+
+                                        align-middle
+
+                                    "
+
+                                >
+
+                                    <div
+
+                                        class="
+
+                                            flex items-center
+
+                                            gap-1.5
+
+                                        "
+
+                                    >
+
+                                        <span
+
+                                            class="
+
+                                                font-semibold
+
+                                                text-slate-900
+
+                                            "
+
+                                        >
+
+                                            {{ order.medication.display_name }}
+
+                                        </span>
+
+                                        {% if order.medication.brand_name %}
+
+                                            <span
+
+                                                class="
+
+                                                    text-[8px]
+
+                                                    text-slate-400
+
+                                                "
+
+                                            >
+
+                                                ({{ order.medication.brand_name }})
+
+                                            </span>
+
+                                        {% endif %}
+
+                                        {% if order.instructions %}
+
+                                            <span
+
+                                                title="{{ order.instructions }}"
+
+                                                class="
+
+                                                    cursor-help
+
+                                                    text-[8px]
+
+                                                    font-bold
+
+                                                    text-blue-600
+
+                                                "
+
+                                            >
+
+                                                i
+
+                                            </span>
+
+                                        {% endif %}
+
+                                    </div>
+
+                                </td>
+
+                                <!-- =========================
+
+                                     DOSE
+
+                                ========================== -->
+
+                                <td
+
+                                    class="
+
+                                        whitespace-nowrap
+
+                                        px-2 py-1.5
+
+                                        align-middle
+
+                                        font-semibold
+
+                                        text-slate-800
+
+                                    "
+
+                                >
+
+                                    {{ order.dose }}
+
+                                    {% if order.dose_unit %}
+
+                                        {{ order.get_dose_unit_display|default:order.dose_unit }}
+
+                                    {% endif %}
+
+                                </td>
+
+                                <!-- =========================
+
+                                     ROUTE
+
+                                ========================== -->
+
+                                <td
+
+                                    class="
+
+                                        whitespace-nowrap
+
+                                        px-2 py-1.5
+
+                                        align-middle
+
+                                        text-slate-700
+
+                                    "
+
+                                >
+
+                                    {{ order.get_route_display|default:order.route|default:"—" }}
+
+                                </td>
+
+                                <!-- =========================
+
+                                     FREQUENCY
+
+                                ========================== -->
+
+                                <td
+
+                                    class="
+
+                                        whitespace-nowrap
+
+                                        px-2 py-1.5
+
+                                        align-middle
+
+                                        text-slate-700
+
+                                    "
+
+                                >
+
+                                    {% if order.frequency == "prn" %}
+
+                                        <span
+
+                                            class="
+
+                                                font-semibold
+
+                                                text-purple-700
+
+                                            "
+
+                                        >
+
+                                            PRN
+
+                                        </span>
+
+                                    {% else %}
+
+                                        {{ order.get_frequency_display|default:order.frequency|default:"—" }}
+
+                                    {% endif %}
+
+                                </td>
+
+                                <!-- =========================
+
+                                     DUE
+
+                                ========================== -->
+
+                                <td
+
+                                    class="
+
+                                        whitespace-nowrap
+
+                                        px-2 py-1.5
+
+                                        align-middle
+
+                                    "
+
+                                >
+
+                                    {% if order.status == "on_hold" %}
+
+                                        <span class="text-amber-700">
+
+                                            Held
+
+                                        </span>
+
+                                    {% elif order.frequency == "prn" %}
+
+                                        <span
+
+                                            class="
+
+                                                font-semibold
+
+                                                text-purple-700
+
+                                            "
+
+                                        >
+
+                                            As needed
+
+                                        </span>
+
+                                    {% elif order.next_due_at %}
+
+                                        <span
+
+                                            class="
+
+                                                font-semibold
+
+                                                text-slate-800
+
+                                            "
+
+                                        >
+
+                                            {{ order.next_due_at|date:"h:i A" }}
+
+                                        </span>
+
+                                        <span
+
+                                            class="
+
+                                                ml-1
+
+                                                text-slate-400
+
+                                            "
+
+                                        >
+
+                                            {{ order.next_due_at|date:"m/d" }}
+
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="text-slate-400">
+
+                                            —
+
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <!-- =========================
+
+                                     LAST GIVEN
+
+                                ========================== -->
+
+                                <td
+
+                                    class="
+
+                                        whitespace-nowrap
+
+                                        px-2 py-1.5
+
+                                        align-middle
+
+                                    "
+
+                                >
+
+                                    {% if order.last_administration %}
+
+                                        <div
+
+                                            class="
+
+                                                group relative
+
+                                                inline-block
+
+                                            "
+
+                                        >
+
+                                            <button
+
+                                                type="button"
+
+                                                class="
+
+                                                    font-semibold
+
+                                                    text-slate-800
+
+                                                    underline
+
+                                                    decoration-dotted
+
+                                                    underline-offset-2
+
+                                                "
+
+                                            >
+
+                                                {{ order.last_administration.administered_at|date:"h:i A" }}
+
+                                            </button>
+
+                                            <span
+
+                                                class="
+
+                                                    ml-1
+
+                                                    text-slate-400
+
+                                                "
+
+                                            >
+
+                                                {{ order.last_administration.administered_at|date:"m/d" }}
+
+                                            </span>
+
+                                            <div
+
+                                                class="
+
+                                                    pointer-events-none
+
+                                                    absolute
+
+                                                    left-0 top-full
+
+                                                    z-50 mt-1
+
+                                                    hidden w-56
+
+                                                    rounded-md
+
+                                                    border border-slate-300
+
+                                                    bg-white
+
+                                                    p-2
+
+                                                    shadow-lg
+
+                                                    group-hover:block
+
+                                                "
+
+                                            >
+
+                                                <div
+
+                                                    class="
+
+                                                        font-semibold
+
+                                                        text-slate-900
+
+                                                    "
+
+                                                >
+
+                                                    Last Administration
+
+                                                </div>
+
+                                                <div
+
+                                                    class="
+
+                                                        mt-1
+
+                                                        space-y-0.5
+
+                                                        text-[9px]
+
+                                                        text-slate-600
+
+                                                    "
+
+                                                >
+
+                                                    <div>
+
+                                                        <strong>Time:</strong>
+
+                                                        {{ order.last_administration.administered_at|date:"m/d/Y h:i A" }}
+
+                                                    </div>
+
+                                                    {% if order.last_administration.administered_by %}
+
+                                                        <div>
+
+                                                            <strong>By:</strong>
+
+                                                            {{ order.last_administration.administered_by.get_full_name|default:order.last_administration.administered_by }}
+
+                                                        </div>
+
+                                                    {% endif %}
+
+                                                    {% if order.last_administration.status %}
+
+                                                        <div>
+
+                                                            <strong>Status:</strong>
+
+                                                            {{ order.last_administration.get_status_display|default:order.last_administration.status }}
+
+                                                        </div>
+
+                                                    {% endif %}
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    {% else %}
+
+                                        <span class="text-slate-400">
+
+                                            Never
+
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <!-- =========================
+
+                                     SAFETY
+
+                                ========================== -->
+
+                                <td
+
+                                    class="
+
+                                        whitespace-nowrap
+
+                                        px-2 py-1.5
+
+                                        align-middle
+
+                                    "
+
+                                >
+
+                                    <div
+
+                                        class="
+
+                                            flex items-center gap-1
+
+                                        "
+
+                                    >
+
+                                        {% if order.medication.is_high_alert %}
+
+                                            <span
+
+                                                class="
+
+                                                    rounded
+
+                                                    bg-red-100
+
+                                                    px-1 py-0.5
+
+                                                    text-[7px]
+
+                                                    font-bold
+
+                                                    text-red-700
+
+                                                "
+
+                                            >
+
+                                                HIGH
+
+                                            </span>
+
+                                        {% endif %}
+
+                                        {% if order.medication.is_lasa %}
+
+                                            <span
+
+                                                class="
+
+                                                    rounded
+
+                                                    bg-amber-100
+
+                                                    px-1 py-0.5
+
+                                                    text-[7px]
+
+                                                    font-bold
+
+                                                    text-amber-800
+
+                                                "
+
+                                            >
+
+                                                LASA
+
+                                            </span>
+
+                                        {% endif %}
+
+                                        {% if order.medication.is_controlled %}
+
+                                            <span
+
+                                                class="
+
+                                                    rounded
+
+                                                    bg-purple-100
+
+                                                    px-1 py-0.5
+
+                                                    text-[7px]
+
+                                                    font-bold
+
+                                                    text-purple-700
+
+                                                "
+
+                                            >
+
+                                                CTRL
+
+                                            </span>
+
+                                        {% endif %}
+
+                                    </div>
+
+                                </td>
+
+                                <!-- =========================
+
+                                     ACTIONS — ONE ROW
+
+                                ========================== -->
+
+                                <td
+
+                                    class="
+
+                                        whitespace-nowrap
+
+                                        px-2 py-1
+
+                                        text-right
+
+                                        align-middle
+
+                                    "
+
+                                >
+
+                                    {% if active_encounter.is_open %}
+
+                                        {% if order.status == "active" %}
+
+                                            <div
+
+                                                class="
+
+                                                    inline-flex
+
+                                                    items-center gap-1
+
+                                                "
+
+                                            >
+
+                                                <!-- =================
+
+                                                     GIVE
+
+                                                ================== -->
+
+                                                <form
+
+                                                    method="post"
+
+                                                    action="{{ request.path }}"
+
+                                                    class="inline"
+
+                                                    hx-post="{{ request.path }}"
+
+                                                    hx-target="#mar-workspace"
+
+                                                    hx-swap="outerHTML"
+
+                                                    hx-disabled-elt="button"
+
+                                                >
+
+                                                    {% csrf_token %}
+
+                                                    <input
+
+                                                        type="hidden"
+
+                                                        name="mar_action"
+
+                                                        value="give"
+
+                                                    >
+
+                                                    <input
+
+                                                        type="hidden"
+
+                                                        name="medication_order"
+
+                                                        value="{{ order.pk }}"
+
+                                                    >
+
+                                                    <button
+
+                                                        type="submit"
+
+                                                        class="
+
+                                                            h-6
+
+                                                            rounded
+
+                                                            bg-emerald-700
+
+                                                            px-2
+
+                                                            text-[8px]
+
+                                                            font-semibold
+
+                                                            text-white
+
+                                                            hover:bg-emerald-800
+
+                                                            disabled:opacity-50
+
+                                                        "
+
+                                                    >
+
+                                                        {% if order.frequency == "prn" %}
+
+                                                            Give PRN
+
+                                                        {% else %}
+
+                                                            Give
+
+                                                        {% endif %}
+
+                                                    </button>
+
+                                                </form>
+
+                                                <!-- =================
+
+                                                     NOT GIVEN
+
+                                                ================== -->
+
+                                                <button
+
+                                                    type="button"
+
+                                                    @click="
+
+                                                        openReason(
+
+                                                            'not_given',
+
+                                                            '{{ order.pk }}',
+
+                                                            '{{ order.medication.display_name|escapejs }}'
+
+                                                        )
+
+                                                    "
+
+                                                    class="
+
+                                                        h-6
+
+                                                        rounded
+
+                                                        border border-red-200
+
+                                                        bg-red-50
+
+                                                        px-2
+
+                                                        text-[8px]
+
+                                                        font-semibold
+
+                                                        text-red-700
+
+                                                        hover:bg-red-100
+
+                                                    "
+
+                                                >
+
+                                                    Not Given
+
+                                                </button>
+
+                                                <!-- =================
+
+                                                     HOLD
+
+                                                ================== -->
+
+                                                <button
+
+                                                    type="button"
+
+                                                    @click="
+
+                                                        openReason(
+
+                                                            'hold',
+
+                                                            '{{ order.pk }}',
+
+                                                            '{{ order.medication.display_name|escapejs }}'
+
+                                                        )
+
+                                                    "
+
+                                                    class="
+
+                                                        h-6
+
+                                                        rounded
+
+                                                        border border-amber-200
+
+                                                        bg-amber-50
+
+                                                        px-2
+
+                                                        text-[8px]
+
+                                                        font-semibold
+
+                                                        text-amber-700
+
+                                                        hover:bg-amber-100
+
+                                                    "
+
+                                                >
+
+                                                    Hold
+
+                                                </button>
+
+                                            </div>
+
+                                        {% elif order.status == "on_hold" %}
+
+                                            <div
+
+                                                class="
+
+                                                    inline-flex
+
+                                                    items-center gap-1
+
+                                                "
+
+                                            >
+
+                                                <span
+
+                                                    class="
+
+                                                        font-semibold
+
+                                                        text-amber-700
+
+                                                    "
+
+                                                >
+
+                                                    Held
+
+                                                </span>
+
+                                                {% if order.hold_reason %}
+
+                                                    <span
+
+                                                        title="{{ order.hold_reason }}"
+
+                                                        class="
+
+                                                            cursor-help
+
+                                                            text-[8px]
+
+                                                            text-amber-600
+
+                                                        "
+
+                                                    >
+
+                                                        Reason
+
+                                                    </span>
+
+                                                {% endif %}
+
+                                            </div>
+
+                                        {% endif %}
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td
+
+                                    colspan="9"
+
+                                    class="
+
+                                        px-6 py-10
+
+                                        text-center
+
+                                    "
+
+                                >
+
+                                    <p
+
+                                        class="
+
+                                            text-xs
+
+                                            font-medium
+
+                                            text-slate-700
+
+                                        "
+
+                                    >
+
+                                        No active medication orders
+
+                                    </p>
+
+                                    <p
+
+                                        class="
+
+                                            mt-1
+
+                                            text-[10px]
+
+                                            text-slate-500
+
+                                        "
+
+                                    >
+
+                                        Medication administration should originate from an active provider order.
+
+                                    </p>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+        <!-- =================================================
+
+             HISTORY
+
+        ================================================== -->
+
+        <section
+
+            class="
+
+                mt-2
+
+                overflow-hidden
+
+                rounded-md
+
+                border border-slate-300
+
+                bg-white
+
+            "
+
+        >
+
+            <header
+
+                class="
+
+                    border-b border-slate-200
+
+                    bg-slate-50
+
+                    px-3 py-1.5
+
+                "
+
+            >
+
+                <h2
+
+                    class="
+
+                        text-[10px]
+
+                        font-semibold
+
+                        text-slate-900
+
+                    "
+
+                >
+
+                    Administration History
+
+                </h2>
+
+            </header>
+
+            {% include "medications/partials/table_rows.html" %}
+
+        </section>
+
+    </main>
+
+    <!-- =====================================================
+
+         COMPACT REASON PANEL
+
+         ONLY FOR NOT GIVEN / HOLD
+
+    ====================================================== -->
+
+    <div
+
+        x-cloak
+
+        x-show="reasonOpen"
+
+        class="
+
+            absolute inset-0 z-50
+
+            flex items-start
+
+            justify-end
+
+            bg-slate-900/20
+
+        "
+
+        @keydown.escape.window="
+
+            closeReason()
+
+        "
+
+    >
+
+        <aside
+
+            @click.outside="
+
+                closeReason()
+
+            "
+
+            class="
+
+                mt-14 mr-3
+
+                w-full max-w-sm
+
+                rounded-md
+
+                border border-slate-300
+
+                bg-white
+
+                shadow-xl
+
+            "
+
+        >
+
+            <header
+
+                class="
+
+                    flex items-center
+
+                    justify-between
+
+                    border-b border-slate-200
+
+                    px-3 py-2
+
+                "
+
+            >
+
+                <div>
+
+                    <h2
+
+                        class="
+
+                            text-xs
+
+                            font-semibold
+
+                            text-slate-900
+
+                        "
+
+                        x-text="
+
+                            reasonAction === 'hold'
+
+                                ? 'Hold Medication'
+
+                                : 'Medication Not Given'
+
+                        "
+
+                    ></h2>
+
+                    <p
+
+                        class="
+
+                            mt-0.5
+
+                            text-[9px]
+
+                            text-slate-500
+
+                        "
+
+                        x-text="reasonMedication"
+
+                    ></p>
+
+                </div>
+
+                <button
+
+                    type="button"
+
+                    @click="
+
+                        closeReason()
+
+                    "
+
+                    class="
+
+                        rounded
+
+                        p-1
+
+                        text-slate-500
+
+                        hover:bg-slate-100
+
+                    "
+
+                >
+
                     ✕
+
                 </button>
 
             </header>
 
-
             <form
-                method="post"
-                action="{{ request.path }}"
-                class="p-4"
 
-                hx-boost="true"
+                method="post"
+
+                action="{{ request.path }}"
+
+                hx-post="{{ request.path }}"
+
+                hx-target="#mar-workspace"
+
+                hx-swap="outerHTML"
+
+                class="p-3"
+
             >
 
                 {% csrf_token %}
 
-                {% include "medications/partials/form_fields.html" %}
+                <input
 
+                    type="hidden"
+
+                    name="mar_action"
+
+                    :value="reasonAction"
+
+                >
+
+                <input
+
+                    type="hidden"
+
+                    name="medication_order"
+
+                    :value="reasonOrderId"
+
+                >
+
+                <label
+
+                    for="mar-reason"
+
+                    class="
+
+                        mb-1 block
+
+                        text-[10px]
+
+                        font-semibold
+
+                        text-slate-700
+
+                    "
+
+                >
+
+                    <span
+
+                        x-text="
+
+                            reasonAction === 'hold'
+
+                                ? 'Hold reason'
+
+                                : 'Reason not given'
+
+                        "
+
+                    ></span>
+
+                    <span class="text-red-600">
+
+                        *
+
+                    </span>
+
+                </label>
+
+                <select
+
+                    x-model="reasonPreset"
+
+                    class="
+
+                        block h-8 w-full
+
+                        rounded-md
+
+                        border border-slate-300
+
+                        bg-white
+
+                        px-2
+
+                        text-[10px]
+
+                        text-slate-800
+
+                        focus:border-emerald-500
+
+                        focus:ring-1
+
+                        focus:ring-emerald-500
+
+                    "
+
+                >
+
+                    <option value="">
+
+                        Select reason
+
+                    </option>
+
+                    <option value="Patient refused">
+
+                        Patient refused
+
+                    </option>
+
+                    <option value="Patient unavailable">
+
+                        Patient unavailable
+
+                    </option>
+
+                    <option value="NPO / contraindicated">
+
+                        NPO / contraindicated
+
+                    </option>
+
+                    <option value="Clinical parameter not met">
+
+                        Clinical parameter not met
+
+                    </option>
+
+                    <option value="Medication unavailable">
+
+                        Medication unavailable
+
+                    </option>
+
+                    <option value="Provider instruction">
+
+                        Provider instruction
+
+                    </option>
+
+                    <option value="Adverse effect concern">
+
+                        Adverse effect concern
+
+                    </option>
+
+                    <option value="Other">
+
+                        Other
+
+                    </option>
+
+                </select>
+
+                <textarea
+
+                    id="mar-reason"
+
+                    name="reason"
+
+                    required
+
+                    :value="
+
+                        reasonPreset !== 'Other'
+
+                            ? reasonPreset
+
+                            : ''
+
+                    "
+
+                    @input="
+
+                        reasonText = $event.target.value
+
+                    "
+
+                    :placeholder="
+
+                        reasonPreset === 'Other'
+
+                            ? 'Enter reason...'
+
+                            : 'Add details if needed...'
+
+                    "
+
+                    rows="2"
+
+                    class="
+
+                        mt-2 block
+
+                        w-full
+
+                        resize-none
+
+                        rounded-md
+
+                        border border-slate-300
+
+                        bg-white
+
+                        px-2 py-1.5
+
+                        text-[10px]
+
+                        text-slate-800
+
+                        outline-none
+
+                        focus:border-emerald-500
+
+                        focus:ring-1
+
+                        focus:ring-emerald-500
+
+                    "
+
+                ></textarea>
 
                 <div
+
                     class="
-                        mt-5
+
+                        mt-3
+
                         flex justify-end gap-2
-                        border-t border-slate-200
-                        pt-3
+
                     "
+
                 >
 
                     <button
+
                         type="button"
-                        @click="formOpen = false"
+
+                        @click="
+
+                            closeReason()
+
+                        "
 
                         class="
+
+                            h-7
+
                             rounded-md
+
                             border border-slate-300
+
                             bg-white
-                            px-3 py-2
-                            text-xs font-medium
+
+                            px-3
+
+                            text-[9px]
+
+                            font-medium
+
                             text-slate-700
+
                         "
+
                     >
+
                         Cancel
+
                     </button>
 
-
                     <button
+
                         type="submit"
 
-                        class="
-                            rounded-md
-                            bg-emerald-700
-                            px-4 py-2
-                            text-xs font-semibold
-                            text-white
-                            hover:bg-emerald-800
+                        :class="
+
+                            reasonAction === 'hold'
+
+                                ? 'bg-amber-700 hover:bg-amber-800'
+
+                                : 'bg-red-700 hover:bg-red-800'
+
                         "
+
+                        class="
+
+                            h-7
+
+                            rounded-md
+
+                            px-3
+
+                            text-[9px]
+
+                            font-semibold
+
+                            text-white
+
+                        "
+
                     >
-                        Save Administration
+
+                        <span
+
+                            x-text="
+
+                                reasonAction === 'hold'
+
+                                    ? 'Hold Medication'
+
+                                    : 'Record Not Given'
+
+                            "
+
+                        ></span>
+
                     </button>
 
                 </div>
@@ -614,5 +2893,687 @@ MAR | Liberia EHR
     </div>
 
 </section>
+
+<!-- =========================================================
+
+     ALPINE MAR CONTROLLER
+
+========================================================== -->
+
+<script>
+
+function marWorkspace() {
+
+    return {
+
+        // ====================================================
+
+        // FILTERS
+
+        // ====================================================
+
+        filter: "all",
+
+        search: "",
+
+        // ====================================================
+
+        // TIME
+
+        // ====================================================
+
+        now: new Date(),
+
+        currentTimeLabel: "",
+
+        // ====================================================
+
+        // REASON PANEL
+
+        // ====================================================
+
+        reasonOpen: false,
+
+        reasonAction: "",
+
+        reasonOrderId: "",
+
+        reasonMedication: "",
+
+        reasonPreset: "",
+
+        reasonText: "",
+
+        // ====================================================
+
+        // COUNTS
+
+        // ====================================================
+
+        counts: {
+
+            due: 0,
+
+            overdue: 0,
+
+            scheduled: 0,
+
+            prn: 0,
+
+            held: 0
+
+        },
+
+        // ====================================================
+
+        // INIT
+
+        // ====================================================
+
+        init() {
+
+            this.updateClock();
+
+            this.refreshCounts();
+
+            window.setInterval(
+
+                () => {
+
+                    this.now =
+
+                        new Date();
+
+                    this.updateClock();
+
+                    this.refreshCounts();
+
+                },
+
+                30000
+
+            );
+
+            this.$nextTick(
+
+                () => {
+
+                    this.refreshCounts();
+
+                }
+
+            );
+
+        },
+
+        // ====================================================
+
+        // CLOCK
+
+        // ====================================================
+
+        updateClock() {
+
+            this.currentTimeLabel =
+
+                this.now.toLocaleString(
+
+                    [],
+
+                    {
+
+                        month: "2-digit",
+
+                        day: "2-digit",
+
+                        year: "numeric",
+
+                        hour: "2-digit",
+
+                        minute: "2-digit"
+
+                    }
+
+                );
+
+        },
+
+        // ====================================================
+
+        // STATUS
+
+        // ====================================================
+
+        getStatus(row) {
+
+            if (!row) {
+
+                return "scheduled";
+
+            }
+
+            const orderStatus =
+
+                row.dataset.orderStatus || "";
+
+            if (
+
+                row.dataset.held === "true" ||
+
+                orderStatus === "on_hold"
+
+            ) {
+
+                return "held";
+
+            }
+
+            if (
+
+                row.dataset.isPrn === "true"
+
+            ) {
+
+                return "prn";
+
+            }
+
+            if (
+
+                orderStatus === "completed"
+
+            ) {
+
+                return "completed";
+
+            }
+
+            if (
+
+                orderStatus === "discontinued"
+
+            ) {
+
+                return "discontinued";
+
+            }
+
+            const dueValue =
+
+                row.dataset.nextDue;
+
+            if (!dueValue) {
+
+                return "scheduled";
+
+            }
+
+            const due =
+
+                new Date(
+
+                    dueValue
+
+                );
+
+            if (
+
+                Number.isNaN(
+
+                    due.getTime()
+
+                )
+
+            ) {
+
+                return "scheduled";
+
+            }
+
+            const differenceMinutes =
+
+                (
+
+                    due.getTime() -
+
+                    this.now.getTime()
+
+                )
+
+                / 60000;
+
+            if (
+
+                differenceMinutes < -60
+
+            ) {
+
+                return "overdue";
+
+            }
+
+            if (
+
+                differenceMinutes <= 60
+
+            ) {
+
+                return "due";
+
+            }
+
+            return "scheduled";
+
+        },
+
+        // ====================================================
+
+        // STATUS LABEL
+
+        // ====================================================
+
+        statusLabel(row) {
+
+            const labels = {
+
+                due:
+
+                    "DUE",
+
+                overdue:
+
+                    "OVERDUE",
+
+                scheduled:
+
+                    "SCHEDULED",
+
+                prn:
+
+                    "PRN",
+
+                held:
+
+                    "HELD",
+
+                completed:
+
+                    "COMPLETE",
+
+                discontinued:
+
+                    "DC"
+
+            };
+
+            const status =
+
+                this.getStatus(
+
+                    row
+
+                );
+
+            return (
+
+                labels[status] ||
+
+                "SCHEDULED"
+
+            );
+
+        },
+
+        // ====================================================
+
+        // BADGE
+
+        // ====================================================
+
+        statusBadgeClass(row) {
+
+            const classes = {
+
+                due:
+
+                    "bg-emerald-100 text-emerald-800",
+
+                overdue:
+
+                    "bg-red-100 text-red-700",
+
+                scheduled:
+
+                    "bg-blue-100 text-blue-700",
+
+                prn:
+
+                    "bg-purple-100 text-purple-700",
+
+                held:
+
+                    "bg-amber-100 text-amber-800",
+
+                completed:
+
+                    "bg-slate-100 text-slate-600",
+
+                discontinued:
+
+                    "bg-slate-200 text-slate-600"
+
+            };
+
+            const status =
+
+                this.getStatus(
+
+                    row
+
+                );
+
+            return (
+
+                classes[status] ||
+
+                classes.scheduled
+
+            );
+
+        },
+
+        // ====================================================
+
+        // ROW STYLE
+
+        // ====================================================
+
+        rowClass(row) {
+
+            const classes = {
+
+                due:
+
+                    "bg-emerald-50",
+
+                overdue:
+
+                    "bg-red-50",
+
+                scheduled:
+
+                    "bg-white",
+
+                prn:
+
+                    "bg-purple-50/40",
+
+                held:
+
+                    "bg-amber-50",
+
+                completed:
+
+                    "bg-slate-50 opacity-70",
+
+                discontinued:
+
+                    "bg-slate-50 opacity-60"
+
+            };
+
+            const status =
+
+                this.getStatus(
+
+                    row
+
+                );
+
+            return (
+
+                classes[status] ||
+
+                classes.scheduled
+
+            );
+
+        },
+
+        // ====================================================
+
+        // FILTER
+
+        // ====================================================
+
+        rowVisible(row) {
+
+            if (!row) {
+
+                return true;
+
+            }
+
+            const medication =
+
+                (
+
+                    row.dataset
+
+                        .medicationName ||
+
+                    ""
+
+                )
+
+                .toLowerCase();
+
+            const query =
+
+                (
+
+                    this.search ||
+
+                    ""
+
+                )
+
+                .trim()
+
+                .toLowerCase();
+
+            if (
+
+                query &&
+
+                !medication.includes(
+
+                    query
+
+                )
+
+            ) {
+
+                return false;
+
+            }
+
+            if (
+
+                this.filter === "all"
+
+            ) {
+
+                return true;
+
+            }
+
+            return (
+
+                this.getStatus(
+
+                    row
+
+                )
+
+                ===
+
+                this.filter
+
+            );
+
+        },
+
+        // ====================================================
+
+        // COUNTS
+
+        // ====================================================
+
+        refreshCounts() {
+
+            const next = {
+
+                due: 0,
+
+                overdue: 0,
+
+                scheduled: 0,
+
+                prn: 0,
+
+                held: 0
+
+            };
+
+            document
+
+                .querySelectorAll(
+
+                    "#mar-workspace [data-mar-row]"
+
+                )
+
+                .forEach(
+
+                    (row) => {
+
+                        const status =
+
+                            this.getStatus(
+
+                                row
+
+                            );
+
+                        if (
+
+                            Object.prototype
+
+                                .hasOwnProperty
+
+                                .call(
+
+                                    next,
+
+                                    status
+
+                                )
+
+                        ) {
+
+                            next[
+
+                                status
+
+                            ] += 1;
+
+                        }
+
+                    }
+
+                );
+
+            this.counts =
+
+                next;
+
+        },
+
+        // ====================================================
+
+        // REASON PANEL
+
+        // ====================================================
+
+        openReason(
+
+            action,
+
+            orderId,
+
+            medication
+
+        ) {
+
+            this.reasonAction =
+
+                action;
+
+            this.reasonOrderId =
+
+                orderId;
+
+            this.reasonMedication =
+
+                medication || "";
+
+            this.reasonPreset =
+
+                "";
+
+            this.reasonText =
+
+                "";
+
+            this.reasonOpen =
+
+                true;
+
+        },
+
+        closeReason() {
+
+            this.reasonOpen =
+
+                false;
+
+            this.reasonAction =
+
+                "";
+
+            this.reasonOrderId =
+
+                "";
+
+            this.reasonMedication =
+
+                "";
+
+            this.reasonPreset =
+
+                "";
+
+            this.reasonText =
+
+                "";
+
+        }
+
+    };
+
+}
+
+</script>
 
 {% endblock workspace %}

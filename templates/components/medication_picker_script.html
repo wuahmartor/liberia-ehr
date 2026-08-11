@@ -7,12 +7,12 @@ templates/components/medication_picker_script.html
 
 Purpose:
 - Search after 4 typed characters.
-- Search local Pharmacy medications and RxNorm.
-- Display medication strength, dosage form, and route.
-- Allow local medications to be selected immediately.
-- Allow RxNorm medications to be imported and selected.
-- Store the selected local pharmacy.Medication ID in the
-  hidden Django MedicationOrderForm.medication field.
+- Search ONLY the local pharmacy.Medication database.
+- Do not call RxNorm during provider order entry.
+- Display medication name, brand, strength, dosage form,
+  route, formulary status, and RxCUI when available.
+- Preserve the hidden Django MedicationOrderForm.medication
+  field as the submitted local Medication foreign key.
 ============================================================
 {% endcomment %}
 
@@ -22,7 +22,7 @@ Purpose:
     "use strict";
 
     const MIN_SEARCH_LENGTH = 4;
-    const SEARCH_DELAY = 250;
+    const SEARCH_DELAY = 150;
 
 
     function initializeMedicationPickers(root = document) {
@@ -39,6 +39,10 @@ Purpose:
 
                 picker.dataset.medicationPickerInitialized = "true";
 
+
+                // =================================================
+                // DOM
+                // =================================================
 
                 const searchInput =
                     picker.querySelector(
@@ -104,17 +108,16 @@ Purpose:
                 }
 
 
+                // =================================================
+                // LOCAL API ONLY
+                // =================================================
+
                 const localApi =
                     select.dataset.medicationApi;
 
-                const usApi =
-                    select.dataset.usMedicationApi;
-
-                const importApi =
-                    select.dataset.usMedicationImportApi;
-
 
                 if (!localApi) {
+
                     console.warn(
                         "Local medication API is not configured."
                     );
@@ -127,6 +130,10 @@ Purpose:
                 let controller = null;
 
 
+                // =================================================
+                // HELPERS
+                // =================================================
+
                 function escapeHtml(value) {
 
                     const element =
@@ -138,6 +145,38 @@ Purpose:
                             : String(value);
 
                     return element.innerHTML;
+                }
+
+
+                function normalizeValue(value) {
+
+                    if (
+                        value === null ||
+                        value === undefined
+                    ) {
+                        return null;
+                    }
+
+                    const cleaned =
+                        String(value).trim();
+
+                    if (!cleaned) {
+                        return null;
+                    }
+
+                    const lowered =
+                        cleaned.toLowerCase();
+
+                    if (
+                        lowered === "unspecified" ||
+                        lowered === "unknown" ||
+                        lowered === "none" ||
+                        lowered === "null"
+                    ) {
+                        return null;
+                    }
+
+                    return cleaned;
                 }
 
 
@@ -204,540 +243,19 @@ Purpose:
                 }
 
 
-                function getCsrfToken() {
+                function findOption(id) {
 
-                    if (!form) {
-                        return "";
-                    }
-
-                    const token =
-                        form.querySelector(
-                            'input[name="csrfmiddlewaretoken"]'
-                        );
-
-                    return token
-                        ? token.value
-                        : "";
-                }
-
-
-                function normalizeValue(value) {
-
-                    if (
-                        value === null ||
-                        value === undefined
-                    ) {
-                        return null;
-                    }
-
-                    const cleaned =
-                        String(value)
-                            .trim();
-
-                    if (!cleaned) {
-                        return null;
-                    }
-
-                    const lowered =
-                        cleaned.toLowerCase();
-
-                    if (
-                        lowered === "unspecified" ||
-                        lowered === "unknown" ||
-                        lowered === "none" ||
-                        lowered === "null"
-                    ) {
-                        return null;
-                    }
-
-                    return cleaned;
-                }
-
-
-                function normalizeStrength(value) {
-
-                    const cleaned =
-                        normalizeValue(value);
-
-                    if (!cleaned) {
-                        return null;
-                    }
-
-                    return cleaned
-                        .replace(
-                            /\bMCG\b/gi,
-                            "mcg"
-                        )
-                        .replace(
-                            /\bMG\b/gi,
-                            "mg"
-                        )
-                        .replace(
-                            /\bML\b/gi,
-                            "mL"
-                        )
-                        .replace(
-                            /\bMEQ\b/gi,
-                            "mEq"
-                        )
-                        .replace(
-                            /\bMMOL\b/gi,
-                            "mmol"
-                        )
-                        .replace(
-                            /\bUNITS\b/gi,
-                            "units"
-                        )
-                        .replace(
-                            /\bUNIT\b/gi,
-                            "unit"
-                        )
-                        .replace(
-                            /\s*\/\s*/g,
-                            "/"
+                    return Array
+                        .from(select.options)
+                        .find(
+                            (option) =>
+                                String(option.value) ===
+                                String(id)
                         );
                 }
 
 
-                function extractStrengthFromName(name) {
-
-                    const text =
-                        String(name || "")
-                            .trim();
-
-                    if (!text) {
-                        return null;
-                    }
-
-
-                    const patterns = [
-
-                        /\b\d+(?:\.\d+)?\s*(?:mcg|mg|g|unit|units|meq|mmol)\s*\/\s*\d+(?:\.\d+)?\s*(?:ml|l|dose|actuat)\b/i,
-
-                        /\b\d+(?:\.\d+)?\s*(?:mcg|mg|g|unit|units|meq|mmol)\s*\/\s*(?:ml|l|dose|actuat)\b/i,
-
-                        /\b\d+(?:\.\d+)?\s*(?:mcg|mg|g|unit|units|meq|mmol)\b/i,
-
-                        /\b\d+(?:\.\d+)?\s*%\b/i
-                    ];
-
-
-                    for (const pattern of patterns) {
-
-                        const match =
-                            text.match(pattern);
-
-                        if (match) {
-                            return normalizeStrength(
-                                match[0]
-                            );
-                        }
-                    }
-
-                    return null;
-                }
-
-
-                function extractDosageFormFromName(name) {
-
-                    const text =
-                        String(name || "")
-                            .toLowerCase();
-
-
-                    const forms = [
-
-                        [
-                            "extended release oral tablet",
-                            "Extended Release Tablet"
-                        ],
-
-                        [
-                            "extended release tablet",
-                            "Extended Release Tablet"
-                        ],
-
-                        [
-                            "delayed release oral tablet",
-                            "Delayed Release Tablet"
-                        ],
-
-                        [
-                            "delayed release tablet",
-                            "Delayed Release Tablet"
-                        ],
-
-                        [
-                            "orally disintegrating tablet",
-                            "Orally Disintegrating Tablet"
-                        ],
-
-                        [
-                            "chewable tablet",
-                            "Chewable Tablet"
-                        ],
-
-                        [
-                            "sublingual tablet",
-                            "Sublingual Tablet"
-                        ],
-
-                        [
-                            "oral tablet",
-                            "Tablet"
-                        ],
-
-                        [
-                            "tablet",
-                            "Tablet"
-                        ],
-
-                        [
-                            "oral capsule",
-                            "Capsule"
-                        ],
-
-                        [
-                            "capsule",
-                            "Capsule"
-                        ],
-
-                        [
-                            "oral suspension",
-                            "Suspension"
-                        ],
-
-                        [
-                            "suspension",
-                            "Suspension"
-                        ],
-
-                        [
-                            "oral solution",
-                            "Solution"
-                        ],
-
-                        [
-                            "solution",
-                            "Solution"
-                        ],
-
-                        [
-                            "syrup",
-                            "Syrup"
-                        ],
-
-                        [
-                            "ophthalmic solution",
-                            "Ophthalmic Solution"
-                        ],
-
-                        [
-                            "ophthalmic drops",
-                            "Ophthalmic Drops"
-                        ],
-
-                        [
-                            "otic solution",
-                            "Otic Solution"
-                        ],
-
-                        [
-                            "otic drops",
-                            "Otic Drops"
-                        ],
-
-                        [
-                            "inhalation solution",
-                            "Inhalation Solution"
-                        ],
-
-                        [
-                            "metered dose inhaler",
-                            "Inhaler"
-                        ],
-
-                        [
-                            "inhaler",
-                            "Inhaler"
-                        ],
-
-                        [
-                            "injectable solution",
-                            "Injection"
-                        ],
-
-                        [
-                            "injection",
-                            "Injection"
-                        ],
-
-                        [
-                            "transdermal patch",
-                            "Patch"
-                        ],
-
-                        [
-                            "patch",
-                            "Patch"
-                        ],
-
-                        [
-                            "nasal spray",
-                            "Nasal Spray"
-                        ],
-
-                        [
-                            "spray",
-                            "Spray"
-                        ],
-
-                        [
-                            "cream",
-                            "Cream"
-                        ],
-
-                        [
-                            "ointment",
-                            "Ointment"
-                        ],
-
-                        [
-                            "gel",
-                            "Gel"
-                        ],
-
-                        [
-                            "suppository",
-                            "Suppository"
-                        ],
-
-                        [
-                            "lozenge",
-                            "Lozenge"
-                        ],
-
-                        [
-                            "powder",
-                            "Powder"
-                        ]
-                    ];
-
-
-                    for (
-                        const [
-                            token,
-                            label
-                        ] of forms
-                    ) {
-                        if (
-                            text.includes(token)
-                        ) {
-                            return label;
-                        }
-                    }
-
-                    return null;
-                }
-
-
-                function extractRouteFromName(name) {
-
-                    const text =
-                        String(name || "")
-                            .toLowerCase();
-
-
-                    const routes = [
-
-                        [
-                            "intravenous",
-                            "Intravenous"
-                        ],
-
-                        [
-                            "intramuscular",
-                            "Intramuscular"
-                        ],
-
-                        [
-                            "subcutaneous",
-                            "Subcutaneous"
-                        ],
-
-                        [
-                            "sublingual",
-                            "Sublingual"
-                        ],
-
-                        [
-                            "transdermal",
-                            "Transdermal"
-                        ],
-
-                        [
-                            "ophthalmic",
-                            "Ophthalmic"
-                        ],
-
-                        [
-                            "otic",
-                            "Otic"
-                        ],
-
-                        [
-                            "nasal",
-                            "Nasal"
-                        ],
-
-                        [
-                            "inhalation",
-                            "Inhalation"
-                        ],
-
-                        [
-                            "rectal",
-                            "Rectal"
-                        ],
-
-                        [
-                            "vaginal",
-                            "Vaginal"
-                        ],
-
-                        [
-                            "topical",
-                            "Topical"
-                        ],
-
-                        [
-                            "oral",
-                            "Oral"
-                        ]
-                    ];
-
-
-                    for (
-                        const [
-                            token,
-                            label
-                        ] of routes
-                    ) {
-                        if (
-                            text.includes(token)
-                        ) {
-                            return label;
-                        }
-                    }
-
-                    return null;
-                }
-
-
-                function medicationSourceName(
-                    medication
-                ) {
-
-                    return (
-                        medication.display_name ||
-                        medication.name ||
-                        medication.generic_name ||
-                        ""
-                    );
-                }
-
-
-                function getMedicationStrength(
-                    medication
-                ) {
-
-                    return (
-                        normalizeStrength(
-                            medication.strength
-                        )
-                        ||
-                        extractStrengthFromName(
-                            medicationSourceName(
-                                medication
-                            )
-                        )
-                    );
-                }
-
-
-                function getMedicationDosageForm(
-                    medication
-                ) {
-
-                    return (
-                        normalizeValue(
-                            medication.dosage_form
-                        )
-                        ||
-                        normalizeValue(
-                            medication.dose_form
-                        )
-                        ||
-                        extractDosageFormFromName(
-                            medicationSourceName(
-                                medication
-                            )
-                        )
-                    );
-                }
-
-
-                function getMedicationRoute(
-                    medication
-                ) {
-
-                    return (
-                        normalizeValue(
-                            medication.route
-                        )
-                        ||
-                        extractRouteFromName(
-                            medicationSourceName(
-                                medication
-                            )
-                        )
-                    );
-                }
-
-
-                function medicationDetails(
-                    medication
-                ) {
-
-                    return [
-                        getMedicationStrength(
-                            medication
-                        ),
-
-                        getMedicationDosageForm(
-                            medication
-                        ),
-
-                        getMedicationRoute(
-                            medication
-                        )
-                    ].filter(Boolean);
-                }
-
-
-                function getMedicationRxCui(
-                    medication
-                ) {
-
-                    return (
-                        medication.rxnorm_rxcui ||
-                        medication.rxcui ||
-                        null
-                    );
-                }
-
-
-                function getMedicationDisplayName(
+                function medicationDisplayName(
                     medication
                 ) {
 
@@ -746,55 +264,79 @@ Purpose:
                             medication.generic_name
                         );
 
+                    const brandName =
+                        normalizeValue(
+                            medication.brand_name
+                        );
+
                     const strength =
-                        getMedicationStrength(
-                            medication
+                        normalizeValue(
+                            medication.strength
                         );
 
                     const dosageForm =
-                        getMedicationDosageForm(
-                            medication
+                        normalizeValue(
+                            medication.dosage_form
                         );
 
 
-                    if (genericName) {
+                    const primaryParts = [
+                        genericName,
+                        strength,
+                        dosageForm
+                    ].filter(Boolean);
 
-                        const pieces = [
-                            genericName,
-                            strength,
-                            dosageForm
-                        ].filter(Boolean);
 
-                        return pieces.join(" ");
+                    let name =
+                        primaryParts.join(" ");
+
+
+                    if (!name) {
+
+                        name =
+                            normalizeValue(
+                                medication.display_name
+                            )
+                            ||
+                            "Medication";
                     }
 
 
-                    return (
-                        normalizeValue(
-                            medication.display_name
-                        )
-                        ||
-                        normalizeValue(
-                            medication.name
-                        )
-                        ||
-                        "Medication"
-                    );
+                    if (
+                        brandName &&
+                        !name
+                            .toLowerCase()
+                            .includes(
+                                brandName.toLowerCase()
+                            )
+                    ) {
+
+                        name +=
+                            ` (${brandName})`;
+                    }
+
+
+                    return name;
                 }
 
 
-                function findOption(id) {
+                function medicationDetails(
+                    medication
+                ) {
 
-                    return Array
-                        .from(select.options)
-                        .find(
-                            (option) =>
-                                String(
-                                    option.value
-                                )
-                                ===
-                                String(id)
-                        );
+                    return [
+                        normalizeValue(
+                            medication.strength
+                        ),
+
+                        normalizeValue(
+                            medication.dosage_form
+                        ),
+
+                        normalizeValue(
+                            medication.route
+                        )
+                    ].filter(Boolean);
                 }
 
 
@@ -809,7 +351,7 @@ Purpose:
 
 
                     const displayName =
-                        getMedicationDisplayName(
+                        medicationDisplayName(
                             medication
                         );
 
@@ -837,6 +379,10 @@ Purpose:
                 }
 
 
+                // =================================================
+                // SELECT MEDICATION
+                // =================================================
+
                 function selectMedication(
                     medication
                 ) {
@@ -845,61 +391,16 @@ Purpose:
                         !medication ||
                         medication.id == null
                     ) {
+
                         throw new Error(
                             "Selected medication has no local medication ID."
                         );
                     }
 
 
-                    const strength =
-                        getMedicationStrength(
-                            medication
-                        );
-
-                    const dosageForm =
-                        getMedicationDosageForm(
-                            medication
-                        );
-
-                    const route =
-                        getMedicationRoute(
-                            medication
-                        );
-
-                    const rxcui =
-                        getMedicationRxCui(
-                            medication
-                        );
-
-                    const displayName =
-                        getMedicationDisplayName(
-                            medication
-                        );
-
-
-                    const normalizedMedication = {
-                        ...medication,
-
-                        display_name:
-                            displayName,
-
-                        strength:
-                            strength || "",
-
-                        dosage_form:
-                            dosageForm || "",
-
-                        route:
-                            route || "",
-
-                        rxnorm_rxcui:
-                            rxcui || ""
-                    };
-
-
                     const option =
                         ensureOption(
-                            normalizedMedication
+                            medication
                         );
 
 
@@ -917,7 +418,7 @@ Purpose:
 
                     select.value =
                         String(
-                            normalizedMedication.id
+                            medication.id
                         );
 
 
@@ -934,20 +435,28 @@ Purpose:
                     if (selectedName) {
 
                         selectedName.textContent =
-                            displayName;
+                            medicationDisplayName(
+                                medication
+                            );
                     }
 
 
                     if (selectedDetail) {
 
                         const details = [
-                            strength,
-                            dosageForm,
-                            route,
 
-                            rxcui
-                                ? `RxCUI ${rxcui}`
-                                : null
+                            normalizeValue(
+                                medication.route
+                            ),
+
+                            medication.rxnorm_rxcui
+                                ? `RxCUI ${medication.rxnorm_rxcui}`
+                                : null,
+
+                            normalizeValue(
+                                medication.formulary_status
+                            )
+
                         ].filter(Boolean);
 
 
@@ -964,13 +473,55 @@ Purpose:
                     }
 
 
+                    const medicationRoute =
+                        normalizeValue(
+                            medication.route
+                        );
+
+
                     if (
                         routeField &&
                         !routeField.value &&
-                        route
+                        medicationRoute
                     ) {
-                        routeField.value =
-                            route;
+
+                        const matchingOption =
+                            Array
+                                .from(
+                                    routeField.options
+                                )
+                                .find(
+                                    (option) =>
+                                        option.value
+                                            .toLowerCase() ===
+                                        medicationRoute
+                                            .toLowerCase()
+                                        ||
+                                        option.textContent
+                                            .trim()
+                                            .toLowerCase()
+                                            .startsWith(
+                                                medicationRoute
+                                                    .toLowerCase()
+                                            )
+                                );
+
+
+                        if (matchingOption) {
+
+                            routeField.value =
+                                matchingOption.value;
+
+
+                            routeField.dispatchEvent(
+                                new Event(
+                                    "change",
+                                    {
+                                        bubbles: true
+                                    }
+                                )
+                            );
+                        }
                     }
 
 
@@ -979,6 +530,95 @@ Purpose:
                     closeResults();
                 }
 
+
+                // =================================================
+                // FORMULARY BADGE
+                // =================================================
+
+                function formularyBadge(
+                    medication
+                ) {
+
+                    const status =
+                        normalizeValue(
+                            medication.formulary_status
+                        );
+
+
+                    if (!status) {
+                        return "";
+                    }
+
+
+                    const normalized =
+                        status.toLowerCase();
+
+
+                    let classes =
+                        "bg-slate-100 text-slate-600";
+
+
+                    let label =
+                        status;
+
+
+                    if (
+                        normalized ===
+                        "formulary"
+                    ) {
+
+                        classes =
+                            "bg-emerald-100 text-emerald-700";
+
+                        label =
+                            "Formulary";
+
+                    } else if (
+                        normalized ===
+                        "restricted"
+                    ) {
+
+                        classes =
+                            "bg-amber-100 text-amber-700";
+
+                        label =
+                            "Restricted";
+
+                    } else if (
+                        normalized ===
+                        "non_formulary"
+                        ||
+                        normalized ===
+                        "non-formulary"
+                    ) {
+
+                        classes =
+                            "bg-slate-100 text-slate-600";
+
+                        label =
+                            "Non-formulary";
+                    }
+
+
+                    return `
+                        <span
+                            class="
+                                rounded-full
+                                px-2 py-0.5
+                                text-[9px]
+                                font-semibold
+                                ${classes}
+                            "
+                        >
+                            ${escapeHtml(label)}
+                        </span>
+                    `;
+                }
+
+
+                // =================================================
+                // LOCAL RESULT
+                // =================================================
 
                 function createLocalResult(
                     medication
@@ -1001,9 +641,14 @@ Purpose:
                         "focus:outline-none";
 
 
-                    const displayName =
-                        getMedicationDisplayName(
-                            medication
+                    const genericName =
+                        normalizeValue(
+                            medication.generic_name
+                        );
+
+                    const brandName =
+                        normalizeValue(
+                            medication.brand_name
                         );
 
                     const details =
@@ -1011,10 +656,15 @@ Purpose:
                             medication
                         );
 
-                    const rxcui =
-                        getMedicationRxCui(
-                            medication
-                        );
+
+                    const medicationName =
+                        genericName
+                        ||
+                        normalizeValue(
+                            medication.display_name
+                        )
+                        ||
+                        "Medication";
 
 
                     button.innerHTML = `
@@ -1025,6 +675,7 @@ Purpose:
                                 gap-3
                             "
                         >
+
                             <div class="min-w-0">
 
                                 <div
@@ -1035,9 +686,31 @@ Purpose:
                                     "
                                 >
                                     ${escapeHtml(
-                                        displayName
+                                        medicationName
                                     )}
                                 </div>
+
+
+                                ${
+                                    brandName
+                                        ? `
+                                            <div
+                                                class="
+                                                    mt-0.5
+                                                    text-[10px]
+                                                    font-medium
+                                                    text-slate-500
+                                                "
+                                            >
+                                                Brand:
+                                                ${escapeHtml(
+                                                    brandName
+                                                )}
+                                            </div>
+                                        `
+                                        : ""
+                                }
+
 
                                 ${
                                     details.length
@@ -1046,7 +719,6 @@ Purpose:
                                                 class="
                                                     mt-0.5
                                                     text-[10px]
-                                                    font-medium
                                                     text-slate-600
                                                 "
                                             >
@@ -1060,6 +732,7 @@ Purpose:
                                         : ""
                                 }
 
+
                                 <div
                                     class="
                                         mt-0.5
@@ -1067,6 +740,7 @@ Purpose:
                                         text-slate-400
                                     "
                                 >
+
                                     ${
                                         medication.code
                                             ? escapeHtml(
@@ -1076,16 +750,18 @@ Purpose:
                                     }
 
                                     ${
-                                        rxcui
+                                        medication.rxnorm_rxcui
                                             ? " · RxCUI " +
                                               escapeHtml(
-                                                  rxcui
+                                                  medication.rxnorm_rxcui
                                               )
                                             : ""
                                     }
+
                                 </div>
 
                             </div>
+
 
                             <div
                                 class="
@@ -1095,6 +771,7 @@ Purpose:
                                     gap-1
                                 "
                             >
+
                                 <span
                                     class="
                                         rounded-full
@@ -1107,6 +784,12 @@ Purpose:
                                 >
                                     Select
                                 </span>
+
+
+                                ${formularyBadge(
+                                    medication
+                                )}
+
 
                                 ${
                                     medication.low_stock
@@ -1123,7 +806,9 @@ Purpose:
                                         `
                                         : ""
                                 }
+
                             </div>
+
                         </div>
                     `;
 
@@ -1131,6 +816,7 @@ Purpose:
                     button.addEventListener(
                         "click",
                         function () {
+
                             selectMedication(
                                 medication
                             );
@@ -1142,327 +828,9 @@ Purpose:
                 }
 
 
-                async function importRxNormMedication(
-                    medication
-                ) {
-
-                    if (!importApi) {
-                        throw new Error(
-                            "RxNorm import API is not configured."
-                        );
-                    }
-
-
-                    const rxcui =
-                        getMedicationRxCui(
-                            medication
-                        );
-
-
-                    if (!rxcui) {
-                        throw new Error(
-                            "Selected RxNorm result has no RxCUI."
-                        );
-                    }
-
-
-                    const body =
-                        new URLSearchParams();
-
-                    body.append(
-                        "rxcui",
-                        rxcui
-                    );
-
-
-                    const response =
-                        await fetch(
-                            importApi,
-                            {
-                                method: "POST",
-
-                                headers: {
-                                    "Accept":
-                                        "application/json",
-
-                                    "Content-Type":
-                                        "application/x-www-form-urlencoded",
-
-                                    "X-CSRFToken":
-                                        getCsrfToken()
-                                },
-
-                                body:
-                                    body.toString()
-                            }
-                        );
-
-
-                    let data;
-
-
-                    try {
-
-                        data =
-                            await response.json();
-
-                    } catch (error) {
-
-                        throw new Error(
-                            "Medication import returned an invalid response."
-                        );
-                    }
-
-
-                    if (
-                        !response.ok ||
-                        !data.success
-                    ) {
-                        throw new Error(
-                            data.error ||
-                            "Medication could not be imported."
-                        );
-                    }
-
-
-                    if (
-                        !data.medication ||
-                        data.medication.id == null
-                    ) {
-                        throw new Error(
-                            "Import API did not return a valid medication."
-                        );
-                    }
-
-
-                    return data.medication;
-                }
-
-
-                function createRxNormResult(
-                    medication
-                ) {
-
-                    const button =
-                        document.createElement(
-                            "button"
-                        );
-
-                    button.type = "button";
-
-                    button.className =
-                        "block w-full " +
-                        "border-b border-blue-100 " +
-                        "bg-white px-3 py-2 text-left " +
-                        "last:border-b-0 " +
-                        "hover:bg-blue-50 " +
-                        "focus:bg-blue-50 " +
-                        "focus:outline-none";
-
-
-                    const displayName =
-                        getMedicationDisplayName(
-                            medication
-                        );
-
-                    const strength =
-                        getMedicationStrength(
-                            medication
-                        );
-
-                    const dosageForm =
-                        getMedicationDosageForm(
-                            medication
-                        );
-
-                    const route =
-                        getMedicationRoute(
-                            medication
-                        );
-
-                    const termType =
-                        normalizeValue(
-                            medication.term_type
-                        );
-
-                    const rxcui =
-                        getMedicationRxCui(
-                            medication
-                        );
-
-
-                    const clinicalDetails = [
-                        strength,
-                        dosageForm,
-                        route
-                    ].filter(Boolean);
-
-
-                    button.innerHTML = `
-                        <div
-                            class="
-                                flex items-start
-                                justify-between
-                                gap-3
-                            "
-                        >
-                            <div class="min-w-0">
-
-                                <div
-                                    class="
-                                        text-xs
-                                        font-semibold
-                                        text-slate-900
-                                    "
-                                >
-                                    ${escapeHtml(
-                                        displayName
-                                    )}
-                                </div>
-
-                                ${
-                                    clinicalDetails.length
-                                        ? `
-                                            <div
-                                                class="
-                                                    mt-0.5
-                                                    text-[10px]
-                                                    font-medium
-                                                    text-slate-600
-                                                "
-                                            >
-                                                ${escapeHtml(
-                                                    clinicalDetails.join(
-                                                        " · "
-                                                    )
-                                                )}
-                                            </div>
-                                        `
-                                        : ""
-                                }
-
-                                <div
-                                    class="
-                                        mt-0.5
-                                        text-[9px]
-                                        text-slate-400
-                                    "
-                                >
-                                    RxNorm
-
-                                    ${
-                                        rxcui
-                                            ? " · RxCUI " +
-                                              escapeHtml(
-                                                  rxcui
-                                              )
-                                            : ""
-                                    }
-
-                                    ${
-                                        termType
-                                            ? " · " +
-                                              escapeHtml(
-                                                  termType
-                                              )
-                                            : ""
-                                    }
-                                </div>
-
-                            </div>
-
-                            <span
-                                data-rxnorm-action
-                                class="
-                                    shrink-0
-                                    rounded-full
-                                    bg-blue-100
-                                    px-2 py-0.5
-                                    text-[9px]
-                                    font-semibold
-                                    text-blue-700
-                                "
-                            >
-                                Select
-                            </span>
-                        </div>
-                    `;
-
-
-                    button.addEventListener(
-                        "click",
-                        async function () {
-
-                            const actionLabel =
-                                button.querySelector(
-                                    "[data-rxnorm-action]"
-                                );
-
-
-                            button.disabled = true;
-
-
-                            if (actionLabel) {
-                                actionLabel.textContent =
-                                    "Selecting...";
-                            }
-
-
-                            try {
-
-                                const localMedication =
-                                    await importRxNormMedication(
-                                        medication
-                                    );
-
-
-                                selectMedication(
-                                    localMedication
-                                );
-
-
-                            } catch (error) {
-
-                                console.error(
-                                    "RxNorm selection failed:",
-                                    error
-                                );
-
-
-                                if (actionLabel) {
-                                    actionLabel.textContent =
-                                        "Error";
-                                }
-
-
-                                alert(
-                                    error.message ||
-                                    "Medication could not be selected."
-                                );
-
-
-                            } finally {
-
-                                button.disabled =
-                                    false;
-
-
-                                if (
-                                    actionLabel &&
-                                    actionLabel.textContent !==
-                                    "Error"
-                                ) {
-                                    actionLabel.textContent =
-                                        "Select";
-                                }
-                            }
-                        }
-                    );
-
-
-                    return button;
-                }
-
+                // =================================================
+                // LOCAL SEARCH
+                // =================================================
 
                 async function searchLocal(
                     query
@@ -1492,8 +860,9 @@ Purpose:
 
 
                     if (!response.ok) {
+
                         throw new Error(
-                            `Local medication API returned ${response.status}.`
+                            `Medication API returned ${response.status}.`
                         );
                     }
 
@@ -1502,80 +871,9 @@ Purpose:
                 }
 
 
-                async function searchRxNorm(
-                    query
-                ) {
-
-                    if (!usApi) {
-                        return {
-                            results: []
-                        };
-                    }
-
-
-                    const url =
-                        `${usApi}?q=${
-                            encodeURIComponent(
-                                query
-                            )
-                        }`;
-
-
-                    try {
-
-                        const response =
-                            await fetch(
-                                url,
-                                {
-                                    headers: {
-                                        "Accept":
-                                            "application/json"
-                                    },
-
-                                    signal:
-                                        controller.signal
-                                }
-                            );
-
-
-                        if (!response.ok) {
-
-                            console.warn(
-                                "RxNorm API returned",
-                                response.status
-                            );
-
-                            return {
-                                results: []
-                            };
-                        }
-
-
-                        return await response.json();
-
-
-                    } catch (error) {
-
-                        if (
-                            error.name ===
-                            "AbortError"
-                        ) {
-                            throw error;
-                        }
-
-
-                        console.warn(
-                            "RxNorm search failed:",
-                            error
-                        );
-
-
-                        return {
-                            results: []
-                        };
-                    }
-                }
-
+                // =================================================
+                // SEARCH
+                // =================================================
 
                 async function runSearch(
                     query
@@ -1585,6 +883,7 @@ Purpose:
                         query.length <
                         MIN_SEARCH_LENGTH
                     ) {
+
                         closeResults();
 
                         return;
@@ -1592,6 +891,7 @@ Purpose:
 
 
                     if (controller) {
+
                         controller.abort();
                     }
 
@@ -1605,19 +905,10 @@ Purpose:
 
                     try {
 
-                        const [
-                            localData,
-                            rxNormData
-                        ] =
-                            await Promise.all([
-                                searchLocal(
-                                    query
-                                ),
-
-                                searchRxNorm(
-                                    query
-                                )
-                            ]);
+                        const localData =
+                            await searchLocal(
+                                query
+                            );
 
 
                         resultsContainer.innerHTML =
@@ -1632,109 +923,56 @@ Purpose:
                                 : [];
 
 
-                        const rxResults =
-                            Array.isArray(
-                                rxNormData.results
-                            )
-                                ? rxNormData.results
-                                : [];
-
-
                         if (
-                            localResults.length
+                            !localResults.length
                         ) {
 
-                            const heading =
-                                document.createElement(
-                                    "div"
-                                );
-
-                            heading.className =
-                                "sticky top-0 z-10 " +
-                                "border-b border-emerald-100 " +
-                                "bg-emerald-50 " +
-                                "px-3 py-1.5 " +
-                                "text-[9px] font-bold " +
-                                "uppercase tracking-wide " +
-                                "text-emerald-700";
-
-                            heading.textContent =
-                                `Local Medications (${localResults.length})`;
-
-                            resultsContainer.appendChild(
-                                heading
-                            );
-
-
-                            localResults.forEach(
-                                function (
-                                    medication
-                                ) {
-
-                                    resultsContainer
-                                        .appendChild(
-                                            createLocalResult(
-                                                medication
-                                            )
-                                        );
-                                }
-                            );
-                        }
-
-
-                        if (
-                            rxResults.length
-                        ) {
-
-                            const heading =
-                                document.createElement(
-                                    "div"
-                                );
-
-                            heading.className =
-                                "border-y border-blue-100 " +
-                                "bg-blue-50 " +
-                                "px-3 py-1.5 " +
-                                "text-[9px] font-bold " +
-                                "uppercase tracking-wide " +
-                                "text-blue-700";
-
-                            heading.textContent =
-                                `RxNorm Matches (${rxResults.length})`;
-
-                            resultsContainer.appendChild(
-                                heading
-                            );
-
-
-                            rxResults
-                                .slice(0, 25)
-                                .forEach(
-                                    function (
-                                        medication
-                                    ) {
-
-                                        resultsContainer
-                                            .appendChild(
-                                                createRxNormResult(
-                                                    medication
-                                                )
-                                            );
-                                    }
-                                );
-                        }
-
-
-                        if (
-                            !localResults.length &&
-                            !rxResults.length
-                        ) {
                             showMessage(
-                                "No matching medications found."
+                                "No matching medication found."
                             );
 
                             return;
                         }
+
+
+                        const heading =
+                            document.createElement(
+                                "div"
+                            );
+
+
+                        heading.className =
+                            "sticky top-0 z-10 " +
+                            "border-b border-emerald-100 " +
+                            "bg-emerald-50 " +
+                            "px-3 py-1.5 " +
+                            "text-[9px] font-bold " +
+                            "uppercase tracking-wide " +
+                            "text-emerald-700";
+
+
+                        heading.textContent =
+                            `Medications (${localResults.length})`;
+
+
+                        resultsContainer.appendChild(
+                            heading
+                        );
+
+
+                        localResults.forEach(
+                            function (
+                                medication
+                            ) {
+
+                                resultsContainer
+                                    .appendChild(
+                                        createLocalResult(
+                                            medication
+                                        )
+                                    );
+                            }
+                        );
 
 
                         openResults();
@@ -1752,6 +990,7 @@ Purpose:
                                 error
                             );
 
+
                             showMessage(
                                 "Medication search could not be completed.",
                                 "error"
@@ -1765,6 +1004,10 @@ Purpose:
                     }
                 }
 
+
+                // =================================================
+                // INPUT
+                // =================================================
 
                 searchInput.addEventListener(
                     "input",
@@ -1784,7 +1027,18 @@ Purpose:
                             query.length <
                             MIN_SEARCH_LENGTH
                         ) {
+
+                            if (controller) {
+
+                                controller.abort();
+
+                                controller = null;
+                            }
+
+
                             closeResults();
+
+                            setLoading(false);
 
                             return;
                         }
@@ -1805,6 +1059,10 @@ Purpose:
                 );
 
 
+                // =================================================
+                // KEYBOARD
+                // =================================================
+
                 searchInput.addEventListener(
                     "keydown",
                     function (event) {
@@ -1813,7 +1071,18 @@ Purpose:
                             event.key ===
                             "Escape"
                         ) {
+
+                            if (controller) {
+
+                                controller.abort();
+
+                                controller = null;
+                            }
+
+
                             closeResults();
+
+                            setLoading(false);
 
                             searchInput.blur();
                         }
@@ -1821,11 +1090,28 @@ Purpose:
                 );
 
 
+                // =================================================
+                // CLEAR
+                // =================================================
+
                 if (clearButton) {
 
                     clearButton.addEventListener(
                         "click",
                         function () {
+
+                            if (controller) {
+
+                                controller.abort();
+
+                                controller = null;
+                            }
+
+
+                            clearTimeout(
+                                searchTimer
+                            );
+
 
                             select.value = "";
 
@@ -1838,6 +1124,7 @@ Purpose:
                                     function (
                                         option
                                     ) {
+
                                         option.selected =
                                             false;
                                     }
@@ -1847,6 +1134,7 @@ Purpose:
                             if (
                                 select.options.length
                             ) {
+
                                 select.options[0]
                                     .selected = true;
                             }
@@ -1863,6 +1151,7 @@ Purpose:
 
 
                             if (selectedPanel) {
+
                                 selectedPanel
                                     .classList
                                     .add(
@@ -1872,12 +1161,14 @@ Purpose:
 
 
                             if (selectedName) {
+
                                 selectedName.textContent =
                                     "";
                             }
 
 
                             if (selectedDetail) {
+
                                 selectedDetail.textContent =
                                     "";
                             }
@@ -1887,11 +1178,17 @@ Purpose:
 
                             closeResults();
 
+                            setLoading(false);
+
                             searchInput.focus();
                         }
                     );
                 }
 
+
+                // =================================================
+                // EXISTING VALUE
+                // =================================================
 
                 if (select.value) {
 
@@ -1907,6 +1204,7 @@ Purpose:
                     ) {
 
                         if (selectedName) {
+
                             selectedName.textContent =
                                 option.textContent
                                     .trim();
@@ -1914,6 +1212,7 @@ Purpose:
 
 
                         if (selectedPanel) {
+
                             selectedPanel
                                 .classList
                                 .remove(
@@ -1924,6 +1223,10 @@ Purpose:
                 }
 
 
+                // =================================================
+                // CLOSE OUTSIDE
+                // =================================================
+
                 document.addEventListener(
                     "click",
                     function (event) {
@@ -1933,13 +1236,19 @@ Purpose:
                                 event.target
                             )
                         ) {
+
                             closeResults();
                         }
                     }
                 );
+
             });
     }
 
+
+    // =========================================================
+    // PAGE LOAD
+    // =========================================================
 
     if (
         document.readyState ===
@@ -1963,6 +1272,10 @@ Purpose:
         );
     }
 
+
+    // =========================================================
+    // HTMX
+    // =========================================================
 
     document.addEventListener(
         "htmx:afterSwap",
