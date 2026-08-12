@@ -1,39 +1,29 @@
 from __future__ import annotations
 
+import json
+from datetime import timedelta
 from typing import Any
 
 from django.contrib import messages
-
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-
+from django.core.exceptions import ValidationError
 from django.db import transaction
-
 from django.db.models import Q, QuerySet
-
 from django.http import HttpRequest, HttpResponse
-
 from django.shortcuts import (
-
     get_object_or_404,
-
     redirect,
-
     render,
-
 )
-
 from django.urls import reverse
-
 from django.utils import timezone
 
 from apps.encounters.models import Encounter
-
 from apps.orders.models import MedicationOrder
-
 from apps.patients.models import Patient
 
 from .forms import MedicationAdministrationForm
-
 from .models import MedicationAdministration
 
 # ============================================================
@@ -43,6 +33,36 @@ from .models import MedicationAdministration
 # ============================================================
 
 GLOBAL_LIST_LIMIT = 100
+
+MAR_DUE_WINDOW = timedelta(hours=1)
+MAR_REASON_WINDOW = timedelta(hours=3)
+
+MAR_FREQUENCY_INTERVALS = {
+    MedicationOrder.Frequency.DAILY: timedelta(days=1),
+    MedicationOrder.Frequency.BID: timedelta(hours=12),
+    MedicationOrder.Frequency.TID: timedelta(hours=8),
+    MedicationOrder.Frequency.QID: timedelta(hours=6),
+    MedicationOrder.Frequency.Q4H: timedelta(hours=4),
+    MedicationOrder.Frequency.Q6H: timedelta(hours=6),
+    MedicationOrder.Frequency.Q8H: timedelta(hours=8),
+    MedicationOrder.Frequency.Q12H: timedelta(hours=12),
+    MedicationOrder.Frequency.Q24H: timedelta(hours=24),
+    MedicationOrder.Frequency.QAM: timedelta(days=1),
+    MedicationOrder.Frequency.QPM: timedelta(days=1),
+    MedicationOrder.Frequency.QHS: timedelta(days=1),
+    MedicationOrder.Frequency.AC: timedelta(hours=8),
+    MedicationOrder.Frequency.PC: timedelta(hours=8),
+    MedicationOrder.Frequency.AC_HS: timedelta(hours=6),
+    MedicationOrder.Frequency.WEEKLY: timedelta(days=7),
+}
+
+
+def _normalized_frequency(order: MedicationOrder) -> str:
+    return str(order.frequency or "").strip().lower()
+
+
+def _order_is_prn(order: MedicationOrder) -> bool:
+    return "prn" in _normalized_frequency(order).split()
 
 # ============================================================
 
@@ -335,6 +355,7 @@ def _create_mar_event(
     status: str,
 
     reason: str = "",
+    notes: str = "",
 
 ) -> MedicationAdministration:
 
@@ -389,6 +410,7 @@ def _create_mar_event(
         administered_by=request.user,
 
         reason=reason.strip(),
+        notes=notes.strip(),
 
     )
 
@@ -420,7 +442,97 @@ def _create_mar_event(
 
     administration.save()
 
+    if (
+        status == _administered_status()
+        and _normalized_frequency(order)
+        in {
+            MedicationOrder.Frequency.ONCE,
+            MedicationOrder.Frequency.STAT,
+        }
+        and order.status == MedicationOrder.Status.ACTIVE
+    ):
+        order.status = MedicationOrder.Status.COMPLETED
+        order.save(update_fields=["status", "updated_at"])
+
     return administration
+
+
+def _attach_next_due_times(
+    *,
+    medication_orders: list[MedicationOrder],
+    administrations: list[MedicationAdministration],
+) -> None:
+    """Attach the next scheduled dose time used by both the MAR UI and saves."""
+    latest_by_order: dict[object, MedicationAdministration] = {}
+    administered_status = _administered_status()
+
+    for administration in administrations:
+        if administration.status != administered_status:
+            continue
+        if (
+            administration.medication_order_id
+            and administration.medication_order_id not in latest_by_order
+        ):
+            latest_by_order[administration.medication_order_id] = administration
+
+    for order in medication_orders:
+        order.next_due_at = None
+        order.is_prn = _order_is_prn(order)
+        if order.is_prn:
+            continue
+
+        latest = latest_by_order.get(order.pk)
+        frequency = _normalized_frequency(order)
+        interval = MAR_FREQUENCY_INTERVALS.get(frequency)
+
+        if latest and interval:
+            # A completed administration starts a fresh medication cycle.
+            # Anchor recurrence to the actual bedside administration time,
+            # not the old scheduled slot, so the row cannot remain red/due
+            # immediately after it has been recorded.
+            next_due_at = latest.administered_at + interval
+
+            if order.stop_date and next_due_at.date() > order.stop_date:
+                order.next_due_at = None
+            else:
+                order.next_due_at = next_due_at
+        elif latest and frequency in {
+            MedicationOrder.Frequency.ONCE,
+            MedicationOrder.Frequency.STAT,
+        }:
+            order.next_due_at = None
+        else:
+            order.next_due_at = order.start_datetime or order.ordered_at
+
+
+def _mar_timing_status(order: MedicationOrder, now) -> str:
+    if _order_is_prn(order):
+        return "prn"
+    if not order.next_due_at:
+        return "scheduled"
+
+    difference = order.next_due_at - now
+    if difference < -MAR_DUE_WINDOW:
+        return "overdue"
+    if difference <= MAR_DUE_WINDOW:
+        return "due"
+    return "scheduled"
+
+
+def _order_is_administerable(order: MedicationOrder, now) -> bool:
+    return order.status == MedicationOrder.Status.ACTIVE and (
+        _order_is_prn(order)
+        or order.next_due_at is not None
+    )
+
+
+def _order_requires_timing_reason(order: MedicationOrder, now) -> bool:
+    if _order_is_prn(order):
+        return False
+    if not order.next_due_at:
+        return True
+    difference = order.next_due_at - now
+    return difference > MAR_DUE_WINDOW or abs(difference) > MAR_REASON_WINDOW
 
 def _attach_last_administrations(
 
@@ -500,6 +612,76 @@ def _attach_last_administrations(
 
         )
 
+
+def _compact_administration_history(
+
+    administrations: list[MedicationAdministration],
+
+) -> list[MedicationAdministration]:
+
+    """Return one alphabetical row per medicine with its complete history."""
+
+    grouped: dict[object, list[MedicationAdministration]] = {}
+
+    for administration in administrations:
+
+        medication_id = (
+
+            administration.medication_id
+
+            or getattr(
+
+                administration.medication_order,
+
+                "medication_id",
+
+                None,
+
+            )
+
+            or administration.pk
+
+        )
+
+        grouped.setdefault(
+
+            medication_id,
+
+            [],
+
+        ).append(administration)
+
+    compact_history: list[MedicationAdministration] = []
+
+    for medication_events in grouped.values():
+
+        first_event = medication_events[0]
+
+        first_event.history_events = medication_events
+
+        first_event.history_event_count = len(medication_events)
+
+        compact_history.append(first_event)
+
+    compact_history.sort(
+
+        key=lambda event: (
+            (
+                getattr(event.medication, "display_name", "")
+                or getattr(
+                    getattr(event.medication_order, "medication", None),
+                    "display_name",
+                    "",
+                )
+                or "Medication unavailable"
+            ).casefold(),
+            str(event.pk),
+        ),
+
+    )
+
+    return compact_history
+
 # ============================================================
 
 # DASHBOARD
@@ -533,6 +715,18 @@ def medication_list(
     request: HttpRequest,
 
 ) -> HttpResponse:
+
+    # Medication records are patient-specific clinical data. Require the
+    # clinician to establish patient context through the shared search bar
+    # instead of exposing a cross-patient activity list from Clinical.
+    messages.info(
+        request,
+        "Search for and select a patient before opening Medications.",
+    )
+    return redirect("patients:list")
+
+    # Retained below temporarily for reference while downstream reporting is
+    # moved to a permissioned analytics workflow.
 
     query = (
 
@@ -840,6 +1034,11 @@ def medication_administration_record(
 
     Supported MAR actions:
 
+    give_selected
+
+        Atomically creates ADMINISTERED events for every staged
+        active medication order.
+
     give
 
         Immediately creates an ADMINISTERED event using
@@ -928,6 +1127,11 @@ def medication_administration_record(
 
             patient=patient,
 
+            status__in=(
+                MedicationOrder.Status.ACTIVE,
+                MedicationOrder.Status.ON_HOLD,
+            ),
+
         )
 
         .order_by(
@@ -938,6 +1142,27 @@ def medication_administration_record(
 
         )
 
+    )
+
+    administrations = list(
+        administration_queryset()
+        .filter(encounter=encounter)
+        .order_by("-administered_at", "-pk")
+    )
+
+    _attach_next_due_times(
+        medication_orders=medication_orders,
+        administrations=administrations,
+    )
+
+    now = timezone.now()
+    status_priority = {"overdue": 0, "due": 1, "scheduled": 2, "prn": 3}
+    medication_orders.sort(
+        key=lambda order: (
+            status_priority.get(_mar_timing_status(order, now), 4),
+            order.next_due_at or order.ordered_at,
+            str(order.pk),
+        )
     )
 
     # ========================================================
@@ -965,6 +1190,228 @@ def medication_administration_record(
         # NEW COMPACT MAR ACTIONS
 
         # ----------------------------------------------------
+
+        if mar_action in {"resume_order", "discontinue_order"}:
+            order = get_object_or_404(
+                medication_order_queryset(),
+                pk=request.POST.get("medication_order"),
+                encounter=encounter,
+                patient=patient,
+            )
+            if (
+                mar_action == "resume_order"
+                and order.status == MedicationOrder.Status.ON_HOLD
+            ):
+                order.status = MedicationOrder.Status.ACTIVE
+                message = "Medication order resumed."
+            elif (
+                mar_action == "discontinue_order"
+                and order.status
+                in {MedicationOrder.Status.ACTIVE, MedicationOrder.Status.ON_HOLD}
+            ):
+                provider_id = request.POST.get("discontinuation_ordered_by")
+                method = request.POST.get("discontinuation_order_method", "")
+                reason = request.POST.get("discontinuation_reason", "").strip()
+                valid_methods = {
+                    value for value, _ in MedicationOrder.OrderMethod.choices
+                }
+                if not provider_id or method not in valid_methods or not reason:
+                    messages.error(
+                        request,
+                        "Provider, order medium, and reason are required.",
+                    )
+                    return redirect("medications:mar", encounter_id=encounter.pk)
+                provider = get_object_or_404(
+                    get_user_model(), pk=provider_id, is_active=True
+                )
+                order.status = MedicationOrder.Status.DISCONTINUED
+                order.discontinued_at = timezone.now()
+                order.discontinued_by = request.user
+                order.discontinuation_ordered_by = provider
+                order.discontinuation_order_method = method
+                order.discontinuation_received_by = (
+                    request.user if method in {"verbal", "telephone"} else None
+                )
+                order.discontinuation_reason = reason
+                order.save()
+                messages.success(
+                    request, "Medication discontinuation order recorded."
+                )
+                return redirect("medications:mar", encounter_id=encounter.pk)
+            else:
+                messages.error(
+                    request, "That medication order status change is not allowed."
+                )
+                return redirect("medications:mar", encounter_id=encounter.pk)
+
+            order.save(update_fields=["status", "updated_at"])
+            messages.success(request, message)
+            return redirect("medications:mar", encounter_id=encounter.pk)
+
+        if mar_action == "give_selected":
+
+            try:
+                timing_reasons = json.loads(
+                    request.POST.get("timing_reasons") or "{}"
+                )
+            except (TypeError, ValueError):
+                timing_reasons = {}
+
+            if not isinstance(timing_reasons, dict):
+                timing_reasons = {}
+
+            medication_order_ids = list(
+
+                dict.fromkeys(
+
+                    request.POST.getlist(
+
+                        "medication_orders"
+
+                    )
+
+                )
+
+            )
+
+            if not medication_order_ids:
+
+                messages.error(
+
+                    request,
+
+                    "Select at least one medication to record.",
+
+                )
+
+            else:
+
+                try:
+
+                    with transaction.atomic():
+
+                        selected_orders = list(
+
+                            medication_order_queryset()
+
+                            .select_for_update()
+
+                            .filter(
+
+                                pk__in=medication_order_ids,
+
+                                encounter=encounter,
+
+                                patient=patient,
+
+                                status=MedicationOrder.Status.ACTIVE,
+
+                            )
+
+                        )
+
+                        if (
+
+                            len(selected_orders)
+
+                            != len(medication_order_ids)
+
+                        ):
+
+                            raise ValueError(
+
+                                "One or more selected medication orders "
+
+                                "are invalid or no longer active."
+
+                            )
+
+                        _attach_next_due_times(
+                            medication_orders=selected_orders,
+                            administrations=administrations,
+                        )
+
+                        missing_timing_reasons = [
+                            order.medication.display_name
+                            for order in selected_orders
+                            if _order_requires_timing_reason(
+                                order, timezone.now()
+                            )
+                            and not str(
+                                timing_reasons.get(str(order.pk), "")
+                            ).strip()
+                        ]
+
+                        if missing_timing_reasons:
+                            raise ValueError(
+                                "Document the early or delayed administration "
+                                "reason for: "
+                                + ", ".join(missing_timing_reasons)
+                            )
+
+                        for order in selected_orders:
+
+                            _create_mar_event(
+
+                                request=request,
+
+                                encounter=encounter,
+
+                                patient=patient,
+
+                                order=order,
+
+                                status=_administered_status(),
+
+                                notes=str(
+                                    timing_reasons.get(str(order.pk), "")
+                                ).strip(),
+
+                            )
+
+                except (ValidationError, ValueError) as error:
+
+                    messages.error(
+
+                        request,
+
+                        str(error),
+
+                    )
+
+                else:
+
+                    messages.success(
+
+                        request,
+
+                        (
+
+                            f"{len(selected_orders)} medication "
+
+                            f"record{'s' if len(selected_orders) != 1 else ''} "
+
+                            "created successfully."
+
+                        ),
+
+                    )
+
+            return redirect(
+
+                reverse(
+
+                    "medications:mar",
+
+                    kwargs={
+
+                        "encounter_id": encounter.pk,
+
+                    },
+
+                )
+
+            )
 
         if mar_action in {
 
@@ -996,6 +1443,8 @@ def medication_administration_record(
 
                 patient=patient,
 
+                status=MedicationOrder.Status.ACTIVE,
+
             )
 
             reason = (
@@ -1018,6 +1467,41 @@ def medication_administration_record(
 
             if mar_action == "give":
 
+                _attach_next_due_times(
+                    medication_orders=[order],
+                    administrations=administrations,
+                )
+
+                timing_reason = (
+                    request.POST.get("timing_reason") or ""
+                ).strip()
+
+                if not _order_is_administerable(order, timezone.now()):
+                    messages.error(
+                        request,
+                        f"{order.medication.display_name} cannot be administered.",
+                    )
+                    return redirect(
+                        reverse(
+                            "medications:mar",
+                            kwargs={"encounter_id": encounter.pk},
+                        )
+                    )
+
+                if (
+                    _order_requires_timing_reason(order, timezone.now())
+                    and not timing_reason
+                ):
+                    messages.error(
+                        request,
+                        "Document the reason for the early or delayed administration.",
+                    )
+                    return redirect(
+                        reverse(
+                            "medications:mar",
+                            kwargs={"encounter_id": encounter.pk},
+                        )
+                    )
                 with transaction.atomic():
 
                     _create_mar_event(
@@ -1035,6 +1519,8 @@ def medication_administration_record(
                             _administered_status()
 
                         ),
+
+                        notes=timing_reason,
 
                     )
 
@@ -1065,6 +1551,22 @@ def medication_administration_record(
                 == "not_given"
 
             ):
+
+                if _mar_timing_status(order, timezone.now()) not in {
+                    "due",
+                    "overdue",
+                }:
+                    messages.error(
+                        request,
+                        (
+                            "Not Given can only be recorded when a scheduled "
+                            "medication is due or overdue."
+                        ),
+                    )
+                    return redirect(
+                        "medications:mar",
+                        encounter_id=encounter.pk,
+                    )
 
                 if not reason:
 
@@ -1130,6 +1632,23 @@ def medication_administration_record(
 
             elif mar_action == "hold":
 
+                if (
+                    request.POST.get("hold_source") != "details"
+                    and _mar_timing_status(order, timezone.now())
+                    not in {"due", "overdue"}
+                ):
+                    messages.error(
+                        request,
+                        (
+                            "A medication that is not due can only be placed "
+                            "on hold from its details section."
+                        ),
+                    )
+                    return redirect(
+                        "medications:mar",
+                        encounter_id=encounter.pk,
+                    )
+
                 if not reason:
 
                     messages.error(
@@ -1169,6 +1688,9 @@ def medication_administration_record(
                             reason=reason,
 
                         )
+
+                        order.status = MedicationOrder.Status.ON_HOLD
+                        order.save(update_fields=["status", "updated_at"])
 
                     messages.success(
 
@@ -1336,26 +1858,6 @@ def medication_administration_record(
 
     # ========================================================
 
-    administrations = list(
-
-        administration_queryset()
-
-        .filter(
-
-            encounter=encounter,
-
-        )
-
-        .order_by(
-
-            "-administered_at",
-
-            "-pk",
-
-        )
-
-    )
-
     # ========================================================
 
     # LAST GIVEN
@@ -1367,6 +1869,16 @@ def medication_administration_record(
         medication_orders=medication_orders,
 
         administrations=administrations,
+
+    )
+
+    history_administrations = (
+
+        _compact_administration_history(
+
+            administrations
+
+        )
 
     )
 
@@ -1428,6 +1940,10 @@ def medication_administration_record(
 
                 administrations,
 
+            "history_administrations":
+
+                history_administrations,
+
             "administration_exceptions":
 
                 administration_exceptions,
@@ -1435,6 +1951,12 @@ def medication_administration_record(
             "current_time":
 
                 timezone.now(),
+
+            "ordering_providers": get_user_model().objects.filter(
+                is_active=True
+            ).order_by("last_name", "first_name", "username"),
+
+            "order_methods": MedicationOrder.OrderMethod.choices,
 
         }
 

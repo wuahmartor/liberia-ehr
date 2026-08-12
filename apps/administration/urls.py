@@ -14,7 +14,6 @@ from django.urls import path
 
 from . import views
 
-
 app_name = "administration"
 
 
@@ -27,7 +26,6 @@ urlpatterns = [
         views.AdministrationDashboardView.as_view(),
         name="dashboard",
     ),
-
     # ========================================================
     # SCHEDULING
     # ========================================================
@@ -61,7 +59,6 @@ urlpatterns = [
         views.SchedulingRestoreView.as_view(),
         name="scheduling_restore",
     ),
-
     # Dependent field options
     path(
         "scheduling/options/departments/",
@@ -78,7 +75,6 @@ urlpatterns = [
         views.SchedulingRoomOptionsView.as_view(),
         name="scheduling_room_options",
     ),
-
     # ========================================================
     # USER AND ACCESS MANAGEMENT
     # ========================================================
@@ -87,12 +83,33 @@ urlpatterns = [
         views.UserAccountListView.as_view(),
         name="users",
     ),
+    path("users/new/", views.UserAccountFormView.as_view(), name="user_create"),
+    path(
+        "users/<int:user_id>/edit/",
+        views.UserAccountFormView.as_view(),
+        name="user_update",
+    ),
+    path(
+        "users/<int:user_id>/toggle/",
+        views.UserAccountToggleView.as_view(),
+        name="user_toggle",
+    ),
+    path(
+        "users/<int:user_id>/password/",
+        views.UserPasswordResetView.as_view(),
+        name="user_password",
+    ),
     path(
         "roles/",
         views.RolePermissionListView.as_view(),
         name="roles",
     ),
-
+    path("roles/new/", views.RolePermissionFormView.as_view(), name="role_create"),
+    path(
+        "roles/<int:group_id>/edit/",
+        views.RolePermissionFormView.as_view(),
+        name="role_update",
+    ),
     # ========================================================
     # ORGANIZATION AND FACILITIES
     # ========================================================
@@ -107,11 +124,16 @@ urlpatterns = [
         name="departments",
     ),
     path(
+        "clinical-units/",
+        views.DepartmentAdministrationView.as_view(),
+        name="clinical_units",
+    ),
+    path(
         "rooms/",
         views.RoomBedAdministrationView.as_view(),
         name="rooms",
     ),
-
+    path("beds/", views.RoomBedAdministrationView.as_view(), name="beds"),
     # ========================================================
     # SYSTEM CONFIGURATION
     # ========================================================
@@ -130,7 +152,19 @@ urlpatterns = [
         views.IntegrationListView.as_view(),
         name="integrations",
     ),
-
+    path(
+        "data-management/", views.SystemSettingsView.as_view(), name="data_management"
+    ),
+    path(
+        "configuration/<str:kind>/new/",
+        views.ConfigurationFormView.as_view(),
+        name="configuration_create",
+    ),
+    path(
+        "configuration/<str:kind>/<int:object_id>/",
+        views.ConfigurationFormView.as_view(),
+        name="configuration_update",
+    ),
     # ========================================================
     # MONITORING AND COMPLIANCE
     # ========================================================

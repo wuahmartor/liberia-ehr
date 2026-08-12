@@ -1,5 +1,3 @@
-
-
 """
 ============================================================
 ADMINISTRATION FORMS
@@ -21,8 +19,11 @@ from datetime import timedelta
 
 from django import forms
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import Group, Permission
 from django.utils import timezone
 
+from apps.accounts.models import UserProfile
 from apps.facilities.models import (
     ClinicalUnit,
     Department,
@@ -31,7 +32,183 @@ from apps.facilities.models import (
 )
 from apps.patients.models import Patient
 
-from .models import Appointment
+from .models import (
+    Appointment,
+    ClinicalDictionaryEntry,
+    IntegrationConfiguration,
+    SystemSetting,
+)
+
+User = get_user_model()
+
+
+class AdministrationUserForm(UserCreationForm):
+    role = forms.ChoiceField(choices=UserProfile.Role.choices)
+    facility = forms.ModelChoiceField(
+        queryset=Facility.objects.filter(is_active=True), required=False
+    )
+    employee_id = forms.CharField(required=False)
+    job_title = forms.CharField(required=False)
+    phone_number = forms.CharField(required=False)
+    professional_license_number = forms.CharField(required=False)
+    is_clinical_staff = forms.BooleanField(required=False)
+    is_active_staff = forms.BooleanField(required=False, initial=True)
+    must_change_password = forms.BooleanField(required=False, initial=True)
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.all(), required=False
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = (
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "is_active",
+            "is_staff",
+        )
+
+    def __init__(self, *args, **kwargs):
+        self.editing = kwargs.pop("editing", False)
+        super().__init__(*args, **kwargs)
+        if self.editing:
+            self.fields.pop("password1", None)
+            self.fields.pop("password2", None)
+        for field in self.fields.values():
+            field.widget.attrs["class"] = (
+                "w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs"
+            )
+        if self.instance.pk:
+            profile = getattr(self.instance, "profile", None)
+            if profile:
+                for name in (
+                    "role",
+                    "facility",
+                    "employee_id",
+                    "job_title",
+                    "phone_number",
+                    "professional_license_number",
+                    "is_clinical_staff",
+                    "is_active_staff",
+                    "must_change_password",
+                ):
+                    self.fields[name].initial = getattr(profile, name)
+            self.fields["groups"].initial = self.instance.groups.all()
+
+    def clean_username(self):
+        username = self.cleaned_data["username"]
+        if self.editing:
+            conflict = User._default_manager.filter(username__iexact=username)
+            if self.instance.pk:
+                conflict = conflict.exclude(pk=self.instance.pk)
+            if conflict.exists():
+                raise forms.ValidationError(
+                    "A different user already has that username."
+                )
+            return username
+        return super().clean_username()
+
+    def save(self, commit=True):
+        if self.editing:
+            user = forms.ModelForm.save(self, commit=commit)
+        else:
+            user = super().save(commit=commit)
+        if commit:
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            for name in (
+                "role",
+                "facility",
+                "employee_id",
+                "job_title",
+                "phone_number",
+                "professional_license_number",
+                "is_clinical_staff",
+                "is_active_staff",
+                "must_change_password",
+            ):
+                setattr(profile, name, self.cleaned_data[name])
+            profile.save()
+            user.groups.set(self.cleaned_data["groups"])
+        return user
+
+
+class TemporaryPasswordForm(forms.Form):
+    password1 = forms.CharField(
+        widget=forms.PasswordInput(
+            attrs={"class": "w-full rounded-md border px-2.5 py-2 text-xs"}
+        ),
+        min_length=8,
+    )
+    password2 = forms.CharField(
+        widget=forms.PasswordInput(
+            attrs={"class": "w-full rounded-md border px-2.5 py-2 text-xs"}
+        )
+    )
+    require_change = forms.BooleanField(required=False, initial=True)
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("password1") != cleaned.get("password2"):
+            self.add_error("password2", "Passwords do not match.")
+        return cleaned
+
+
+class RoleGroupForm(forms.ModelForm):
+    permissions = forms.ModelMultipleChoiceField(
+        queryset=Permission.objects.select_related("content_type").order_by(
+            "content_type__app_label", "codename"
+        ),
+        required=False,
+        widget=forms.SelectMultiple(
+            attrs={
+                "class": (
+                    "min-h-72 w-full rounded-md border border-slate-300 "
+                    "px-2 py-2 text-xs"
+                )
+            }
+        ),
+    )
+
+    class Meta:
+        model = Group
+        fields = ("name", "permissions")
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": (
+                        "w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs"
+                    )
+                }
+            )
+        }
+
+
+class CompactAdminModelForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs["class"] = (
+                "w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs"
+            )
+
+
+class SystemSettingForm(CompactAdminModelForm):
+    class Meta:
+        model = SystemSetting
+        exclude = ("updated_by", "updated_at")
+
+
+class ClinicalDictionaryEntryForm(CompactAdminModelForm):
+    class Meta:
+        model = ClinicalDictionaryEntry
+        exclude = ("updated_by", "updated_at")
+
+
+class IntegrationConfigurationForm(CompactAdminModelForm):
+    class Meta:
+        model = IntegrationConfiguration
+        exclude = ("updated_by", "updated_at", "last_checked_at")
 
 
 User = get_user_model()
@@ -152,9 +329,7 @@ class AppointmentForm(forms.ModelForm):
                 attrs={
                     "class": TEXTAREA_CLASS,
                     "rows": 3,
-                    "placeholder": (
-                        "Enter the reason for the appointment."
-                    ),
+                    "placeholder": ("Enter the reason for the appointment."),
                 },
             ),
             "patient_instructions": forms.Textarea(
@@ -162,8 +337,7 @@ class AppointmentForm(forms.ModelForm):
                     "class": TEXTAREA_CLASS,
                     "rows": 3,
                     "placeholder": (
-                        "Instructions that may be shared "
-                        "with the patient."
+                        "Instructions that may be shared with the patient."
                     ),
                 },
             ),
@@ -171,9 +345,7 @@ class AppointmentForm(forms.ModelForm):
                 attrs={
                     "class": TEXTAREA_CLASS,
                     "rows": 3,
-                    "placeholder": (
-                        "Internal scheduling notes."
-                    ),
+                    "placeholder": ("Internal scheduling notes."),
                 },
             ),
             "is_active": forms.CheckboxInput(
@@ -202,44 +374,30 @@ class AppointmentForm(forms.ModelForm):
 
         self.current_user = current_user
 
-        self.fields["patient"].queryset = (
-            Patient.objects
-            .filter(is_active=True)
-            .order_by(
-                "last_name",
-                "first_name",
-            )
+        self.fields["patient"].queryset = Patient.objects.filter(
+            is_active=True
+        ).order_by(
+            "last_name",
+            "first_name",
         )
 
-        self.fields["facility"].queryset = (
-            Facility.objects
-            .filter(is_active=True)
-            .order_by("name")
-        )
+        self.fields["facility"].queryset = Facility.objects.filter(
+            is_active=True
+        ).order_by("name")
 
-        self.fields["department"].queryset = (
-            Department.objects.none()
-        )
+        self.fields["department"].queryset = Department.objects.none()
 
-        self.fields["clinical_unit"].queryset = (
-            ClinicalUnit.objects.none()
-        )
+        self.fields["clinical_unit"].queryset = ClinicalUnit.objects.none()
 
-        self.fields["room"].queryset = (
-            Room.objects.none()
-        )
+        self.fields["room"].queryset = Room.objects.none()
 
-        self.fields["provider"].queryset = (
-            User.objects
-            .filter(
-                is_active=True,
-                is_staff=True,
-            )
-            .order_by(
-                "last_name",
-                "first_name",
-                "username",
-            )
+        self.fields["provider"].queryset = User.objects.filter(
+            is_active=True,
+            is_staff=True,
+        ).order_by(
+            "last_name",
+            "first_name",
+            "username",
         )
 
         self.fields["provider"].required = True
@@ -254,7 +412,7 @@ class AppointmentForm(forms.ModelForm):
         self.fields["facility"].empty_label = "Select facility"
         self.fields["department"].empty_label = "Select department"
         self.fields["clinical_unit"].empty_label = "Select clinical unit"
-        
+
         self.fields["room"].empty_label = "Select room, if applicable"
 
         self._configure_organization_querysets()
@@ -265,15 +423,10 @@ class AppointmentForm(forms.ModelForm):
                 microsecond=0,
             )
 
-            rounded_minutes = (
-                ((now.minute // 15) + 1) * 15
-            )
+            rounded_minutes = ((now.minute // 15) + 1) * 15
 
             if rounded_minutes >= 60:
-                start_time = (
-                    now.replace(minute=0)
-                    + timedelta(hours=1)
-                )
+                start_time = now.replace(minute=0) + timedelta(hours=1)
             else:
                 start_time = now.replace(
                     minute=rounded_minutes,
@@ -342,52 +495,32 @@ class AppointmentForm(forms.ModelForm):
         )
 
         if facility_id:
-            self.fields["department"].queryset = (
-                Department.objects
-                .filter(
-                    facility_id=facility_id,
-                    is_active=True,
-                )
-                .order_by("name")
-            )
+            self.fields["department"].queryset = Department.objects.filter(
+                facility_id=facility_id,
+                is_active=True,
+            ).order_by("name")
 
-            self.fields["clinical_unit"].queryset = (
-                ClinicalUnit.objects
-                .filter(
-                    facility_id=facility_id,
-                    is_active=True,
-                )
-                .order_by("name")
-            )
+            self.fields["clinical_unit"].queryset = ClinicalUnit.objects.filter(
+                facility_id=facility_id,
+                is_active=True,
+            ).order_by("name")
 
-            self.fields["room"].queryset = (
-                Room.objects
-                .filter(
-                    facility_id=facility_id,
-                    is_active=True,
-                )
-                .order_by("name")
-            )
+            self.fields["room"].queryset = Room.objects.filter(
+                facility_id=facility_id,
+                is_active=True,
+            ).order_by("name")
 
         if department_id:
-            self.fields["clinical_unit"].queryset = (
-                ClinicalUnit.objects
-                .filter(
-                    department_id=department_id,
-                    is_active=True,
-                )
-                .order_by("name")
-            )
+            self.fields["clinical_unit"].queryset = ClinicalUnit.objects.filter(
+                department_id=department_id,
+                is_active=True,
+            ).order_by("name")
 
         if clinical_unit_id:
-            self.fields["room"].queryset = (
-                Room.objects
-                .filter(
-                    clinical_unit_id=clinical_unit_id,
-                    is_active=True,
-                )
-                .order_by("name")
-            )
+            self.fields["room"].queryset = Room.objects.filter(
+                clinical_unit_id=clinical_unit_id,
+                is_active=True,
+            ).order_by("name")
 
     def clean(self):
         cleaned_data = super().clean()
@@ -400,17 +533,10 @@ class AppointmentForm(forms.ModelForm):
             "end_datetime",
         )
 
-        if (
-            start_datetime
-            and end_datetime
-            and end_datetime <= start_datetime
-        ):
+        if start_datetime and end_datetime and end_datetime <= start_datetime:
             self.add_error(
                 "end_datetime",
-                (
-                    "The appointment end time must be "
-                    "after the start time."
-                ),
+                ("The appointment end time must be after the start time."),
             )
 
         return cleaned_data
@@ -427,10 +553,7 @@ class AppointmentCancelForm(forms.Form):
             attrs={
                 "class": TEXTAREA_CLASS,
                 "rows": 4,
-                "placeholder": (
-                    "Document why this appointment "
-                    "is being cancelled."
-                ),
+                "placeholder": ("Document why this appointment is being cancelled."),
             },
         ),
     )

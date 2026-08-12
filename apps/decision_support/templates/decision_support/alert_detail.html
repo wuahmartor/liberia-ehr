@@ -1,7 +1,1 @@
-{% extends "layouts/app_shell.html" %}
-
-{% block workspace %}
-<h1 class="text-2xl font-bold">
-    alert_detail
-</h1>
-{% endblock %}
+{% extends "decision_support/base_workspace.html" %}{% block title %}Alert Review{% endblock %}{% block cds_content %}<article class="rounded-lg border bg-white p-3"><h2 class="text-sm font-bold">{{ alert.title }}</h2><p class="mt-1 text-xs">{{ alert.message }}</p><dl class="mt-3 grid gap-2 text-[10px] sm:grid-cols-3"><div><dt class="text-slate-500">Patient</dt><dd class="font-bold">{{ alert.patient.display_name }}</dd></div><div><dt class="text-slate-500">Rule/version</dt><dd>{{ alert.rule.name }} v{{ alert.rule.version }}</dd></div><div><dt class="text-slate-500">Triggered</dt><dd>{{ alert.triggered_at|date:"M j, Y g:i A" }}</dd></div></dl></article><form method="post" action="{% url 'decision_support:alert-action' alert.pk %}" class="space-y-3 rounded-lg border bg-white p-3">{% csrf_token %}{% for field in form %}<label class="block"><span class="mb-1 block text-[10px] font-bold">{{ field.label }}</span>{{ field }}{% for error in field.errors %}<span class="text-red-600">{{ error }}</span>{% endfor %}</label>{% endfor %}<button class="rounded bg-emerald-700 px-3 py-2 text-xs font-bold text-white">Record action</button></form>{% endblock %}

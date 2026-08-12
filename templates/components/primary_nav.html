@@ -304,11 +304,17 @@ Important navigation behavior:
                                 </span>
                             </a>
 
+                            <a href="{% url 'patients:create' %}" hx-boost="false" class="primary-dropdown-link" role="menuitem" @click="openMenu = null">
+                                <span class="primary-dropdown-icon">＋</span>
+                                <span class="primary-dropdown-label">Admission</span>
+                            </a>
+
                             <!-- =================================
                                 ENCOUNTERS
                             ================================== -->
+                            {% if selected_patient %}
                             <a
-                                href="{% url 'encounters:list' %}"
+                                href="{% url 'encounters:list' %}?patient={{ selected_patient.pk }}"
                                 hx-boost="false"
                                 class="primary-dropdown-link"
                                 role="menuitem"
@@ -322,6 +328,7 @@ Important navigation behavior:
                                     Encounters
                                 </span>
                             </a>
+                            {% endif %}
 
                             <div class="primary-dropdown-divider"></div>
 
@@ -329,14 +336,8 @@ Important navigation behavior:
                                 NURSING
                                 Disabled until nursing app landing route exists.
                             ================================== -->
-                            <span
-                                class="
-                                    primary-dropdown-link
-                                    cursor-not-allowed
-                                    opacity-50
-                                "
-                                aria-disabled="true"
-                            >
+                            {% if selected_patient and active_encounter %}
+                            <a href="{% url 'nursing:workspace' patient_id=selected_patient.pk encounter_id=active_encounter.pk %}" hx-boost="false" class="primary-dropdown-link" role="menuitem" @click="openMenu = null">
                                 <span class="primary-dropdown-icon">
                                     ♡
                                 </span>
@@ -344,13 +345,15 @@ Important navigation behavior:
                                 <span class="primary-dropdown-label">
                                     Nursing
                                 </span>
-                            </span>
+                            </a>
+                            {% endif %}
 
                             <!-- =================================
                                 ORDERS
                             ================================== -->
+                            {% if selected_patient and active_encounter %}
                             <a
-                                href="{% url 'orders:list' %}"
+                                href="{% url 'orders:medication-order' patient_id=selected_patient.pk encounter_id=active_encounter.pk %}"
                                 hx-boost="false"
                                 class="
                                     primary-dropdown-link
@@ -372,12 +375,14 @@ Important navigation behavior:
                                     Orders
                                 </span>
                             </a>
+                            {% endif %}
 
                             <!-- =================================
                                 MEDICATIONS
                             ================================== -->
+                            {% if selected_patient %}
                             <a
-                                href="{% url 'medications:list' %}"
+                                href="{% url 'medications:patient-list' patient_id=selected_patient.pk %}"
                                 hx-boost="false"
                                 class="
                                     primary-dropdown-link
@@ -399,6 +404,7 @@ Important navigation behavior:
                                     Medications
                                 </span>
                             </a>
+                            {% endif %}
 
                             <!-- =================================
                                 PHARMACY
@@ -767,7 +773,7 @@ Important navigation behavior:
 
                             <!-- Alerts -->
                             <a
-                                href="#"
+                                href="{% url 'decision_support:alerts' %}"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
@@ -782,7 +788,7 @@ Important navigation behavior:
 
                             <!-- Recommendations -->
                             <a
-                                href="#"
+                                href="{% url 'decision_support:recommendations' %}"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
@@ -797,7 +803,7 @@ Important navigation behavior:
 
                             <!-- Risk scores -->
                             <a
-                                href="#"
+                                href="{% url 'decision_support:risk' %}"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
@@ -812,7 +818,7 @@ Important navigation behavior:
 
                             <!-- Clinical summaries -->
                             <a
-                                href="#"
+                                href="{% url 'decision_support:dashboard' %}"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
@@ -827,7 +833,7 @@ Important navigation behavior:
 
                             <!-- Natural-language search -->
                             <a
-                                href="#"
+                                href="{% url 'decision_support:dashboard' %}"
                                 class="primary-dropdown-link"
                                 role="menuitem"
                             >
@@ -845,7 +851,7 @@ Important navigation behavior:
 
                                 <!-- CDS rules -->
                                 <a
-                                    href="#"
+                                    href="{% url 'decision_support:rules' %}"
                                     class="primary-dropdown-link"
                                     role="menuitem"
                                 >
@@ -860,7 +866,7 @@ Important navigation behavior:
 
                                 <!-- AI/CDS performance -->
                                 <a
-                                    href="#"
+                                    href="{% url 'decision_support:dashboard' %}"
                                     class="primary-dropdown-link"
                                     role="menuitem"
                                 >
@@ -1627,31 +1633,31 @@ Important navigation behavior:
                             Patients
                         </a>
 
+                        <a href="{% url 'patients:create' %}" hx-boost="false" class="mobile-primary-nav-link" @click="mobileMenuOpen = false">Admission</a>
+
                         <!-- Encounters -->
+                        {% if selected_patient %}
                         <a
-                            href="{% url 'encounters:list' %}"
+                            href="{% url 'encounters:list' %}?patient={{ selected_patient.pk }}"
                             hx-boost="false"
                             class="mobile-primary-nav-link"
                             @click="mobileMenuOpen = false"
                         >
                             Encounters
                         </a>
+                        {% endif %}
 
                         <!-- Nursing -->
-                        <span
-                            class="
-                                mobile-primary-nav-link
-                                cursor-not-allowed
-                                opacity-50
-                            "
-                            aria-disabled="true"
-                        >
+                        {% if selected_patient and active_encounter %}
+                        <a href="{% url 'nursing:workspace' patient_id=selected_patient.pk encounter_id=active_encounter.pk %}" hx-boost="false" class="mobile-primary-nav-link" @click="mobileMenuOpen = false">
                             Nursing
-                        </span>
+                        </a>
+                        {% endif %}
 
                         <!-- Orders -->
+                        {% if selected_patient and active_encounter %}
                         <a
-                            href="{% url 'orders:list' %}"
+                            href="{% url 'orders:medication-order' patient_id=selected_patient.pk encounter_id=active_encounter.pk %}"
                             hx-boost="false"
                             class="
                                 mobile-primary-nav-link
@@ -1666,10 +1672,12 @@ Important navigation behavior:
                         >
                             Orders
                         </a>
+                        {% endif %}
 
                         <!-- Medications -->
+                        {% if selected_patient %}
                         <a
-                            href="{% url 'medications:list' %}"
+                            href="{% url 'medications:patient-list' patient_id=selected_patient.pk %}"
                             hx-boost="false"
                             class="
                                 mobile-primary-nav-link
@@ -1684,6 +1692,7 @@ Important navigation behavior:
                         >
                             Medications
                         </a>
+                        {% endif %}
 
                         <!-- Pharmacy -->
                         <a

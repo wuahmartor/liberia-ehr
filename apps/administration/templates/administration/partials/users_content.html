@@ -39,8 +39,8 @@ USER ACCOUNTS WORKSPACE
             </p>
         </div>
 
-        <button
-            type="button"
+        <a
+            href="{% url 'administration:user_create' %}"
             class="
                 inline-flex items-center justify-center
                 rounded-lg bg-ehr-700
@@ -51,7 +51,7 @@ USER ACCOUNTS WORKSPACE
             "
         >
             Add User
-        </button>
+        </a>
     </header>
 
 
@@ -132,19 +132,9 @@ USER ACCOUNTS WORKSPACE
                                 <p class="text-xs text-slate-500">
                                     {{ user_record.email|default:"No email recorded" }}
                                 </p>
+                                <p class="text-[10px] text-slate-500">{% if user_record.profile %}{{ user_record.profile.get_role_display }}{% else %}No profile{% endif %}{% if user_record.is_staff %} · Staff{% endif %}</p>
                             </div>
-
-                            <span
-                                class="
-                                    rounded-full
-                                    bg-emerald-50
-                                    px-2 py-1
-                                    text-[10px] font-semibold
-                                    text-emerald-700
-                                "
-                            >
-                                Active
-                            </span>
+                            <div class="flex items-center gap-1"><span class="rounded-full px-2 py-1 text-[10px] font-semibold {% if user_record.is_active %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-600{% endif %}">{% if user_record.is_active %}Active{% else %}Inactive{% endif %}</span><a href="{% url 'administration:user_update' user_record.pk %}" class="rounded border px-2 py-1 text-[10px] font-bold">Edit</a><a href="{% url 'administration:user_password' user_record.pk %}" class="rounded border px-2 py-1 text-[10px] font-bold">Password</a><form method="post" action="{% url 'administration:user_toggle' user_record.pk %}">{% csrf_token %}<button class="rounded border px-2 py-1 text-[10px] font-bold">{% if user_record.is_active %}Deactivate{% else %}Activate{% endif %}</button></form></div>
                         </article>
                     {% endfor %}
                 </div>

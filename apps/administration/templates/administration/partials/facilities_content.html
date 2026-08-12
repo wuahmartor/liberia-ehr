@@ -34,7 +34,7 @@
         </div>
 
         <a
-            href="#"
+            href="{% url 'facilities:create' %}"
             class="
                 inline-flex items-center justify-center
                 rounded-lg bg-ehr-700
@@ -43,7 +43,7 @@
                 hover:bg-ehr-800
             "
         >
-            Add Facility
+            Create Facility
         </a>
     </header>
 
@@ -77,13 +77,13 @@
                         </div>
 
                         <a
-                            href="#"
+                            href="{% url 'facilities:detail' facility.pk %}"
                             class="
                                 text-xs font-semibold
                                 text-ehr-700 hover:text-ehr-900
                             "
                         >
-                            View facility
+                            Open facility
                         </a>
                     </article>
                 {% endfor %}

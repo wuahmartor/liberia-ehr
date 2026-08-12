@@ -26,22 +26,6 @@ apps/vitals/templates/vitals/partials/list_content.html
 
             <p>
 
-                Patient:
-
-                {% if selected_patient %}
-
-                    {{ selected_patient.display_name }}
-
-                {% else %}
-
-                    NONE
-
-                {% endif %}
-
-            </p>
-
-            <p>
-
                 Encounter:
 
                 {% if active_encounter %}

@@ -1,56 +1,29 @@
-<div class="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-    {% include "components/summary_card.html" with icon="♡" label="Vitals" value=vitals_status %}
-    {% include "components/summary_card.html" with icon="♙" label="Labs" value=lab_status %}
-    {% include "components/summary_card.html" with icon="◇" label="Medications" value=medication_status %}
-    {% include "components/summary_card.html" with icon="◴" label="I/O Balance" value=io_balance %}
-    {% include "components/summary_card.html" with icon="♧" label="Pain Score" value=pain_score %}
-</div>
+<div class="space-y-3 text-[10px]">
+  <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+    <a href="{% url 'patients:list' %}" class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><p class="font-bold uppercase text-slate-500">Registered patients</p><p class="mt-1 text-xl font-bold text-slate-900">{{ registered_patients }}</p><p class="text-slate-500">Active charts</p></a>
+    <a href="{% url 'encounters:list' %}" class="rounded-lg border border-emerald-200 bg-white p-3 shadow-sm"><p class="font-bold uppercase text-emerald-700">Open encounters</p><p class="mt-1 text-xl font-bold text-slate-900">{{ open_encounter_count }}</p><p class="text-slate-500">{{ new_encounter_count }} started in period</p></a>
+    <a href="{% url 'encounters:list' %}?status=COMPLETED" class="rounded-lg border border-blue-200 bg-white p-3 shadow-sm"><p class="font-bold uppercase text-blue-700">Completed</p><p class="mt-1 text-xl font-bold text-slate-900">{{ completed_encounter_count }}</p><p class="text-slate-500">Within selected period</p></a>
+    <div class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><p class="font-bold uppercase text-slate-500">Active diagnoses</p><p class="mt-1 text-xl font-bold text-slate-900">{{ active_diagnosis_count }}</p><p class="text-slate-500">Across current charts</p></div>
+    <div class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><p class="font-bold uppercase text-slate-500">Vital observations</p><p class="mt-1 text-xl font-bold text-slate-900">{{ vitals_count }}</p><p class="text-slate-500">{{ patients_with_vitals }} patients</p></div>
+    <div class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><p class="font-bold uppercase text-slate-500">Signed notes</p><p class="mt-1 text-xl font-bold text-slate-900">{{ signed_note_count }}</p><p class="text-slate-500">{{ draft_note_count }} drafts outstanding</p></div>
+  </div>
 
-<div class="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,0.65fr)]">
-    <section class="workspace-panel min-h-[19rem]">
-        <div class="flex items-center justify-between gap-2">
-            <div>
-                <h2 class="text-sm font-semibold text-slate-900">
-                    Trends
-                </h2>
-
-                <p class="text-[11px] text-slate-500">
-                    {{ time_range_label }}
-                </p>
-            </div>
-        </div>
-
-        <div
-            class="mt-4 grid h-48 place-items-center rounded-lg
-                   border border-dashed border-slate-300 bg-slate-50"
-        >
-            <p class="text-xs text-slate-500">
-                Chart for {{ time_range_label }}
-            </p>
-        </div>
+  <div class="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,.65fr)]">
+    <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <header class="flex items-center justify-between border-b bg-slate-50 px-3 py-2"><div><h2 class="text-xs font-bold text-slate-900">Current clinical workload</h2><p class="text-[9px] text-slate-500">Open encounters ordered by start time</p></div><a href="{% url 'encounters:list' %}" class="font-bold text-emerald-700">View all</a></header>
+      <div class="divide-y divide-slate-100">
+        {% for encounter in recent_encounters %}<a href="{% url 'encounters:detail' encounter.pk %}" class="grid items-center gap-2 px-3 py-2 hover:bg-emerald-50 sm:grid-cols-[minmax(10rem,1fr)_8rem_8rem_7rem]"><div class="min-w-0"><p class="truncate text-[11px] font-bold text-slate-900">{{ encounter.patient.display_name }}</p><p class="truncate text-[9px] text-slate-500">{{ encounter.patient.mrn }} · {{ encounter.reason_for_visit|default:"Reason not documented" }}</p></div><span>{{ encounter.get_encounter_type_display }}</span><span class="font-semibold">{{ encounter.get_status_display }}</span><time class="text-slate-500">{{ encounter.start_datetime|date:"M j, g:i A" }}</time></a>{% empty %}<p class="p-5 text-center text-xs text-slate-500">No open encounters.</p>{% endfor %}
+      </div>
     </section>
 
-    <section>
-        <div class="mb-2">
-            <h2 class="text-sm font-semibold text-ehr-950">
-                AI Clinical Decision Support
-            </h2>
+    <section class="rounded-lg border border-slate-200 bg-white shadow-sm"><header class="border-b bg-slate-50 px-3 py-2"><h2 class="text-xs font-bold">Encounter mix</h2><p class="text-[9px] text-slate-500">{{ time_range_label }}</p></header><div class="divide-y">{% for item in encounter_mix %}<div class="flex items-center justify-between px-3 py-2"><span class="font-semibold">{{ item.label }}</span><span class="rounded bg-slate-100 px-2 py-1 font-bold">{{ item.total }}</span></div>{% empty %}<p class="p-4 text-slate-500">No encounters in this period.</p>{% endfor %}</div></section>
+  </div>
 
-            <p class="text-[11px] text-slate-500">
-                Recommendations require clinician review.
-            </p>
-        </div>
-
-        <div class="space-y-2.5">
-            {% for alert in clinical_alerts %}
-                {% include "components/cds_alert.html" with icon=alert.icon icon_class=alert.icon_class title=alert.title message=alert.message action_label=alert.action_label %}
-            {% empty %}
-                <div class="rounded-lg border border-slate-200 bg-white p-3">
-                    <p class="text-xs text-slate-500">
-                        No active clinical alerts.
-                    </p>
-                </div>
-            {% endfor %}
-        </div>
-    </section>
+  <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+    <a href="{% url 'pharmacy:pending-review' %}" class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><h3 class="text-xs font-bold text-slate-900">Medication & pharmacy</h3><dl class="mt-2 space-y-1.5"><div class="flex justify-between"><dt>Active orders</dt><dd class="font-bold">{{ active_medication_count }}</dd></div><div class="flex justify-between"><dt>Administered</dt><dd class="font-bold text-emerald-700">{{ meds_administered_count }}</dd></div><div class="flex justify-between"><dt>Held/refused/not given</dt><dd class="font-bold text-amber-700">{{ meds_not_given_count }}</dd></div><div class="flex justify-between"><dt>Pending pharmacy review</dt><dd class="font-bold text-blue-700">{{ pending_pharmacy_count }}</dd></div><div class="flex justify-between"><dt>Low stock items</dt><dd class="font-bold text-red-700">{{ low_stock_count }}</dd></div></dl></a>
+    <div class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><h3 class="text-xs font-bold text-slate-900">Nursing workload</h3><dl class="mt-2 space-y-1.5"><div class="flex justify-between"><dt>Assessments documented</dt><dd class="font-bold">{{ assessment_count }}</dd></div><div class="flex justify-between"><dt>Open nursing tasks</dt><dd class="font-bold">{{ open_nursing_task_count }}</dd></div><div class="flex justify-between"><dt>Overdue tasks</dt><dd class="font-bold text-red-700">{{ overdue_nursing_task_count }}</dd></div><div class="flex justify-between"><dt>Fall-risk findings</dt><dd class="font-bold text-amber-700">{{ fall_risk_count }}</dd></div><div class="flex justify-between"><dt>Pressure-injury risk</dt><dd class="font-bold text-amber-700">{{ pressure_risk_count }}</dd></div></dl></div>
+    <div class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><h3 class="text-xs font-bold text-slate-900">Vital-sign surveillance</h3><p class="mt-2 text-2xl font-bold">{{ vitals_count }}</p><p class="text-slate-500">observations across {{ patients_with_vitals }} patients</p><div class="mt-3 flex justify-between rounded bg-red-50 p-2 text-red-700"><span>High pain (7–10)</span><strong>{{ high_pain_count }}</strong></div></div>
+    <div class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><h3 class="text-xs font-bold text-slate-900">Documentation</h3><div class="mt-2 grid grid-cols-2 gap-2"><div class="rounded bg-emerald-50 p-2"><p class="text-lg font-bold text-emerald-800">{{ signed_note_count }}</p><p>Signed in period</p></div><div class="rounded bg-amber-50 p-2"><p class="text-lg font-bold text-amber-800">{{ draft_note_count }}</p><p>Drafts total</p></div></div><p class="mt-3 text-[9px] text-slate-500">Operational counts are based on currently stored EHR records and update with the selected time range.</p></div>
+  </div>
+  <p class="text-right text-[9px] text-slate-400">Updated {{ generated_at|date:"M j, Y g:i A" }}</p>
 </div>

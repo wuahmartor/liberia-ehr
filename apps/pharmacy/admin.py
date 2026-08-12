@@ -1,10 +1,37 @@
 from __future__ import annotations
 
 from django.contrib import admin
-from django.db.models import F
 from django.utils import timezone
 
-from .models import Medication
+from .models import DispenseRecord, InventoryTransaction, Medication, PharmacyReview
+
+
+@admin.register(PharmacyReview)
+class PharmacyReviewAdmin(admin.ModelAdmin):
+    list_display = ("order", "status", "reviewed_by", "reviewed_at")
+    list_filter = ("status", "reviewed_at")
+    search_fields = ("order__patient__mrn", "order__medication__generic_name")
+
+
+@admin.register(DispenseRecord)
+class DispenseRecordAdmin(admin.ModelAdmin):
+    list_display = ("medication", "order", "quantity", "dispensed_by", "dispensed_at")
+    list_filter = ("dispensed_at",)
+    search_fields = ("order__patient__mrn", "medication__generic_name", "lot_number")
+
+
+@admin.register(InventoryTransaction)
+class InventoryTransactionAdmin(admin.ModelAdmin):
+    list_display = (
+        "medication",
+        "movement_type",
+        "quantity_change",
+        "balance_after",
+        "recorded_by",
+        "recorded_at",
+    )
+    list_filter = ("movement_type", "recorded_at")
+    search_fields = ("medication__generic_name", "medication__code", "reference")
 
 
 # ============================================================
@@ -106,7 +133,6 @@ class MedicationAdmin(admin.ModelAdmin):
                 )
             },
         ),
-
         (
             "Medication Description",
             {
@@ -120,7 +146,6 @@ class MedicationAdmin(admin.ModelAdmin):
                 )
             },
         ),
-
         (
             "Formulary",
             {
@@ -131,7 +156,6 @@ class MedicationAdmin(admin.ModelAdmin):
                 )
             },
         ),
-
         (
             "Medication Safety",
             {
@@ -144,7 +168,6 @@ class MedicationAdmin(admin.ModelAdmin):
                 )
             },
         ),
-
         (
             "Inventory",
             {
@@ -155,13 +178,10 @@ class MedicationAdmin(admin.ModelAdmin):
                 )
             },
         ),
-
         (
             "Retirement",
             {
-                "classes": (
-                    "collapse",
-                ),
+                "classes": ("collapse",),
                 "fields": (
                     "retired_at",
                     "retired_by",
@@ -169,13 +189,10 @@ class MedicationAdmin(admin.ModelAdmin):
                 ),
             },
         ),
-
         (
             "Audit",
             {
-                "classes": (
-                    "collapse",
-                ),
+                "classes": ("collapse",),
                 "fields": (
                     "created_by",
                     "created_at",
@@ -239,9 +256,7 @@ class MedicationAdmin(admin.ModelAdmin):
     # RETIRE ACTION
     # ========================================================
 
-    @admin.action(
-        description="Retire selected medications"
-    )
+    @admin.action(description="Retire selected medications")
     def retire_selected_medications(
         self,
         request,
@@ -266,9 +281,7 @@ class MedicationAdmin(admin.ModelAdmin):
     # REACTIVATE ACTION
     # ========================================================
 
-    @admin.action(
-        description="Reactivate selected medications"
-    )
+    @admin.action(description="Reactivate selected medications")
     def reactivate_selected_medications(
         self,
         request,

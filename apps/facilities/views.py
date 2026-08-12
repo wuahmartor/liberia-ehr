@@ -28,7 +28,6 @@ from .models import (
     Room,
 )
 
-
 FACILITY_PAGE_SIZE = 25
 
 

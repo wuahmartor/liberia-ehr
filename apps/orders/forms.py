@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django import forms
-
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from apps.pharmacy.models import Medication
@@ -114,9 +114,30 @@ class MedicationOrderForm(
 
             "instructions",
 
+            "order_method",
+
+            "order_type",
+
+            "clinical_indication",
+
+            "ordered_by",
+
         )
 
         widgets = {
+
+            "order_method": forms.Select(attrs={"class": SELECT_CLASS}),
+
+            "order_type": forms.Select(attrs={"class": SELECT_CLASS}),
+
+            "clinical_indication": forms.TextInput(
+                attrs={
+                    "class": INPUT_CLASS,
+                    "placeholder": "Diagnosis, symptom, or treatment indication",
+                }
+            ),
+
+            "ordered_by": forms.Select(attrs={"class": SELECT_CLASS}),
 
             # =================================================
 
@@ -389,6 +410,16 @@ class MedicationOrderForm(
             "the local medication database."
 
         )
+
+        self.fields["ordered_by"].queryset = (
+            get_user_model().objects.filter(is_active=True).order_by(
+                "last_name", "first_name", "username"
+            )
+        )
+        self.fields["ordered_by"].label = "Ordering provider"
+        self.fields["order_method"].label = "Order medium"
+        self.fields["order_type"].label = "Order type"
+        self.fields["clinical_indication"].label = "Clinical indication"
 
         # ====================================================
 

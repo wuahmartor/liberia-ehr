@@ -6,7 +6,22 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+
 class MedicationOrder(models.Model):
+
+    class OrderMethod(models.TextChoices):
+        ELECTRONIC = "electronic", "Electronic"
+        WRITTEN = "written", "Written"
+        VERBAL = "verbal", "Verbal"
+        TELEPHONE = "telephone", "Telephone"
+
+    class OrderType(models.TextChoices):
+        NEW = "new", "New therapy"
+        CONTINUATION = "continuation", "Continuation"
+        RENEWAL = "renewal", "Renewal"
+        DOSE_CHANGE = "dose_change", "Dose or frequency change"
+        FORMULARY_SUBSTITUTION = "formulary_substitution", "Formulary substitution"
+        DISCHARGE = "discharge", "Discharge medication"
 
     # ========================================================
     # STATUS
@@ -255,6 +270,62 @@ class MedicationOrder(models.Model):
         default=Status.ACTIVE,
         db_index=True,
     )
+
+    order_method = models.CharField(
+        max_length=20,
+        choices=OrderMethod.choices,
+        default=OrderMethod.ELECTRONIC,
+    )
+
+    order_type = models.CharField(
+        max_length=30,
+        choices=OrderType.choices,
+        default=OrderType.NEW,
+        db_index=True,
+    )
+
+    clinical_indication = models.CharField(
+        max_length=300,
+        default="",
+        help_text="Clinical reason or indication for this medication order.",
+    )
+
+    received_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="received_medication_orders",
+        null=True,
+        blank=True,
+    )
+
+    discontinued_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    discontinued_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="discontinued_medication_orders",
+        null=True,
+        blank=True,
+    )
+    discontinuation_ordered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="ordered_medication_discontinuations",
+        null=True,
+        blank=True,
+    )
+    discontinuation_order_method = models.CharField(
+        max_length=20,
+        choices=OrderMethod.choices,
+        blank=True,
+    )
+    discontinuation_received_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="received_medication_discontinuations",
+        null=True,
+        blank=True,
+    )
+    discontinuation_reason = models.TextField(blank=True)
 
 
     # ========================================================

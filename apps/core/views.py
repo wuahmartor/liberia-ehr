@@ -1,6 +1,10 @@
+from datetime import timedelta
+
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.http import require_GET
 
 from apps.accounts.decorators import (
@@ -9,7 +13,15 @@ from apps.accounts.decorators import (
     role_required,
 )
 from apps.accounts.models import UserProfile
-
+from apps.clinical_notes.models import ClinicalNote
+from apps.diagnoses.models import PatientDiagnosis
+from apps.encounters.models import Encounter
+from apps.medications.models import MedicationAdministration
+from apps.nursing.models import NursingAssessment, NursingTask
+from apps.orders.models import MedicationOrder
+from apps.patients.models import Patient
+from apps.pharmacy.models import Medication, PharmacyReview
+from apps.vitals.models import VitalObservation
 
 TIME_RANGE_LABELS = {
     "24h": "Last 24 Hours",
@@ -52,49 +64,86 @@ def get_clinical_dashboard_context(request):
         time_range = "24h"
 
     profile = get_user_profile(request)
+    now = timezone.now()
+    window = {
+        "24h": timedelta(hours=24),
+        "48h": timedelta(hours=48),
+        "7d": timedelta(days=7),
+        "encounter": timedelta(hours=24),
+    }[time_range]
+    since = now - window
+    open_statuses = (
+        Encounter.EncounterStatus.PLANNED,
+        Encounter.EncounterStatus.SCHEDULED,
+        Encounter.EncounterStatus.ARRIVED,
+        Encounter.EncounterStatus.TRIAGED,
+        Encounter.EncounterStatus.IN_PROGRESS,
+        Encounter.EncounterStatus.ON_HOLD,
+    )
+    encounters = Encounter.objects.select_related("patient", "attending_provider")
+    recent_encounters = encounters.filter(start_datetime__gte=since)
+    open_encounters = encounters.filter(is_active=True, status__in=open_statuses)
+    active_orders = MedicationOrder.objects.filter(status=MedicationOrder.Status.ACTIVE)
+    administrations = MedicationAdministration.objects.filter(
+        administered_at__gte=since
+    )
+    vitals = VitalObservation.objects.active().filter(recorded_at__gte=since)
+    assessments = NursingAssessment.objects.filter(recorded_at__gte=since)
+    open_tasks = NursingTask.objects.filter(completed_at__isnull=True)
+    encounter_mix = list(
+        recent_encounters.values("encounter_type")
+        .annotate(total=Count("pk"))
+        .order_by("-total", "encounter_type")
+    )
+    type_labels = dict(Encounter.EncounterType.choices)
+    for item in encounter_mix:
+        item["label"] = type_labels.get(item["encounter_type"], item["encounter_type"])
 
     return {
         "time_range": time_range,
         "time_range_label": TIME_RANGE_LABELS[time_range],
         "user_profile": profile,
         "user_role": profile.role if profile else "",
-        "user_role_label": (
-            profile.get_role_display()
-            if profile
-            else ""
-        ),
-        "user_facility": (
-            profile.facility
-            if profile
-            else None
-        ),
-        "vitals_status": "Stable",
-        "lab_status": "2 Abnormal",
-        "medication_status": "8 Active",
-        "io_balance": "+250 mL",
-        "pain_score": "3 / 10",
-        "clinical_alerts": [
-            {
-                "icon": "▲",
-                "icon_class": "text-amber-500",
-                "title": "Possible Drug Interaction",
-                "message": (
-                    "Lisinopril may increase potassium levels when "
-                    "combined with spironolactone."
-                ),
-                "action_label": "Review",
-            },
-            {
-                "icon": "△",
-                "icon_class": "text-red-500",
-                "title": "Sepsis Risk Alert",
-                "message": (
-                    "Medium risk score. Monitor vital signs and "
-                    "laboratory results."
-                ),
-                "action_label": "",
-            },
-        ],
+        "user_role_label": (profile.get_role_display() if profile else ""),
+        "user_facility": (profile.facility if profile else None),
+        "generated_at": now,
+        "registered_patients": Patient.objects.filter(is_active=True).count(),
+        "open_encounter_count": open_encounters.count(),
+        "new_encounter_count": recent_encounters.count(),
+        "completed_encounter_count": encounters.filter(
+            status=Encounter.EncounterStatus.COMPLETED, completed_at__gte=since
+        ).count(),
+        "active_diagnosis_count": PatientDiagnosis.objects.filter(
+            clinical_status=PatientDiagnosis.DiagnosisStatus.ACTIVE
+        ).count(),
+        "vitals_count": vitals.count(),
+        "patients_with_vitals": vitals.values("patient_id").distinct().count(),
+        "high_pain_count": vitals.filter(pain_score__gte=7).count(),
+        "active_medication_count": active_orders.count(),
+        "meds_administered_count": administrations.filter(
+            status=MedicationAdministration.Status.ADMINISTERED
+        ).count(),
+        "meds_not_given_count": administrations.exclude(
+            status=MedicationAdministration.Status.ADMINISTERED
+        ).count(),
+        "pending_pharmacy_count": active_orders.filter(
+            Q(pharmacy_review__isnull=True)
+            | Q(pharmacy_review__status=PharmacyReview.Status.PENDING)
+        ).count(),
+        "low_stock_count": Medication.objects.low_stock().count(),
+        "assessment_count": assessments.count(),
+        "fall_risk_count": assessments.filter(fall_risk=True).count(),
+        "pressure_risk_count": assessments.filter(pressure_injury_risk=True).count(),
+        "open_nursing_task_count": open_tasks.count(),
+        "overdue_nursing_task_count": open_tasks.filter(due_at__lt=now).count(),
+        "signed_note_count": ClinicalNote.objects.filter(
+            status=ClinicalNote.Status.SIGNED, signed_at__gte=since
+        ).count(),
+        "draft_note_count": ClinicalNote.objects.filter(
+            status=ClinicalNote.Status.DRAFT
+        ).count(),
+        "recent_encounters": open_encounters.order_by("-start_datetime")[:8],
+        "encounter_mix": encounter_mix,
     }
 
 
@@ -517,9 +566,7 @@ def get_dashboard_title(role):
         UserProfile.Role.FACILITY_ADMIN: "Facility Administration",
         UserProfile.Role.PHYSICIAN: "Physician Clinical Dashboard",
         UserProfile.Role.NURSE: "Nursing Clinical Dashboard",
-        UserProfile.Role.NURSE_PRACTITIONER: (
-            "Advanced Practice Clinical Dashboard"
-        ),
+        UserProfile.Role.NURSE_PRACTITIONER: ("Advanced Practice Clinical Dashboard"),
         UserProfile.Role.PHARMACIST: "Pharmacy Dashboard",
         UserProfile.Role.LAB_TECHNICIAN: "Laboratory Dashboard",
         UserProfile.Role.RADIOLOGY_TECHNICIAN: "Radiology Dashboard",
@@ -527,9 +574,7 @@ def get_dashboard_title(role):
         UserProfile.Role.INFORMATICIST: "Nursing Informatics Dashboard",
         UserProfile.Role.BILLING_OFFICER: "Billing Dashboard",
         UserProfile.Role.RECEPTIONIST: "Front Desk Dashboard",
-        UserProfile.Role.COMMUNITY_HEALTH_WORKER: (
-            "Community Health Dashboard"
-        ),
+        UserProfile.Role.COMMUNITY_HEALTH_WORKER: ("Community Health Dashboard"),
         UserProfile.Role.AUDITOR: "Audit Dashboard",
         UserProfile.Role.PATIENT: "Patient Portal",
     }

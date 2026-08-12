@@ -24,10 +24,10 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 from django.views.generic import (
@@ -38,11 +38,11 @@ from django.views.generic import (
     UpdateView,
 )
 
+from apps.clinical_notes.models import ClinicalNote
 from apps.patients.models import Patient
 
 from .forms import EncounterForm
 from .models import Encounter
-
 
 # =====================================================================
 # SHARED ENCOUNTER WORKFLOW VALUES
@@ -233,9 +233,7 @@ class EncounterPatientContextMixin:
         """
 
         return (
-            self.request.GET.get("patient")
-            or self.request.POST.get("patient")
-            or ""
+            self.request.GET.get("patient") or self.request.POST.get("patient") or ""
         ).strip()
 
     def get_selected_patient(self):
@@ -412,10 +410,7 @@ class EncounterListView(
         # STATUS FILTER
         # -------------------------------------------------------------
 
-        valid_statuses = {
-            value
-            for value, _ in Encounter.EncounterStatus.choices
-        }
+        valid_statuses = {value for value, _ in Encounter.EncounterStatus.choices}
 
         if status in valid_statuses:
             queryset = queryset.filter(
@@ -426,10 +421,7 @@ class EncounterListView(
         # ENCOUNTER TYPE FILTER
         # -------------------------------------------------------------
 
-        valid_encounter_types = {
-            value
-            for value, _ in Encounter.EncounterType.choices
-        }
+        valid_encounter_types = {value for value, _ in Encounter.EncounterType.choices}
 
         if encounter_type in valid_encounter_types:
             queryset = queryset.filter(
@@ -440,10 +432,7 @@ class EncounterListView(
         # PRIORITY FILTER
         # -------------------------------------------------------------
 
-        valid_priorities = {
-            value
-            for value, _ in Encounter.Priority.choices
-        }
+        valid_priorities = {value for value, _ in Encounter.Priority.choices}
 
         if priority in valid_priorities:
             queryset = queryset.filter(
@@ -498,12 +487,8 @@ class EncounterListView(
                     "priority",
                     "",
                 ),
-                "encounter_status_choices": (
-                    Encounter.EncounterStatus.choices
-                ),
-                "encounter_type_choices": (
-                    Encounter.EncounterType.choices
-                ),
+                "encounter_status_choices": (Encounter.EncounterStatus.choices),
+                "encounter_type_choices": (Encounter.EncounterType.choices),
                 "priority_choices": Encounter.Priority.choices,
                 "total_encounters": summary_queryset.count(),
                 "open_encounters": summary_queryset.filter(
@@ -567,6 +552,13 @@ class EncounterDetailView(
         ).prefetch_related(
             "diagnoses",
             "diagnoses__concept",
+            Prefetch(
+                "clinical_notes",
+                queryset=ClinicalNote.objects.select_related(
+                    "author", "signed_by"
+                ).order_by("-created_at"),
+                to_attr="encounter_note_list",
+            ),
         )
 
     def get_context_data(self, **kwargs):
@@ -600,9 +592,7 @@ class EncounterDetailView(
 
         context.update(
             {
-                "page_title": (
-                    f"Encounter {self.object.encounter_number}"
-                ),
+                "page_title": (f"Encounter {self.object.encounter_number}"),
                 "selected_patient": self.object.patient,
                 "active_encounter": self.object,
                 "active_patient_section": requested_section,
@@ -670,10 +660,8 @@ class EncounterCreateView(
 
         selected_patient = self.get_selected_patient()
 
-        existing_active_encounter = (
-            self.get_active_encounter_for_patient(
-                selected_patient,
-            )
+        existing_active_encounter = self.get_active_encounter_for_patient(
+            selected_patient,
         )
 
         context.update(
@@ -708,10 +696,8 @@ class EncounterCreateView(
         # PREVENT DUPLICATE OPEN ENCOUNTERS
         # -------------------------------------------------------------
 
-        existing_active_encounter = (
-            self.get_active_encounter_for_patient(
-                self.object.patient,
-            )
+        existing_active_encounter = self.get_active_encounter_for_patient(
+            self.object.patient,
         )
 
         if existing_active_encounter:
@@ -748,15 +734,10 @@ class EncounterCreateView(
 
         messages.success(
             self.request,
-            (
-                f"Encounter {self.object.encounter_number} "
-                "was created successfully."
-            ),
+            (f"Encounter {self.object.encounter_number} was created successfully."),
         )
 
-        return HttpResponseRedirect(
-            self.get_success_url()
-        )
+        return HttpResponseRedirect(self.get_success_url())
 
     def form_invalid(self, form):
         """
@@ -851,9 +832,7 @@ class EncounterUpdateView(
 
         context.update(
             {
-                "page_title": (
-                    f"Update Encounter {encounter.encounter_number}"
-                ),
+                "page_title": (f"Update Encounter {encounter.encounter_number}"),
                 "selected_patient": encounter.patient,
                 "active_encounter": encounter,
                 "active_patient_section": "encounters",
@@ -892,15 +871,10 @@ class EncounterUpdateView(
 
         messages.success(
             self.request,
-            (
-                f"Encounter {self.object.encounter_number} "
-                "was updated successfully."
-            ),
+            (f"Encounter {self.object.encounter_number} was updated successfully."),
         )
 
-        return HttpResponseRedirect(
-            self.get_success_url()
-        )
+        return HttpResponseRedirect(self.get_success_url())
 
     def form_invalid(self, form):
         """
@@ -957,10 +931,7 @@ class EncounterCompleteView(
         if encounter.status == Encounter.EncounterStatus.COMPLETED:
             messages.info(
                 request,
-                (
-                    f"Encounter {encounter.encounter_number} "
-                    "is already completed."
-                ),
+                (f"Encounter {encounter.encounter_number} is already completed."),
             )
 
             return redirect(
@@ -1004,10 +975,7 @@ class EncounterCompleteView(
 
         messages.success(
             request,
-            (
-                f"Encounter {encounter.encounter_number} "
-                "was completed successfully."
-            ),
+            (f"Encounter {encounter.encounter_number} was completed successfully."),
         )
 
         return redirect(
@@ -1058,10 +1026,7 @@ class EncounterCancelView(
         if encounter.status == Encounter.EncounterStatus.CANCELLED:
             messages.info(
                 request,
-                (
-                    f"Encounter {encounter.encounter_number} "
-                    "is already cancelled."
-                ),
+                (f"Encounter {encounter.encounter_number} is already cancelled."),
             )
 
             return redirect(
@@ -1069,16 +1034,10 @@ class EncounterCancelView(
                 pk=encounter.pk,
             )
 
-        if (
-            encounter.status
-            == Encounter.EncounterStatus.ENTERED_IN_ERROR
-        ):
+        if encounter.status == Encounter.EncounterStatus.ENTERED_IN_ERROR:
             messages.error(
                 request,
-                (
-                    "An encounter entered in error cannot also be "
-                    "cancelled."
-                ),
+                ("An encounter entered in error cannot also be cancelled."),
             )
 
             return redirect(
@@ -1087,9 +1046,7 @@ class EncounterCancelView(
             )
 
         cancellation_reason = (
-            request.POST.get("status_reason")
-            or request.POST.get("reason")
-            or ""
+            request.POST.get("status_reason") or request.POST.get("reason") or ""
         ).strip()
 
         if not cancellation_reason:
@@ -1123,10 +1080,7 @@ class EncounterCancelView(
 
         messages.success(
             request,
-            (
-                f"Encounter {encounter.encounter_number} "
-                "was cancelled successfully."
-            ),
+            (f"Encounter {encounter.encounter_number} was cancelled successfully."),
         )
 
         return redirect(
@@ -1163,10 +1117,7 @@ class EncounterEnteredInErrorView(
             pk=pk,
         )
 
-        if (
-            encounter.status
-            == Encounter.EncounterStatus.ENTERED_IN_ERROR
-        ):
+        if encounter.status == Encounter.EncounterStatus.ENTERED_IN_ERROR:
             messages.info(
                 request,
                 (
@@ -1181,18 +1132,13 @@ class EncounterEnteredInErrorView(
             )
 
         error_reason = (
-            request.POST.get("status_reason")
-            or request.POST.get("reason")
-            or ""
+            request.POST.get("status_reason") or request.POST.get("reason") or ""
         ).strip()
 
         if not error_reason:
             messages.error(
                 request,
-                (
-                    "Enter a reason before marking the encounter "
-                    "as entered in error."
-                ),
+                ("Enter a reason before marking the encounter as entered in error."),
             )
 
             return redirect(
@@ -1220,10 +1166,7 @@ class EncounterEnteredInErrorView(
 
         messages.success(
             request,
-            (
-                f"Encounter {encounter.encounter_number} "
-                "was marked as entered in error."
-            ),
+            (f"Encounter {encounter.encounter_number} was marked as entered in error."),
         )
 
         return redirect(
@@ -1275,18 +1218,14 @@ class EncounterDeleteView(
 
         encounter = self.object
 
-        alternative_active_encounter = (
-            self.get_active_encounter_for_patient(
-                encounter.patient,
-                exclude_pk=encounter.pk,
-            )
+        alternative_active_encounter = self.get_active_encounter_for_patient(
+            encounter.patient,
+            exclude_pk=encounter.pk,
         )
 
         context.update(
             {
-                "page_title": (
-                    f"Delete Encounter {encounter.encounter_number}"
-                ),
+                "page_title": (f"Delete Encounter {encounter.encounter_number}"),
                 "selected_patient": encounter.patient,
                 "active_encounter": alternative_active_encounter,
                 "active_patient_section": "encounters",
@@ -1300,10 +1239,7 @@ class EncounterDeleteView(
         Return to the deleted encounter's patient history.
         """
 
-        return (
-            reverse("encounters:list")
-            + f"?patient={self.object.patient_id}"
-        )
+        return reverse("encounters:list") + f"?patient={self.object.patient_id}"
 
     def form_valid(self, form):
         """
@@ -1321,9 +1257,6 @@ class EncounterDeleteView(
             f"Encounter {encounter_number} was permanently deleted.",
         )
 
-        self.success_url = (
-            reverse("encounters:list")
-            + f"?patient={patient_id}"
-        )
+        self.success_url = reverse("encounters:list") + f"?patient={patient_id}"
 
         return response

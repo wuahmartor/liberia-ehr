@@ -200,7 +200,7 @@ Parent Alpine state expected:
             <div
                 x-show="painMapView === 'front'"
                 class="
-                    relative
+                    relative overflow-hidden
                     mx-auto
                     h-[620px]
                     w-[310px]
@@ -211,10 +211,8 @@ Parent Alpine state expected:
                     src="{% static 'src/images/male-front-back-3d.svg' %}"
                     alt="Front human body"
                     class="
-                        absolute inset-0
-                        h-full w-full
-                        object-contain
-                        object-left
+                        absolute left-0 top-0
+                        h-full w-[620px] max-w-none
                     "
                 >
 
@@ -339,7 +337,7 @@ Parent Alpine state expected:
                 x-cloak
                 x-show="painMapView === 'back'"
                 class="
-                    relative
+                    relative overflow-hidden
                     mx-auto
                     h-[620px]
                     w-[310px]
@@ -350,10 +348,8 @@ Parent Alpine state expected:
                     src="{% static 'src/images/male-front-back-3d.svg' %}"
                     alt="Back human body"
                     class="
-                        absolute inset-0
-                        h-full w-full
-                        object-contain
-                        object-right
+                        absolute -left-[310px] top-0
+                        h-full w-[620px] max-w-none
                     "
                 >
 

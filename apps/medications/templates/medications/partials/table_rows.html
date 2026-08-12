@@ -254,6 +254,8 @@ Purpose:
 
                 <tr
 
+                    data-medication-name="{% firstof administration.medication.display_name administration.medication_order.medication.display_name 'Medication unavailable' %}"
+
                     class="
 
                         hover:bg-slate-50
@@ -384,6 +386,22 @@ Purpose:
 
                             </div>
 
+                        {% endif %}
+
+                        {% if administration.history_event_count > 1 %}
+                            <details class="mt-1 text-[8px] text-blue-700">
+                                <summary class="cursor-pointer font-semibold underline underline-offset-2">
+                                    View {{ administration.history_event_count }} administration records
+                                </summary>
+                                <div class="mt-1 space-y-0.5 rounded border border-blue-100 bg-blue-50 p-1.5 text-slate-700">
+                                    {% for event in administration.history_events %}
+                                        <div>
+                                            {{ event.administered_at|date:"m/d/Y h:i A" }}
+                                            · {{ event.get_status_display|default:event.status }}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </details>
                         {% endif %}
 
                     </td>

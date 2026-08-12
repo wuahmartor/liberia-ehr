@@ -130,18 +130,6 @@ Expected context:
             </div>
 
             <p class="mt-1 text-xs text-slate-500">
-                {{ vital.patient.display_name }}
-
-                <span class="mx-1 text-slate-300">
-                    •
-                </span>
-
-                MRN {{ vital.patient.mrn }}
-
-                <span class="mx-1 text-slate-300">
-                    •
-                </span>
-
                 {{ vital.recorded_at|date:"M j, Y" }}
 
                 at
@@ -456,7 +444,7 @@ Expected context:
             "
         >
             <h2 class="text-xs font-semibold text-slate-900">
-                Patient and Encounter
+                Encounter and observation
             </h2>
         </header>
 
@@ -464,28 +452,9 @@ Expected context:
             class="
                 grid divide-y divide-slate-100
                 sm:grid-cols-2 sm:divide-x sm:divide-y-0
-                xl:grid-cols-4
+                xl:grid-cols-3
             "
         >
-            <div class="px-4 py-3">
-                <dt
-                    class="
-                        text-[10px] font-semibold uppercase
-                        tracking-wide text-slate-500
-                    "
-                >
-                    Patient
-                </dt>
-
-                <dd class="mt-1 text-sm font-semibold text-slate-900">
-                    {{ vital.patient.display_name }}
-                </dd>
-
-                <dd class="mt-0.5 text-[10px] text-slate-500">
-                    MRN {{ vital.patient.mrn }}
-                </dd>
-            </div>
-
             <div class="px-4 py-3">
                 <dt
                     class="

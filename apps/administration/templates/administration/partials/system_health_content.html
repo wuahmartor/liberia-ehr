@@ -23,7 +23,7 @@
                     Web Application
                 </h2>
 
-                <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                <span class="h-2.5 w-2.5 rounded-full {% if database_ok %}bg-emerald-500{% else %}bg-red-500{% endif %}"></span>
             </div>
 
             <p class="mt-2 text-xs text-slate-500">
@@ -46,7 +46,7 @@
             </div>
 
             <p class="mt-2 text-xs text-slate-500">
-                Primary database connection is available.
+                {% if database_ok %}{{ database_vendor|title }} database connection is available.{% else %}Database check failed.{% endif %}
             </p>
         </article>
 
@@ -134,4 +134,5 @@
             Checking system services...
         </div>
     </section>
+    <p class="text-right text-[9px] text-slate-400">Checked {{ checked_at|date:"M j, Y g:i A" }}</p>
 </section>

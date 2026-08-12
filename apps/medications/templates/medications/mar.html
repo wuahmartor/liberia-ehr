@@ -38,9 +38,14 @@ POST contract expected by MAR view:
 
 Give:
 
-- mar_action = give
+- Give buttons stage/unstage rows in the browser.
 
-- medication_order = <order UUID>
+- Save MAR Records submits mar_action = give_selected.
+
+- medication_orders = <order UUID> (one repeated field per selected order).
+
+- The view validates all orders against this patient and encounter, then
+  creates every administration in one atomic transaction.
 
 Not Given:
 
@@ -154,7 +159,7 @@ MAR | Liberia EHR
 
                         class="
 
-                            text-base font-semibold
+                            text-sm font-semibold
 
                             text-slate-900
 
@@ -259,22 +264,6 @@ MAR | Liberia EHR
                     "
 
                 >
-
-                    <span>
-
-                        {{ selected_patient.display_name }}
-
-                    </span>
-
-                    {% if selected_patient.mrn %}
-
-                        <span>
-
-                            MRN {{ selected_patient.mrn }}
-
-                        </span>
-
-                    {% endif %}
 
                     <span>
 
@@ -435,50 +424,6 @@ MAR | Liberia EHR
                 "
 
             >
-
-                <span class="text-slate-600">
-
-                    <strong class="text-slate-800">
-
-                        Patient:
-
-                    </strong>
-
-                    {{ selected_patient.display_name }}
-
-                </span>
-
-                {% if selected_patient.date_of_birth %}
-
-                    <span class="text-slate-600">
-
-                        <strong class="text-slate-800">
-
-                            DOB:
-
-                        </strong>
-
-                        {{ selected_patient.date_of_birth|date:"m/d/Y" }}
-
-                    </span>
-
-                {% endif %}
-
-                {% if selected_patient.get_sex_at_birth_display %}
-
-                    <span class="text-slate-600">
-
-                        <strong class="text-slate-800">
-
-                            Sex:
-
-                        </strong>
-
-                        {{ selected_patient.get_sex_at_birth_display }}
-
-                    </span>
-
-                {% endif %}
 
                 <div
 
@@ -970,6 +915,35 @@ MAR | Liberia EHR
 
                 </div>
 
+                <div class="flex items-center gap-2">
+                    <span
+                        x-show="selectedOrders.length"
+                        class="text-[8px] font-semibold text-blue-700"
+                        x-text="`${selectedOrders.length} selected`"
+                    ></span>
+                    <form
+                        id="mar-batch-form"
+                        method="post"
+                        action="{{ request.path }}"
+                        hx-boost="false"
+                    >
+                        {% csrf_token %}
+                        <input type="hidden" name="mar_action" value="give_selected">
+                        <input type="hidden" name="timing_reasons" :value="JSON.stringify(timingReasons)">
+                        <template x-for="orderId in selectedOrders" :key="orderId">
+                            <input type="hidden" name="medication_orders" :value="orderId">
+                        </template>
+                        <button
+                            type="submit"
+                            :disabled="selectedOrders.length === 0"
+                            class="inline-flex h-7 items-center rounded-md bg-emerald-700 px-2.5 text-[9px] font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        >
+                            Save MAR Records
+                            <span x-show="selectedOrders.length" class="ml-1" x-text="`(${selectedOrders.length})`"></span>
+                        </button>
+                    </form>
+                </div>
+
             </div>
 
             <div class="overflow-x-auto">
@@ -1214,13 +1188,15 @@ MAR | Liberia EHR
 
                                 data-order-id="{{ order.pk }}"
 
+                                :data-selected="isSelected('{{ order.pk }}') ? 'true' : 'false'"
+
                                 data-medication-name="{{ order.medication.display_name|lower }}"
 
                                 data-order-status="{{ order.status|default:'active' }}"
 
                                 data-frequency="{{ order.frequency|default:'' }}"
 
-                                data-is-prn="{% if order.frequency == 'prn' %}true{% else %}false{% endif %}"
+                                data-is-prn="{% if order.is_prn %}true{% else %}false{% endif %}"
 
                                 data-held="{% if order.status == 'on_hold' %}true{% else %}false{% endif %}"
 
@@ -1282,7 +1258,7 @@ MAR | Liberia EHR
 
                                         </span>
 
-                                    {% elif order.frequency == "prn" %}
+                                    {% elif order.is_prn %}
 
                                         <span
 
@@ -1470,6 +1446,62 @@ MAR | Liberia EHR
 
                                         {% endif %}
 
+                                        <button
+                                            type="button"
+                                            @click="toggleDetails('{{ order.pk }}')"
+                                            class="ml-1 text-[8px] font-semibold text-blue-700 underline underline-offset-2"
+                                            :aria-expanded="detailsOpen('{{ order.pk }}')"
+                                        >
+                                            <span x-text="detailsOpen('{{ order.pk }}') ? 'less' : '+ more'"></span>
+                                        </button>
+
+                                    </div>
+
+                                    <div
+                                        x-cloak
+                                        x-show="detailsOpen('{{ order.pk }}')"
+                                        class="mt-1 rounded border border-blue-100 bg-blue-50 p-1.5 text-[8px] leading-4 text-slate-700"
+                                    >
+                                        <div><strong>Instructions:</strong> {{ order.instructions|default:"No additional instructions" }}</div>
+                                        <div><strong>Route:</strong> {{ order.get_route_display|default:order.route|default:"—" }}</div>
+                                        <div><strong>Frequency:</strong> {{ order.get_frequency_display|default:order.frequency|default:"—" }}</div>
+                                        {% if order.next_due_at %}<div><strong>Next due:</strong> {{ order.next_due_at|date:"m/d/Y h:i A" }}</div>{% endif %}
+                                        {% if order.last_administration %}<div><strong>Last given:</strong> {{ order.last_administration.administered_at|date:"m/d/Y h:i A" }}</div>{% endif %}
+                                        <div class="mt-1 flex flex-wrap items-center gap-1 border-t border-blue-100 pt-1">
+                                            {% if order.status == "active" %}
+                                                <button type="button" @click="openReason('hold', '{{ order.pk }}', '{{ order.medication.display_name|escapejs }}', 'details')" class="rounded border border-amber-300 bg-amber-50 px-2 py-0.5 font-semibold text-amber-800 hover:bg-amber-100">Temporary hold</button>
+                                            {% elif order.status == "on_hold" %}
+                                                <form method="post" action="{{ request.path }}" hx-boost="false">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="mar_action" value="resume_order">
+                                                    <input type="hidden" name="medication_order" value="{{ order.pk }}">
+                                                    <button type="submit" class="rounded border border-emerald-300 bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-800 hover:bg-emerald-100">Resume medication</button>
+                                                </form>
+                                            {% endif %}
+                                            {% if order.status == "active" or order.status == "on_hold" %}
+                                                <details class="w-full rounded border border-red-200 bg-white p-1.5">
+                                                    <summary class="cursor-pointer font-semibold text-red-700">Discontinue order</summary>
+                                                    <form method="post" action="{{ request.path }}" hx-boost="false" class="mt-1 grid gap-1.5">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="mar_action" value="discontinue_order">
+                                                        <input type="hidden" name="medication_order" value="{{ order.pk }}">
+                                                        <label class="font-semibold">Ordering provider</label>
+                                                        <select name="discontinuation_ordered_by" required class="h-7 rounded border border-slate-300 bg-white px-1 text-[8px]">
+                                                            <option value="">Select provider</option>
+                                                            {% for provider in ordering_providers %}<option value="{{ provider.pk }}">{% firstof provider.get_full_name provider.username %}</option>{% endfor %}
+                                                        </select>
+                                                        <label class="font-semibold">Order medium</label>
+                                                        <select name="discontinuation_order_method" required class="h-7 rounded border border-slate-300 bg-white px-1 text-[8px]">
+                                                            <option value="">Select medium</option>
+                                                            {% for value, label in order_methods %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                                                        </select>
+                                                        <label class="font-semibold">Reason</label>
+                                                        <textarea name="discontinuation_reason" required rows="2" class="rounded border border-slate-300 p-1 text-[8px]"></textarea>
+                                                        <button type="submit" class="rounded bg-red-700 px-2 py-1 font-semibold text-white hover:bg-red-800">Record discontinuation order</button>
+                                                    </form>
+                                                </details>
+                                            {% endif %}
+                                        </div>
                                     </div>
 
                                 </td>
@@ -1556,7 +1588,7 @@ MAR | Liberia EHR
 
                                 >
 
-                                    {% if order.frequency == "prn" %}
+                                    {% if order.is_prn %}
 
                                         <span
 
@@ -1610,7 +1642,7 @@ MAR | Liberia EHR
 
                                         </span>
 
-                                    {% elif order.frequency == "prn" %}
+                                    {% elif order.is_prn %}
 
                                         <span
 
@@ -1694,7 +1726,15 @@ MAR | Liberia EHR
 
                                 >
 
-                                    {% if order.last_administration %}
+                                    {% if not order.is_prn %}
+                                        <button
+                                            type="button"
+                                            @click="toggleDetails('{{ order.pk }}')"
+                                            class="font-semibold text-blue-700 underline underline-offset-2"
+                                        >
+                                            Details
+                                        </button>
+                                    {% elif order.last_administration %}
 
                                         <div
 
@@ -2022,49 +2062,21 @@ MAR | Liberia EHR
 
                                                 ================== -->
 
-                                                <form
-                                                    method="post"
-                                                    action="{{ request.path }}"
-                                                    class="inline"
-                                                    hx-boost="false"
+                                                <button
+                                                    type="button"
+                                                    @click="toggleGiven('{{ order.pk }}', '{{ order.medication.display_name|escapejs }}')"
+                                                    :aria-pressed="isSelected('{{ order.pk }}')"
+                                                    :disabled="!canGive($el.closest('[data-mar-row]'))"
+                                                    :title="!canGive($el.closest('[data-mar-row]')) ? 'No valid due time is available' : needsTimingReason($el.closest('[data-mar-row]')) ? 'Click to document why this medication is being given outside its safe administration window' : 'Safe administration time—click to stage'"
+                                                    :class="isSelected('{{ order.pk }}') ? 'bg-blue-800 text-white ring-2 ring-blue-200 hover:bg-blue-900' : $el.closest('[data-mar-row]').dataset.isPrn === 'true' ? 'border border-blue-400 bg-white text-blue-700 hover:bg-blue-50' : !canGive($el.closest('[data-mar-row]')) ? 'cursor-not-allowed bg-slate-300 text-slate-600' : needsTimingReason($el.closest('[data-mar-row]')) ? 'border border-slate-500 bg-slate-400 text-white hover:bg-slate-500' : 'bg-blue-700 text-white hover:bg-blue-800'"
+                                                    class="h-6 rounded px-2 text-[8px] font-semibold disabled:ring-0"
                                                 >
-
-                                                    {% csrf_token %}
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="mar_action"
-                                                        value="give"
-                                                    >
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="medication_order"
-                                                        value="{{ order.pk }}"
-                                                    >
-
-                                                    <button
-                                                        type="submit"
-                                                        class="
-                                                            h-6
-                                                            rounded
-                                                            bg-emerald-700
-                                                            px-2
-                                                            text-[8px]
-                                                            font-semibold
-                                                            text-white
-                                                            hover:bg-emerald-800
-                                                            disabled:opacity-50
-                                                        "
-                                                    >
-                                                        {% if order.frequency == "prn" %}
-                                                            Give PRN
+                                                        {% if order.is_prn %}
+                                                            <span x-text="isSelected('{{ order.pk }}') ? 'Given PRN' : 'Give PRN'"></span>
                                                         {% else %}
-                                                            Give
+                                                            <span x-text="isSelected('{{ order.pk }}') ? 'Given' : 'Give'"></span>
                                                         {% endif %}
-                                                    </button>
-
-                                                </form>
+                                                </button>
 
                                                 <!-- =================
 
@@ -2076,9 +2088,13 @@ MAR | Liberia EHR
 
                                                     type="button"
 
+                                                    :disabled="!canMarkNotGiven($el.closest('[data-mar-row]'))"
+
+                                                    :title="canMarkNotGiven($el.closest('[data-mar-row]')) ? 'Document why this due medication was not given' : 'Available only when a scheduled medication is due or overdue'"
+
                                                     @click="
 
-                                                        openReason(
+                                                        if (canMarkNotGiven($el.closest('[data-mar-row]'))) openReason(
 
                                                             'not_given',
 
@@ -2090,27 +2106,7 @@ MAR | Liberia EHR
 
                                                     "
 
-                                                    class="
-
-                                                        h-6
-
-                                                        rounded
-
-                                                        border border-red-200
-
-                                                        bg-red-50
-
-                                                        px-2
-
-                                                        text-[8px]
-
-                                                        font-semibold
-
-                                                        text-red-700
-
-                                                        hover:bg-red-100
-
-                                                    "
+                                                    class="h-6 rounded border border-red-200 bg-red-50 px-2 text-[8px] font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
 
                                                 >
 
@@ -2127,6 +2123,8 @@ MAR | Liberia EHR
                                                 <button
 
                                                     type="button"
+
+                                                    x-show="canMarkNotGiven($el.closest('[data-mar-row]'))"
 
                                                     @click="
 
@@ -2225,6 +2223,13 @@ MAR | Liberia EHR
                                                     </span>
 
                                                 {% endif %}
+
+                                                <form method="post" action="{{ request.path }}" hx-boost="false">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="mar_action" value="resume_order">
+                                                    <input type="hidden" name="medication_order" value="{{ order.pk }}">
+                                                    <button type="submit" class="h-6 rounded border border-emerald-300 bg-emerald-50 px-2 text-[8px] font-semibold text-emerald-800 hover:bg-emerald-100">Resume</button>
+                                                </form>
 
                                             </div>
 
@@ -2342,6 +2347,7 @@ MAR | Liberia EHR
 
             >
 
+                <div class="flex items-center justify-between gap-2">
                 <h2
 
                     class="
@@ -2360,9 +2366,30 @@ MAR | Liberia EHR
 
                 </h2>
 
+                <button
+                    type="button"
+                    @click="toggleHistory()"
+                    class="rounded border border-slate-300 bg-white px-2 py-1 text-[8px] font-semibold text-slate-700 hover:bg-slate-100"
+                    :aria-expanded="historyOpen"
+                    x-text="historyOpen ? 'Hide history' : 'Show history'"
+                ></button>
+                </div>
+
             </header>
 
-            {% include "medications/partials/table_rows.html" %}
+            <div x-cloak x-show="historyOpen" x-collapse>
+                <div class="flex justify-end border-b border-slate-100 bg-white px-3 py-1">
+                    <button
+                        type="button"
+                        @click="toggleHistoryRows()"
+                        class="text-[8px] font-semibold text-blue-700 underline underline-offset-2"
+                        x-text="historyExpanded ? 'Show fewer meds' : 'Display more meds'"
+                    ></button>
+                </div>
+            <div x-ref="historyTable">
+                {% include "medications/partials/table_rows.html" with administrations=history_administrations %}
+            </div>
+            </div>
 
         </section>
 
@@ -2464,7 +2491,11 @@ MAR | Liberia EHR
 
                                 ? 'Hold Medication'
 
-                                : 'Medication Not Given'
+                                : reasonAction === 'timing'
+
+                                    ? 'Early / Delayed Administration'
+
+                                    : 'Medication Not Given'
 
                         "
 
@@ -2532,6 +2563,8 @@ MAR | Liberia EHR
 
                 class="p-3"
 
+                @submit="if (reasonAction === 'timing') { $event.preventDefault(); confirmTimingReason(); }"
+
             >
 
                 {% csrf_token %}
@@ -2554,6 +2587,12 @@ MAR | Liberia EHR
 
                     :value="reasonOrderId"
 
+                >
+
+                <input
+                    type="hidden"
+                    name="hold_source"
+                    :value="reasonSource"
                 >
 
                 <label
@@ -2582,7 +2621,11 @@ MAR | Liberia EHR
 
                                 ? 'Hold reason'
 
-                                : 'Reason not given'
+                                : reasonAction === 'timing'
+
+                                    ? 'Reason for administration outside the 3-hour window'
+
+                                    : 'Reason not given'
 
                         "
 
@@ -2630,6 +2673,20 @@ MAR | Liberia EHR
 
                         Select reason
 
+                    </option>
+
+                    <option
+                        x-show="reasonAction === 'timing'"
+                        value="Clinical need required early administration"
+                    >
+                        Clinical need required early administration
+                    </option>
+
+                    <option
+                        x-show="reasonAction === 'timing'"
+                        value="Delayed due to patient care needs"
+                    >
+                        Delayed due to patient care needs
                     </option>
 
                     <option value="Patient refused">
@@ -2808,7 +2865,11 @@ MAR | Liberia EHR
 
                                 ? 'bg-amber-700 hover:bg-amber-800'
 
-                                : 'bg-red-700 hover:bg-red-800'
+                                : reasonAction === 'timing'
+
+                                    ? 'bg-blue-700 hover:bg-blue-800'
+
+                                    : 'bg-red-700 hover:bg-red-800'
 
                         "
 
@@ -2838,7 +2899,11 @@ MAR | Liberia EHR
 
                                     ? 'Hold Medication'
 
-                                    : 'Record Not Given'
+                                    : reasonAction === 'timing'
+
+                                        ? 'Add to MAR'
+
+                                        : 'Record Not Given'
 
                             "
 
@@ -2878,6 +2943,18 @@ function marWorkspace() {
 
         search: "",
 
+        selectedOrders: [],
+
+        timingReasons: {},
+
+        expandedOrders: [],
+
+        historyOpen: false,
+
+        historyExpanded: false,
+
+        historyInitialLimit: 8,
+
         // ====================================================
 
         // TIME
@@ -2901,6 +2978,8 @@ function marWorkspace() {
         reasonOrderId: "",
 
         reasonMedication: "",
+
+        reasonSource: "",
 
         reasonPreset: "",
 
@@ -2961,6 +3040,8 @@ function marWorkspace() {
                 () => {
 
                     this.refreshCounts();
+
+                    this.prepareHistory();
 
                 }
 
@@ -3252,6 +3333,12 @@ function marWorkspace() {
 
         rowClass(row) {
 
+            if (row && this.isSelected(row.dataset.orderId)) {
+
+                return "bg-blue-50 ring-1 ring-inset ring-blue-300";
+
+            }
+
             const classes = {
 
                 due:
@@ -3462,6 +3549,166 @@ function marWorkspace() {
 
         },
 
+        toggleGiven(orderId, medication) {
+
+            const key = String(orderId);
+
+            const row = [...document.querySelectorAll("[data-mar-row]")]
+                .find((candidate) => candidate.dataset.orderId === key);
+
+            if (!this.canGive(row)) return;
+
+            if (this.selectedOrders.includes(key)) {
+                this.selectedOrders = this.selectedOrders.filter((id) => id !== key);
+                const reasons = {...this.timingReasons};
+                delete reasons[key];
+                this.timingReasons = reasons;
+                return;
+            }
+
+            if (this.needsTimingReason(row)) {
+                this.openReason("timing", key, medication);
+                return;
+            }
+
+            this.selectedOrders = [...this.selectedOrders, key];
+
+        },
+
+        isSelected(orderId) {
+
+            return this.selectedOrders.includes(String(orderId));
+
+        },
+
+        canGive(row) {
+
+            if (!row || row.dataset.orderStatus !== "active") return false;
+            if (row.dataset.isPrn === "true") return true;
+            return Boolean(row.dataset.nextDue)
+                && !Number.isNaN(new Date(row.dataset.nextDue).getTime());
+
+        },
+
+        canMarkNotGiven(row) {
+
+            if (!row || row.dataset.isPrn === "true") return false;
+            return ["due", "overdue"].includes(this.getStatus(row));
+
+        },
+
+        needsTimingReason(row) {
+
+            if (!row || row.dataset.isPrn === "true") return false;
+            const due = new Date(row.dataset.nextDue);
+            if (Number.isNaN(due.getTime())) return true;
+            const differenceMinutes = (due.getTime() - this.now.getTime()) / 60000;
+            return differenceMinutes > 60 || Math.abs(differenceMinutes) > 180;
+
+        },
+
+        confirmTimingReason() {
+
+            const reason = (
+                this.reasonPreset && this.reasonPreset !== "Other"
+                    ? this.reasonPreset
+                    : this.reasonText
+            ).trim();
+
+            if (!reason) return;
+
+            const key = String(this.reasonOrderId);
+            this.timingReasons = {...this.timingReasons, [key]: reason};
+            if (!this.selectedOrders.includes(key)) {
+                this.selectedOrders = [...this.selectedOrders, key];
+            }
+            this.closeReason();
+
+        },
+
+        toggleDetails(orderId) {
+
+            const key = String(orderId);
+
+            this.expandedOrders = this.expandedOrders.includes(key)
+                ? this.expandedOrders.filter((id) => id !== key)
+                : [...this.expandedOrders, key];
+
+        },
+
+        detailsOpen(orderId) {
+
+            return this.expandedOrders.includes(String(orderId));
+
+        },
+
+        prepareHistory() {
+
+            const root = this.$refs.historyTable;
+
+            if (!root) return;
+
+            const occurrences = new Map();
+
+            let uniqueIndex = 0;
+
+            root.querySelectorAll("tbody tr").forEach((row) => {
+
+                // Prefer an explicit data-medication-name on the history row/cell.
+                // The second cell is the conventional medication column fallback.
+                const medicationCell = row.querySelector("[data-medication-name]") || row.cells?.[1] || row.cells?.[0];
+
+                const key = (row.dataset.medicationName || medicationCell?.textContent || "")
+                    .trim().toLowerCase().replace(/\s+/g, " ");
+
+                const count = occurrences.get(key) || 0;
+
+                occurrences.set(key, count + 1);
+
+                row.dataset.historyDuplicate = count >= 2 ? "true" : "false";
+
+                if (count === 0) uniqueIndex += 1;
+
+                row.dataset.historyUniqueIndex = String(uniqueIndex);
+
+            });
+
+            this.applyHistoryVisibility();
+
+        },
+
+        applyHistoryVisibility() {
+
+            const root = this.$refs.historyTable;
+
+            if (!root) return;
+
+            root.querySelectorAll("tbody tr").forEach((row) => {
+
+                const duplicate = row.dataset.historyDuplicate === "true";
+
+                const beyondInitial = Number(row.dataset.historyUniqueIndex || 0) > this.historyInitialLimit;
+
+                row.hidden = duplicate || (!this.historyExpanded && beyondInitial);
+
+            });
+
+        },
+
+        toggleHistory() {
+
+            this.historyOpen = !this.historyOpen;
+
+        },
+
+        toggleHistoryRows() {
+
+            this.historyExpanded = !this.historyExpanded;
+
+            this.applyHistoryVisibility();
+
+        },
+
         // ====================================================
 
         // REASON PANEL
@@ -3474,7 +3721,9 @@ function marWorkspace() {
 
             orderId,
 
-            medication
+            medication,
+
+            source = "mar_row"
 
         ) {
 
@@ -3489,6 +3738,10 @@ function marWorkspace() {
             this.reasonMedication =
 
                 medication || "";
+
+            this.reasonSource =
+
+                source;
 
             this.reasonPreset =
 
@@ -3519,6 +3772,10 @@ function marWorkspace() {
                 "";
 
             this.reasonMedication =
+
+                "";
+
+            this.reasonSource =
 
                 "";
 

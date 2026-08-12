@@ -34,7 +34,31 @@ Purpose:
 {% endif %}
 
 
-<div class="space-y-4">
+<div class="space-y-3 text-[11px]">
+
+    <div class="grid gap-2 rounded-md border border-slate-200 bg-slate-50 p-2.5 sm:grid-cols-2 xl:grid-cols-4">
+        <div>
+            <label for="{{ form.ordered_by.id_for_label }}" class="mb-1 block text-[10px] font-semibold text-slate-700">Prescribing provider <span class="text-red-600">*</span></label>
+            {{ form.ordered_by }}
+            {% for error in form.ordered_by.errors %}<p class="mt-1 text-[9px] text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+            <label for="{{ form.order_method.id_for_label }}" class="mb-1 block text-[10px] font-semibold text-slate-700">Order mode <span class="text-red-600">*</span></label>
+            {{ form.order_method }}
+            {% for error in form.order_method.errors %}<p class="mt-1 text-[9px] text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+            <label for="{{ form.order_type.id_for_label }}" class="mb-1 block text-[10px] font-semibold text-slate-700">Order type <span class="text-red-600">*</span></label>
+            {{ form.order_type }}
+            {% for error in form.order_type.errors %}<p class="mt-1 text-[9px] text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+            <label for="{{ form.clinical_indication.id_for_label }}" class="mb-1 block text-[10px] font-semibold text-slate-700">Clinical indication <span class="text-red-600">*</span></label>
+            {{ form.clinical_indication }}
+            {% for error in form.clinical_indication.errors %}<p class="mt-1 text-[9px] text-red-600">{{ error }}</p>{% endfor %}
+        </div>
+        <p class="sm:col-span-2 xl:col-span-4 text-[9px] text-slate-500">Verbal and telephone orders automatically record the signed-in user as the order receiver.</p>
+    </div>
 
     <!-- =====================================================
          MEDICATION

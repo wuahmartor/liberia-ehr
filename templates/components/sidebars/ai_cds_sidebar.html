@@ -29,7 +29,7 @@ Purpose:
 
         <nav class="space-y-1">
             <a
-                href="#"
+                href="{% url 'decision_support:dashboard' %}"
                 class="
                     ai-sidebar-link
                     {% if active_ai_module == 'assistant' %}
@@ -42,7 +42,7 @@ Purpose:
             </a>
 
             <a
-                href="#"
+                href="{% url 'decision_support:dashboard' %}"
                 class="
                     ai-sidebar-link
                     {% if active_ai_module == 'summaries' %}
@@ -55,7 +55,7 @@ Purpose:
             </a>
 
             <a
-                href="#"
+                href="{% url 'decision_support:recommendations' %}"
                 class="
                     ai-sidebar-link
                     {% if active_ai_module == 'documentation' %}
@@ -68,7 +68,7 @@ Purpose:
             </a>
 
             <a
-                href="#"
+                href="{% url 'decision_support:alerts' %}"
                 class="
                     ai-sidebar-link
                     {% if active_ai_module == 'chart-review' %}
@@ -90,7 +90,7 @@ Purpose:
 
         <nav class="space-y-1">
             <a
-                href="#"
+                href="{% url 'decision_support:alerts' %}"
                 class="
                     ai-sidebar-link
                     {% if active_ai_module == 'alerts' %}
@@ -103,7 +103,7 @@ Purpose:
             </a>
 
             <a
-                href="#"
+                href="{% url 'decision_support:recommendations' %}"
                 class="
                     ai-sidebar-link
                     {% if active_ai_module == 'recommendations' %}
@@ -116,7 +116,7 @@ Purpose:
             </a>
 
             <a
-                href="#"
+                href="{% url 'pharmacy:interactions' %}"
                 class="
                     ai-sidebar-link
                     {% if active_ai_module == 'drug-safety' %}
@@ -129,7 +129,7 @@ Purpose:
             </a>
 
             <a
-                href="#"
+                href="{% url 'decision_support:risk' %}"
                 class="
                     ai-sidebar-link
                     {% if active_ai_module == 'risk' %}
@@ -142,7 +142,7 @@ Purpose:
             </a>
 
             <a
-                href="#"
+                href="{% url 'decision_support:rules' %}"
                 class="
                     ai-sidebar-link
                     {% if active_ai_module == 'rules' %}

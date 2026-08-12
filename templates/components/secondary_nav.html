@@ -182,6 +182,7 @@ Encounter context:
                 ====================================================
                 {% endcomment %}
 
+                {% if False %}{# Admission action now lives in Clinical. #}
                 <div
                     class="
                         hidden shrink-0 items-center gap-2
@@ -229,6 +230,7 @@ Encounter context:
                         <span>New Patient?</span>
                     </a>
                 </div>
+                {% endif %}
             </div>
 
             {% comment %}
@@ -347,7 +349,7 @@ Encounter context:
         ============================================================
         {% endcomment %}
 
-        <div class="border-t border-slate-100 px-3 py-2 sm:hidden">
+        {% if False %}{# Mobile new-patient action removed; Admission is in Clinical. #}<div class="border-t border-slate-100 px-3 py-2 sm:hidden">
             <div class="flex items-center justify-between gap-3">
                 <span class="text-xs font-medium text-slate-500">
                     New Patient?
@@ -382,7 +384,7 @@ Encounter context:
                     <span>Register Patient</span>
                 </a>
             </div>
-        </div>
+        </div>{% endif %}
     </div>
 
 
@@ -398,7 +400,7 @@ Encounter context:
         <div
             class="
                 flex min-h-11 items-center gap-3
-                overflow-x-auto px-3 py-1.5
+                overflow-visible px-3 py-1.5
                 lg:px-4
             "
         >
@@ -605,6 +607,18 @@ Encounter context:
                         <span>Edit Encounter</span>
                     </a>
 
+                    {% if encounter.is_open %}
+                        <details class="group relative">
+                            <summary class="secondary-nav-link cursor-pointer list-none text-slate-700 hover:bg-slate-100 [&::-webkit-details-marker]:hidden">
+                                <span>DT</span><span class="text-[9px]">▾</span>
+                            </summary>
+                            <div class="absolute right-0 top-full z-50 mt-1 min-w-36 rounded-md border border-slate-200 bg-white p-1 shadow-lg" style="position: absolute; right: 0; top: 100%;" role="menu">
+                                <a href="{% url 'nursing:workspace' patient_id=encounter.patient.pk encounter_id=encounter.pk %}?panel=assessment&assessment_type=discharge" hx-boost="false" class="block rounded px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" role="menuitem">Discharge</a>
+                                <a href="{% url 'nursing:workspace' patient_id=encounter.patient.pk encounter_id=encounter.pk %}?panel=assessment&assessment_type=transfer" hx-boost="false" class="block rounded px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" role="menuitem">Transfer</a>
+                            </div>
+                        </details>
+                    {% endif %}
+
                     {% if encounter.patient %}
                         <a
                             href="{% url 'patients:detail' patient_id=encounter.patient.pk %}"
@@ -743,6 +757,18 @@ Encounter context:
 
                         <span>Edit Encounter</span>
                     </a>
+
+                    {% if selected_encounter.is_open %}
+                        <details class="group relative">
+                            <summary class="secondary-nav-link cursor-pointer list-none text-slate-700 hover:bg-slate-100 [&::-webkit-details-marker]:hidden">
+                                <span>DT</span><span class="text-[9px]">▾</span>
+                            </summary>
+                            <div class="absolute right-0 top-full z-50 mt-1 min-w-36 rounded-md border border-slate-200 bg-white p-1 shadow-lg" style="position: absolute; right: 0; top: 100%;" role="menu">
+                                <a href="{% url 'nursing:workspace' patient_id=selected_encounter.patient.pk encounter_id=selected_encounter.pk %}?panel=assessment&assessment_type=discharge" hx-boost="false" class="block rounded px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" role="menuitem">Discharge</a>
+                                <a href="{% url 'nursing:workspace' patient_id=selected_encounter.patient.pk encounter_id=selected_encounter.pk %}?panel=assessment&assessment_type=transfer" hx-boost="false" class="block rounded px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100" role="menuitem">Transfer</a>
+                            </div>
+                        </details>
+                    {% endif %}
 
                     {% if selected_encounter.patient %}
                         <a

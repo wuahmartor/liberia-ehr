@@ -1,551 +1,78 @@
-{% comment %}
-============================================================
-ENCOUNTER DETAIL WORKSPACE
+{% comment %}Compact encounter detail; patient identity remains in the clinical sidebar.{% endcomment %}
 
-File:
-apps/encounters/templates/encounters/partials/detail_content.html
-
-Purpose:
-- Display complete encounter information in the main workspace.
-- Keep detailed encounter data out of the patient sidebar.
-- Display clinical workflow and audit information.
-============================================================
-{% endcomment %}
-
-
-<section class="space-y-4">
-
-    <!-- =========================================================
-         ENCOUNTER HEADER
-    ========================================================== -->
-    <header
-        class="
-            flex flex-col gap-3
-            rounded-xl border border-slate-200
-            bg-white p-4 shadow-sm
-            lg:flex-row lg:items-start lg:justify-between
-        "
-    >
+<section class="space-y-2 text-xs">
+    <header class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
         <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-                <p
-                    class="
-                        text-[10px] font-semibold uppercase
-                        tracking-wide text-emerald-700
-                    "
-                >
-                    Clinical Encounter
-                </p>
-
-                {% if encounter.is_active and encounter.is_open %}
-                    <span
-                        class="
-                            rounded-full bg-emerald-100
-                            px-2 py-0.5 text-[9px]
-                            font-semibold text-emerald-800
-                        "
-                    >
-                        Active
-                    </span>
-                {% else %}
-                    <span
-                        class="
-                            rounded-full bg-slate-100
-                            px-2 py-0.5 text-[9px]
-                            font-semibold text-slate-600
-                        "
-                    >
-                        Closed
-                    </span>
-                {% endif %}
+                <h1 class="text-sm font-bold text-slate-900">{{ encounter.get_encounter_type_display }} encounter</h1>
+                <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold {% if encounter.is_active and encounter.is_open %}bg-emerald-100 text-emerald-800{% else %}bg-slate-100 text-slate-600{% endif %}">{{ encounter.get_status_display }}</span>
+                <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold {% if encounter.priority == 'EMERGENCY' %}bg-red-100 text-red-700{% elif encounter.priority == 'URGENT' %}bg-amber-100 text-amber-700{% else %}bg-slate-100 text-slate-700{% endif %}">{{ encounter.get_priority_display }}</span>
             </div>
-
-            <h1 class="mt-1 text-xl font-semibold text-slate-900">
-                {{ encounter.encounter_number }}
-            </h1>
-
-            <p class="mt-1 text-sm text-slate-500">
-                {{ encounter.get_encounter_type_display }}
-                encounter for
-                <span class="font-semibold text-slate-700">
-                    {{ encounter.patient }}
-                </span>
-            </p>
+            <p class="mt-0.5 text-[10px] text-slate-500">{{ encounter.encounter_number }}</p>
         </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-            <a
-                href="{% url 'patients:detail' patient_id=encounter.patient.pk %}"
-                hx-boost="false"
-                class="
-                    inline-flex min-h-9 items-center justify-center
-                    rounded-lg border border-slate-300
-                    bg-white px-3 py-2
-                    text-xs font-semibold text-slate-700
-                    shadow-sm transition hover:bg-slate-100
-                "
-            >
-                Patient Record
-            </a>
-
-            <a
-                href="{% url 'encounters:update' encounter.pk %}"
-                hx-boost="false"
-                class="
-                    inline-flex min-h-9 items-center justify-center
-                    rounded-lg border border-emerald-800
-                    bg-emerald-700 px-3 py-2
-                    text-xs font-semibold text-white
-                    shadow-sm transition hover:bg-emerald-800
-                "
-                style="background-color: #047857; color: #ffffff;"
-            >
-                Edit Encounter
-            </a>
+        <div class="flex items-center gap-1.5">
+            <a href="{% url 'patients:detail' patient_id=encounter.patient.pk %}" hx-boost="false" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-50">Patient record</a>
+            <a href="{% url 'encounters:update' encounter.pk %}" hx-boost="false" class="rounded bg-emerald-700 px-2.5 py-1.5 text-[10px] font-semibold text-white hover:bg-emerald-800" style="background-color:#047857;color:#fff">Edit</a>
         </div>
     </header>
 
-
-    <!-- =========================================================
-         CLINICAL SUMMARY
-    ========================================================== -->
-    <div class="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(18rem,1fr)]">
-
-        <!-- =====================================================
-             PRIMARY ENCOUNTER INFORMATION
-        ====================================================== -->
-        <div class="space-y-4">
-
-            <section
-                class="
-                    overflow-hidden rounded-xl
-                    border border-slate-200
-                    bg-white shadow-sm
-                "
-            >
-                <div
-                    class="
-                        border-b border-slate-200
-                        bg-slate-50 px-4 py-3
-                    "
-                >
-                    <h2 class="text-sm font-semibold text-slate-900">
-                        Encounter Summary
-                    </h2>
-
-                    <p class="mt-0.5 text-xs text-slate-500">
-                        Core clinical and administrative encounter details.
-                    </p>
-                </div>
-
-                <dl
-                    class="
-                        grid grid-cols-1 gap-x-6 gap-y-4
-                        p-4 sm:grid-cols-2
-                    "
-                >
-                    <div>
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Encounter type
-                        </dt>
-
-                        <dd class="mt-1 text-sm font-medium text-slate-900">
-                            {{ encounter.get_encounter_type_display }}
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Status
-                        </dt>
-
-                        <dd class="mt-1">
-                            <span
-                                class="
-                                    inline-flex rounded-full
-                                    bg-emerald-100 px-2 py-0.5
-                                    text-xs font-semibold text-emerald-800
-                                "
-                            >
-                                {{ encounter.get_status_display }}
-                            </span>
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Priority
-                        </dt>
-
-                        <dd class="mt-1 text-sm font-medium text-slate-900">
-                            {{ encounter.get_priority_display }}
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Attending provider
-                        </dt>
-
-                        <dd class="mt-1 text-sm font-medium text-slate-900">
-                            {% if encounter.attending_provider %}
-                                {% firstof encounter.attending_provider.get_full_name encounter.attending_provider.username %}
-                            {% else %}
-                                Not assigned
-                            {% endif %}
-                        </dd>
-                    </div>
-
-                    <div class="sm:col-span-2">
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Reason for visit
-                        </dt>
-
-                        <dd class="mt-1 text-sm text-slate-800">
-                            {{ encounter.reason_for_visit|default:"No reason for visit recorded." }}
-                        </dd>
-                    </div>
-
-                    <div class="sm:col-span-2">
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Encounter notes
-                        </dt>
-
-                        <dd class="mt-1 whitespace-pre-line text-sm text-slate-800">
-                            {{ encounter.notes|default:"No encounter notes recorded." }}
-                        </dd>
-                    </div>
-                </dl>
-            </section>
-
-
-            <!-- =================================================
-                 WORKFLOW STATUS
-            ================================================== -->
-            <section
-                class="
-                    overflow-hidden rounded-xl
-                    border border-slate-200
-                    bg-white shadow-sm
-                "
-            >
-                <div
-                    class="
-                        border-b border-slate-200
-                        bg-slate-50 px-4 py-3
-                    "
-                >
-                    <h2 class="text-sm font-semibold text-slate-900">
-                        Encounter Workflow
-                    </h2>
-                </div>
-
-                <div
-                    class="
-                        grid grid-cols-1 gap-3
-                        p-4 sm:grid-cols-2 lg:grid-cols-3
-                    "
-                >
-                    <article
-                        class="
-                            rounded-lg border border-slate-200
-                            bg-slate-50 p-3
-                        "
-                    >
-                        <p class="text-[10px] font-semibold uppercase text-slate-500">
-                            Registration
-                        </p>
-
-                        <p class="mt-1 text-sm font-semibold text-slate-900">
-                            {% if encounter.registration_completed %}
-                                Completed
-                            {% else %}
-                                Pending
-                            {% endif %}
-                        </p>
-
-                        {% if encounter.registered_at %}
-                            <p class="mt-1 text-[10px] text-slate-500">
-                                {{ encounter.registered_at|date:"M j, Y g:i A" }}
-                            </p>
-                        {% endif %}
-                    </article>
-
-                    <article
-                        class="
-                            rounded-lg border border-slate-200
-                            bg-slate-50 p-3
-                        "
-                    >
-                        <p class="text-[10px] font-semibold uppercase text-slate-500">
-                            Identity verification
-                        </p>
-
-                        <p class="mt-1 text-sm font-semibold text-slate-900">
-                            {% if encounter.identity_verified %}
-                                Verified
-                            {% else %}
-                                Pending
-                            {% endif %}
-                        </p>
-
-                        {% if encounter.identity_verified_at %}
-                            <p class="mt-1 text-[10px] text-slate-500">
-                                {{ encounter.identity_verified_at|date:"M j, Y g:i A" }}
-                            </p>
-                        {% endif %}
-                    </article>
-
-                    <article
-                        class="
-                            rounded-lg border border-slate-200
-                            bg-slate-50 p-3
-                        "
-                    >
-                        <p class="text-[10px] font-semibold uppercase text-slate-500">
-                            Arrival
-                        </p>
-
-                        <p class="mt-1 text-sm font-semibold text-slate-900">
-                            {% if encounter.arrived_at %}
-                                Arrived
-                            {% else %}
-                                Not recorded
-                            {% endif %}
-                        </p>
-
-                        {% if encounter.arrived_at %}
-                            <p class="mt-1 text-[10px] text-slate-500">
-                                {{ encounter.arrived_at|date:"M j, Y g:i A" }}
-                            </p>
-                        {% endif %}
-                    </article>
-
-                    <article
-                        class="
-                            rounded-lg border border-slate-200
-                            bg-slate-50 p-3
-                        "
-                    >
-                        <p class="text-[10px] font-semibold uppercase text-slate-500">
-                            Triage
-                        </p>
-
-                        <p class="mt-1 text-sm font-semibold text-slate-900">
-                            {% if encounter.triaged_at %}
-                                Completed
-                            {% else %}
-                                Not recorded
-                            {% endif %}
-                        </p>
-
-                        {% if encounter.triaged_at %}
-                            <p class="mt-1 text-[10px] text-slate-500">
-                                {{ encounter.triaged_at|date:"M j, Y g:i A" }}
-                            </p>
-                        {% endif %}
-                    </article>
-
-                    <article
-                        class="
-                            rounded-lg border border-slate-200
-                            bg-slate-50 p-3
-                        "
-                    >
-                        <p class="text-[10px] font-semibold uppercase text-slate-500">
-                            Clinical care
-                        </p>
-
-                        <p class="mt-1 text-sm font-semibold text-slate-900">
-                            {% if encounter.clinical_start_at %}
-                                Started
-                            {% else %}
-                                Not started
-                            {% endif %}
-                        </p>
-
-                        {% if encounter.clinical_start_at %}
-                            <p class="mt-1 text-[10px] text-slate-500">
-                                {{ encounter.clinical_start_at|date:"M j, Y g:i A" }}
-                            </p>
-                        {% endif %}
-                    </article>
-
-                    <article
-                        class="
-                            rounded-lg border border-slate-200
-                            bg-slate-50 p-3
-                        "
-                    >
-                        <p class="text-[10px] font-semibold uppercase text-slate-500">
-                            Completion
-                        </p>
-
-                        <p class="mt-1 text-sm font-semibold text-slate-900">
-                            {% if encounter.completed_at %}
-                                Completed
-                            {% else %}
-                                Open
-                            {% endif %}
-                        </p>
-
-                        {% if encounter.completed_at %}
-                            <p class="mt-1 text-[10px] text-slate-500">
-                                {{ encounter.completed_at|date:"M j, Y g:i A" }}
-                            </p>
-                        {% endif %}
-                    </article>
-                </div>
-            </section>
+    <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div class="grid divide-y divide-slate-200 sm:grid-cols-[minmax(0,2fr)_minmax(12rem,1fr)] sm:divide-x sm:divide-y-0">
+            <div class="px-3 py-2.5">
+                <p class="text-[9px] font-bold uppercase tracking-wide text-slate-500">Reason for visit</p>
+                <p class="mt-1 text-xs font-medium leading-4 text-slate-900">{{ encounter.reason_for_visit|default:"Not recorded" }}</p>
+            </div>
+            <div class="px-3 py-2.5">
+                <p class="text-[9px] font-bold uppercase tracking-wide text-slate-500">Attending provider</p>
+                <p class="mt-1 truncate text-xs font-medium text-slate-900">{% if encounter.attending_provider %}{% firstof encounter.attending_provider.get_full_name encounter.attending_provider.username %}{% else %}Not assigned{% endif %}</p>
+            </div>
         </div>
+        {% if encounter.notes %}
+            <div class="border-t border-slate-200 px-3 py-2.5">
+                <p class="text-[9px] font-bold uppercase tracking-wide text-slate-500">Encounter notes</p>
+                <p class="mt-1 whitespace-pre-line text-xs leading-4 text-slate-700">{{ encounter.notes }}</p>
+            </div>
+        {% endif %}
+    </section>
 
-
-        <!-- =====================================================
-             AUDIT AND TIMING
-        ====================================================== -->
-        <aside class="space-y-4">
-            <section
-                class="
-                    overflow-hidden rounded-xl
-                    border border-slate-200
-                    bg-white shadow-sm
-                "
-            >
-                <div
-                    class="
-                        border-b border-slate-200
-                        bg-slate-50 px-4 py-3
-                    "
-                >
-                    <h2 class="text-sm font-semibold text-slate-900">
-                        Encounter Timing
-                    </h2>
+    <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
+            <span class="font-semibold text-slate-800">Clinical notes</span>
+            <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-bold text-blue-700">{{ encounter.encounter_note_list|length }}</span>
+        </summary>
+        <div class="overflow-x-auto border-t border-slate-200">
+            {% for note in encounter.encounter_note_list %}
+                <a href="{% url 'clinical_notes:detail' note.pk %}" hx-boost="false" class="flex min-w-[760px] items-center gap-3 whitespace-nowrap border-b border-slate-100 px-3 py-2 transition last:border-b-0 hover:bg-slate-50">
+                    <span class="min-w-0 flex-1 truncate text-xs font-semibold text-slate-900">{% firstof note.title note.chief_complaint note.get_note_type_display %} <span class="font-normal text-slate-400">· {{ note.get_note_type_display }}</span></span>
+                    <span class="w-36 truncate text-[10px] text-slate-600">{% firstof note.author.get_full_name note.author.username %}</span>
+                    <span class="w-32 text-[10px] text-slate-500">{{ note.created_at|date:"M j, Y g:i A" }}</span>
+                    <span class="w-16 rounded px-1.5 py-0.5 text-center text-[9px] font-semibold {% if note.status == 'signed' %}bg-emerald-100 text-emerald-700{% elif note.status == 'voided' %}bg-red-100 text-red-700{% else %}bg-slate-100 text-slate-700{% endif %}">{{ note.get_status_display }}</span>
+                    <span class="text-[10px] font-semibold text-emerald-700">Open →</span>
+                </a>
+            {% empty %}
+                <div class="px-3 py-5 text-center">
+                    <p class="text-[10px] text-slate-500">No clinical notes are linked to this encounter.</p>
+                    <a href="{% url 'clinical_notes:create' encounter.patient.pk %}?encounter={{ encounter.pk }}" hx-boost="false" class="mt-2 inline-flex rounded bg-emerald-700 px-2.5 py-1.5 text-[10px] font-semibold text-white">Create clinical note</a>
                 </div>
+            {% endfor %}
+        </div>
+    </details>
 
-                <dl class="space-y-3 p-4">
-                    <div>
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Started
-                        </dt>
-
-                        <dd class="mt-1 text-sm text-slate-900">
-                            {{ encounter.start_datetime|date:"M j, Y g:i A" }}
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Ended
-                        </dt>
-
-                        <dd class="mt-1 text-sm text-slate-900">
-                            {% if encounter.end_datetime %}
-                                {{ encounter.end_datetime|date:"M j, Y g:i A" }}
-                            {% else %}
-                                Encounter remains open
-                            {% endif %}
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Created
-                        </dt>
-
-                        <dd class="mt-1 text-sm text-slate-900">
-                            {{ encounter.created_at|date:"M j, Y g:i A" }}
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Last updated
-                        </dt>
-
-                        <dd class="mt-1 text-sm text-slate-900">
-                            {{ encounter.updated_at|date:"M j, Y g:i A" }}
-                        </dd>
-                    </div>
-                </dl>
-            </section>
-
-
-            <section
-                class="
-                    overflow-hidden rounded-xl
-                    border border-slate-200
-                    bg-white shadow-sm
-                "
-            >
-                <div
-                    class="
-                        border-b border-slate-200
-                        bg-slate-50 px-4 py-3
-                    "
-                >
-                    <h2 class="text-sm font-semibold text-slate-900">
-                        Recorders
-                    </h2>
-                </div>
-
-                <dl class="space-y-3 p-4">
-                    <div>
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Created by
-                        </dt>
-
-                        <dd class="mt-1 text-sm text-slate-900">
-                            {% if encounter.created_by %}
-                                {% firstof encounter.created_by.get_full_name encounter.created_by.username %}
-                            {% else %}
-                                Not recorded
-                            {% endif %}
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Registered by
-                        </dt>
-
-                        <dd class="mt-1 text-sm text-slate-900">
-                            {% if encounter.registered_by %}
-                                {% firstof encounter.registered_by.get_full_name encounter.registered_by.username %}
-                            {% else %}
-                                Not recorded
-                            {% endif %}
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Identity verified by
-                        </dt>
-
-                        <dd class="mt-1 text-sm text-slate-900">
-                            {% if encounter.identity_verified_by %}
-                                {% firstof encounter.identity_verified_by.get_full_name encounter.identity_verified_by.username %}
-                            {% else %}
-                                Not recorded
-                            {% endif %}
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-[10px] font-semibold uppercase text-slate-500">
-                            Checked in by
-                        </dt>
-
-                        <dd class="mt-1 text-sm text-slate-900">
-                            {% if encounter.check_in_user %}
-                                {% firstof encounter.check_in_user.get_full_name encounter.check_in_user.username %}
-                            {% else %}
-                                Not recorded
-                            {% endif %}
-                        </dd>
-                    </div>
-                </dl>
-            </section>
-        </aside>
-    </div>
+    <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="cursor-pointer px-3 py-2 text-[10px] font-semibold text-slate-700">Audit and timing details</summary>
+        <div class="grid grid-cols-2 divide-x divide-y divide-slate-200 border-t border-slate-200 sm:grid-cols-3 lg:grid-cols-6">
+            <div class="px-2.5 py-2"><p class="text-[9px] uppercase text-slate-500">Registration</p><p class="mt-0.5 font-semibold">{% if encounter.registration_completed %}Completed{% else %}Pending{% endif %}</p>{% if encounter.registered_at %}<p class="text-[8px] text-slate-400">{{ encounter.registered_at|date:"m/d g:i A" }}</p>{% endif %}</div>
+            <div class="px-2.5 py-2"><p class="text-[9px] uppercase text-slate-500">Identity</p><p class="mt-0.5 font-semibold">{% if encounter.identity_verified %}Verified{% else %}Pending{% endif %}</p>{% if encounter.identity_verified_at %}<p class="text-[8px] text-slate-400">{{ encounter.identity_verified_at|date:"m/d g:i A" }}</p>{% endif %}</div>
+            <div class="px-2.5 py-2"><p class="text-[9px] uppercase text-slate-500">Arrival</p><p class="mt-0.5 font-semibold">{% if encounter.arrived_at %}Arrived{% else %}Not recorded{% endif %}</p>{% if encounter.arrived_at %}<p class="text-[8px] text-slate-400">{{ encounter.arrived_at|date:"m/d g:i A" }}</p>{% endif %}</div>
+            <div class="px-2.5 py-2"><p class="text-[9px] uppercase text-slate-500">Triage</p><p class="mt-0.5 font-semibold">{% if encounter.triaged_at %}Completed{% else %}Not recorded{% endif %}</p>{% if encounter.triaged_at %}<p class="text-[8px] text-slate-400">{{ encounter.triaged_at|date:"m/d g:i A" }}</p>{% endif %}</div>
+            <div class="px-2.5 py-2"><p class="text-[9px] uppercase text-slate-500">Clinical care</p><p class="mt-0.5 font-semibold">{% if encounter.clinical_start_at %}Started{% else %}Not started{% endif %}</p>{% if encounter.clinical_start_at %}<p class="text-[8px] text-slate-400">{{ encounter.clinical_start_at|date:"m/d g:i A" }}</p>{% endif %}</div>
+            <div class="px-2.5 py-2"><p class="text-[9px] uppercase text-slate-500">Completion</p><p class="mt-0.5 font-semibold">{% if encounter.completed_at %}Completed{% else %}Open{% endif %}</p>{% if encounter.completed_at %}<p class="text-[8px] text-slate-400">{{ encounter.completed_at|date:"m/d g:i A" }}</p>{% endif %}</div>
+        </div>
+        <div class="grid gap-x-5 gap-y-2 border-t border-slate-200 px-3 py-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            <div><p class="text-[9px] uppercase text-slate-500">Ended</p><p class="mt-0.5 text-[10px] text-slate-800">{% if encounter.end_datetime %}{{ encounter.end_datetime|date:"M j, Y g:i A" }}{% else %}Open{% endif %}</p></div>
+            <div><p class="text-[9px] uppercase text-slate-500">Created</p><p class="mt-0.5 text-[10px] text-slate-800">{{ encounter.created_at|date:"M j, Y g:i A" }}</p></div>
+            <div><p class="text-[9px] uppercase text-slate-500">Updated</p><p class="mt-0.5 text-[10px] text-slate-800">{{ encounter.updated_at|date:"M j, Y g:i A" }}</p></div>
+            <div><p class="text-[9px] uppercase text-slate-500">Created by</p><p class="mt-0.5 text-[10px] text-slate-800">{% if encounter.created_by %}{% firstof encounter.created_by.get_full_name encounter.created_by.username %}{% else %}Not recorded{% endif %}</p></div>
+        </div>
+    </details>
 </section>

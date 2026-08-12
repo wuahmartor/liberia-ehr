@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 620" role="img" aria-labelledby="title desc">
+  <title id="title">Front and back anatomical body reference</title>
+  <desc id="desc">Neutral clinical silhouettes used to select a pain location.</desc>
+  <defs>
+    <linearGradient id="body" x1="0" x2="1">
+      <stop offset="0" stop-color="#cbd5e1"/>
+      <stop offset="0.5" stop-color="#f1f5f9"/>
+      <stop offset="1" stop-color="#94a3b8"/>
+    </linearGradient>
+  </defs>
+  <rect width="620" height="620" fill="#fff"/>
+  <g fill="url(#body)" stroke="#64748b" stroke-width="2">
+    <g transform="translate(25)">
+      <circle cx="130" cy="55" r="38"/><path d="M105 94 Q75 112 70 180 L82 320 104 352 95 570 125 600 139 370 153 600 183 570 174 352 196 320 208 180 Q203 112 173 94 Q140 108 105 94Z"/><path d="M73 135 32 300 52 310 100 185M205 135l41 165-20 10-48-125"/>
+    </g>
+    <g transform="translate(335)">
+      <circle cx="130" cy="55" r="38"/><path d="M105 94 Q75 112 70 180 L82 320 104 352 95 570 125 600 139 370 153 600 183 570 174 352 196 320 208 180 Q203 112 173 94 Q140 108 105 94Z"/><path d="M73 135 32 300 52 310 100 185M205 135l41 165-20 10-48-125"/><path d="M139 100v255" fill="none" stroke="#94a3b8"/>
+    </g>
+  </g>
+  <g fill="#475569" font-family="sans-serif" font-size="14" font-weight="600" text-anchor="middle"><text x="155" y="615">FRONT</text><text x="465" y="615">BACK</text></g>
+</svg>

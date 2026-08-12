@@ -8,15 +8,16 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
-from django.db.models import F, QuerySet
+from django.db.models import F, Q, QuerySet
 from django.http import (
     Http404,
     HttpRequest,
     HttpResponse,
     JsonResponse,
 )
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.decorators.http import (
     require_GET,
     require_POST,
@@ -28,13 +29,24 @@ from django.views.generic import (
     UpdateView,
 )
 
-from .forms import MedicationForm
-from .models import Medication
+from apps.orders.models import MedicationOrder
+
+from .forms import (
+    DispenseForm,
+    InventoryAdjustmentForm,
+    MedicationForm,
+    PharmacyReviewForm,
+)
+from .models import (
+    DispenseRecord,
+    InventoryTransaction,
+    Medication,
+    PharmacyReview,
+)
 from .rxnorm import (
     RxNormClient,
     RxNormUnavailable,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -80,13 +92,7 @@ def can_manage_medication_catalog(user) -> bool:
     - staff users may manage the formulary
     """
 
-    return bool(
-        user.is_authenticated
-        and (
-            user.is_superuser
-            or user.is_staff
-        )
-    )
+    return bool(user.is_authenticated and (user.is_superuser or user.is_staff))
 
 
 class MedicationCatalogManagementMixin:
@@ -98,8 +104,7 @@ class MedicationCatalogManagementMixin:
     def dispatch(self, request, *args, **kwargs):
         if not can_manage_medication_catalog(request.user):
             raise PermissionDenied(
-                "You do not have permission to modify "
-                "the medication formulary."
+                "You do not have permission to modify the medication formulary."
             )
 
         return super().dispatch(
@@ -120,19 +125,11 @@ class HTMXTemplateMixin:
     requests and the full page for normal browser requests.
     """
 
-    partial_template_name = (
-        "pharmacy/partials/"
-        "medication_catalog_workspace.html"
-    )
+    partial_template_name = "pharmacy/partials/medication_catalog_workspace.html"
 
     def get_template_names(self):
-        if (
-            self.request.headers.get("HX-Request")
-            == "true"
-        ):
-            return [
-                self.partial_template_name
-            ]
+        if self.request.headers.get("HX-Request") == "true":
+            return [self.partial_template_name]
 
         return super().get_template_names()
 
@@ -151,16 +148,12 @@ def medication_catalog_queryset() -> QuerySet[Medication]:
     workspace rather than a prescribing search.
     """
 
-    return (
-        Medication.objects
-        .all()
-        .order_by(
-            "generic_name",
-            "strength",
-            "dosage_form",
-            "code",
-            "pk",
-        )
+    return Medication.objects.all().order_by(
+        "generic_name",
+        "strength",
+        "dosage_form",
+        "code",
+        "pk",
     )
 
 
@@ -174,13 +167,8 @@ def low_stock_queryset() -> QuerySet[Medication]:
     """
 
     return (
-        Medication.objects
-        .active()
-        .filter(
-            quantity_on_hand__lte=F(
-                "reorder_level"
-            )
-        )
+        Medication.objects.active()
+        .filter(quantity_on_hand__lte=F("reorder_level"))
         .order_by(
             "quantity_on_hand",
             "generic_name",
@@ -188,6 +176,18 @@ def low_stock_queryset() -> QuerySet[Medication]:
             "pk",
         )
     )
+
+
+def pharmacy_order_queryset() -> QuerySet[MedicationOrder]:
+    return MedicationOrder.objects.select_related(
+        "patient", "encounter", "medication", "ordered_by", "pharmacy_review"
+    ).prefetch_related("dispense_records")
+
+
+def workflow_response(request, template_name, context):
+    if request.headers.get("HX-Request") == "true":
+        return render(request, "pharmacy/partials/workflow_table.html", context)
+    return render(request, template_name, context)
 
 
 # ============================================================
@@ -212,22 +212,32 @@ def dashboard(
 
     low_stock = low_stock_queryset()
 
-    context = (
-        pharmacy_context("dashboard")
-        | {
-            "catalog_count": (
-                Medication.objects
-                .active()
-                .count()
-            ),
-            "low_stock_count": (
-                low_stock.count()
-            ),
-            "low_stock_medications": (
-                low_stock[:10]
-            ),
-        }
-    )
+    context = pharmacy_context("dashboard") | {
+        "catalog_count": (Medication.objects.active().count()),
+        "low_stock_count": (low_stock.count()),
+        "low_stock_medications": (low_stock[:10]),
+        "queue_count": pharmacy_order_queryset()
+        .filter(
+            status=MedicationOrder.Status.ACTIVE,
+            pharmacy_review__isnull=True,
+        )
+        .count(),
+        "review_count": pharmacy_order_queryset()
+        .filter(
+            status=MedicationOrder.Status.ACTIVE,
+            pharmacy_review__status=PharmacyReview.Status.PENDING,
+        )
+        .count(),
+        "verified_count": pharmacy_order_queryset()
+        .filter(
+            status=MedicationOrder.Status.ACTIVE,
+            pharmacy_review__status=PharmacyReview.Status.VERIFIED,
+        )
+        .count(),
+        "recent_dispenses": DispenseRecord.objects.select_related(
+            "order__patient", "medication", "dispensed_by"
+        )[:8],
+    }
 
     return render(
         request,
@@ -252,11 +262,22 @@ def queue(
     awaiting pharmacy processing.
     """
 
-    return render(
-        request,
-        "pharmacy/queue.html",
-        pharmacy_context("queue"),
-    )
+    query = request.GET.get("q", "").strip()
+    orders = pharmacy_order_queryset().filter(status=MedicationOrder.Status.ACTIVE)
+    if query:
+        orders = orders.filter(
+            Q(patient__first_name__icontains=query)
+            | Q(patient__last_name__icontains=query)
+            | Q(patient__mrn__icontains=query)
+            | Q(medication__generic_name__icontains=query)
+            | Q(clinical_indication__icontains=query)
+        )
+    context = pharmacy_context("queue") | {
+        "orders": orders[:100],
+        "workflow_kind": "queue",
+        "query": query,
+    }
+    return workflow_response(request, "pharmacy/queue.html", context)
 
 
 @login_required
@@ -278,13 +299,16 @@ def pending_review(
     - required monitoring
     """
 
-    return render(
-        request,
-        "pharmacy/pending_review.html",
-        pharmacy_context(
-            "pending-review"
-        ),
+    orders = pharmacy_order_queryset().filter(
+        Q(pharmacy_review__isnull=True)
+        | Q(pharmacy_review__status=PharmacyReview.Status.PENDING),
+        status=MedicationOrder.Status.ACTIVE,
     )
+    context = pharmacy_context("pending-review") | {
+        "orders": orders,
+        "workflow_kind": "review",
+    }
+    return workflow_response(request, "pharmacy/pending_review.html", context)
 
 
 @login_required
@@ -295,11 +319,15 @@ def verified(
     Medication orders that have completed pharmacy review.
     """
 
-    return render(
-        request,
-        "pharmacy/verified.html",
-        pharmacy_context("verified"),
+    orders = pharmacy_order_queryset().filter(
+        status=MedicationOrder.Status.ACTIVE,
+        pharmacy_review__status=PharmacyReview.Status.VERIFIED,
     )
+    context = pharmacy_context("verified") | {
+        "orders": orders,
+        "workflow_kind": "verified",
+    }
+    return workflow_response(request, "pharmacy/verified.html", context)
 
 
 @login_required
@@ -314,11 +342,18 @@ def dispensing(
     transactions.
     """
 
-    return render(
-        request,
-        "pharmacy/dispensing.html",
-        pharmacy_context("dispensing"),
+    orders = pharmacy_order_queryset().filter(
+        status=MedicationOrder.Status.ACTIVE,
+        pharmacy_review__status=PharmacyReview.Status.VERIFIED,
     )
+    context = pharmacy_context("dispensing") | {
+        "orders": orders,
+        "workflow_kind": "dispensing",
+        "recent_dispenses": DispenseRecord.objects.select_related(
+            "order__patient", "medication", "dispensed_by"
+        )[:25],
+    }
+    return workflow_response(request, "pharmacy/dispensing.html", context)
 
 
 @login_required
@@ -332,12 +367,21 @@ def interactions(
     not autonomous prescribing decisions.
     """
 
+    flagged_orders = (
+        pharmacy_order_queryset()
+        .filter(
+            status=MedicationOrder.Status.ACTIVE,
+        )
+        .filter(
+            Q(medication__is_high_alert=True)
+            | Q(medication__is_lasa=True)
+            | Q(medication__is_controlled=True)
+        )
+    )
     return render(
         request,
         "pharmacy/interactions.html",
-        pharmacy_context(
-            "interactions"
-        ),
+        pharmacy_context("interactions") | {"orders": flagged_orders},
     )
 
 
@@ -356,10 +400,97 @@ def rejected(
     - resolution status
     """
 
+    orders = pharmacy_order_queryset().filter(
+        pharmacy_review__status__in=(
+            PharmacyReview.Status.CLARIFICATION,
+            PharmacyReview.Status.REJECTED,
+        )
+    )
+    context = pharmacy_context("rejected") | {
+        "orders": orders,
+        "workflow_kind": "rejected",
+    }
+    return workflow_response(request, "pharmacy/rejected.html", context)
+
+
+@login_required
+def review_order(request: HttpRequest, order_id) -> HttpResponse:
+    order = get_object_or_404(pharmacy_order_queryset(), pk=order_id)
+    review, _ = PharmacyReview.objects.get_or_create(order=order)
+    form = PharmacyReviewForm(request.POST or None, instance=review)
+    if request.method == "POST" and form.is_valid():
+        review = form.save(commit=False)
+        review.reviewed_by = request.user
+        review.reviewed_at = timezone.now()
+        review.save()
+        messages.success(
+            request, f"Pharmacy review saved for {order.medication.display_name}."
+        )
+        if request.headers.get("HX-Request") == "true":
+            response = HttpResponse(status=204)
+            response["HX-Redirect"] = reverse_lazy("pharmacy:pending-review")
+            return response
+        return redirect("pharmacy:pending-review")
     return render(
         request,
-        "pharmacy/rejected.html",
-        pharmacy_context("rejected"),
+        "pharmacy/review_order.html",
+        pharmacy_context("pending-review") | {"order": order, "form": form},
+    )
+
+
+@login_required
+def dispense_order(request: HttpRequest, order_id) -> HttpResponse:
+    order = get_object_or_404(pharmacy_order_queryset(), pk=order_id)
+    review = getattr(order, "pharmacy_review", None)
+    if not review or not review.is_verified:
+        messages.error(
+            request, "The medication order must be verified before dispensing."
+        )
+        return redirect("pharmacy:pending-review")
+
+    form = DispenseForm(request.POST or None, initial={"quantity": order.quantity})
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            medication = Medication.objects.select_for_update().get(
+                pk=order.medication_id
+            )
+            quantity = form.cleaned_data["quantity"]
+            if quantity > medication.quantity_on_hand:
+                form.add_error(
+                    "quantity",
+                    (
+                        f"Only {medication.quantity_on_hand} "
+                        f"{medication.unit_of_measure} available."
+                    ),
+                )
+            else:
+                dispense = form.save(commit=False)
+                dispense.order = order
+                dispense.medication = medication
+                dispense.unit_of_measure = medication.unit_of_measure
+                dispense.dispensed_by = request.user
+                dispense.save()
+                medication.quantity_on_hand -= quantity
+                medication.updated_by = request.user
+                medication.save(
+                    update_fields=["quantity_on_hand", "updated_by", "updated_at"]
+                )
+                InventoryTransaction.objects.create(
+                    medication=medication,
+                    movement_type=InventoryTransaction.MovementType.DISPENSE,
+                    quantity_change=-quantity,
+                    balance_after=medication.quantity_on_hand,
+                    reference=str(order.pk),
+                    dispense_record=dispense,
+                    recorded_by=request.user,
+                )
+                messages.success(request, "Medication dispensed and inventory updated.")
+                return redirect("pharmacy:dispensing")
+
+    return render(
+        request,
+        "pharmacy/dispense_order.html",
+        pharmacy_context("dispensing") | {"order": order, "form": form},
     )
 
 
@@ -380,19 +511,50 @@ def inventory(
     can appear in clinical ordering searches.
     """
 
-    medications = (
-        low_stock_queryset()
-    )
+    adjustment_form = InventoryAdjustmentForm(request.POST or None)
+    if request.method == "POST" and adjustment_form.is_valid():
+        with transaction.atomic():
+            medication = Medication.objects.select_for_update().get(
+                pk=adjustment_form.cleaned_data["medication"].pk
+            )
+            change = adjustment_form.cleaned_data["quantity_change"]
+            new_balance = medication.quantity_on_hand + change
+            if new_balance < 0:
+                adjustment_form.add_error(
+                    "quantity_change", "This adjustment would make stock negative."
+                )
+            else:
+                medication.quantity_on_hand = new_balance
+                medication.updated_by = request.user
+                medication.save(
+                    update_fields=["quantity_on_hand", "updated_by", "updated_at"]
+                )
+                InventoryTransaction.objects.create(
+                    medication=medication,
+                    movement_type=(
+                        InventoryTransaction.MovementType.RECEIPT
+                        if change > 0
+                        else InventoryTransaction.MovementType.ADJUSTMENT
+                    ),
+                    quantity_change=change,
+                    balance_after=new_balance,
+                    reference=adjustment_form.cleaned_data["reference"],
+                    notes=adjustment_form.cleaned_data["notes"],
+                    recorded_by=request.user,
+                )
+                messages.success(request, "Inventory balance updated.")
+                return redirect("pharmacy:inventory")
 
-    context = (
-        pharmacy_context("inventory")
-        | {
-            "medications": medications,
-            "low_stock_count": (
-                medications.count()
-            ),
-        }
-    )
+    medications = low_stock_queryset()
+
+    context = pharmacy_context("inventory") | {
+        "medications": medications,
+        "low_stock_count": (medications.count()),
+        "adjustment_form": adjustment_form,
+        "recent_transactions": InventoryTransaction.objects.select_related(
+            "medication", "recorded_by"
+        )[:30],
+    }
 
     return render(
         request,
@@ -420,93 +582,45 @@ class MedicationCatalogListView(
 
     model = Medication
     context_object_name = "medications"
-    template_name = (
-        "pharmacy/medication_catalog.html"
-    )
+    template_name = "pharmacy/medication_catalog.html"
     paginate_by = CATALOG_PAGE_SIZE
 
     def get_queryset(
         self,
     ) -> QuerySet[Medication]:
-        queryset = (
-            medication_catalog_queryset()
-        )
+        queryset = medication_catalog_queryset()
 
-        query = (
-            self.request.GET
-            .get("q", "")
-            .strip()
-        )
+        query = self.request.GET.get("q", "").strip()
 
-        status = (
-            self.request.GET
-            .get("status", "all")
-            .strip()
-            .lower()
-        )
+        status = self.request.GET.get("status", "all").strip().lower()
 
         if query:
-            queryset = (
-                Medication.objects
-                .search(query)
-            )
+            queryset = Medication.objects.search(query)
 
         if status == "active":
-            queryset = (
-                queryset.filter(
-                    is_active=True
-                )
-            )
+            queryset = queryset.filter(is_active=True)
 
         elif status == "inactive":
-            queryset = (
-                queryset.filter(
-                    is_active=False
-                )
-            )
+            queryset = queryset.filter(is_active=False)
 
         elif status == "formulary":
-            queryset = (
-                queryset.filter(
-                    formulary_status=(
-                        Medication
-                        .FormularyStatus
-                        .FORMULARY
-                    )
-                )
+            queryset = queryset.filter(
+                formulary_status=(Medication.FormularyStatus.FORMULARY)
             )
 
         elif status == "restricted":
-            queryset = (
-                queryset.filter(
-                    formulary_status=(
-                        Medication
-                        .FormularyStatus
-                        .RESTRICTED
-                    )
-                )
+            queryset = queryset.filter(
+                formulary_status=(Medication.FormularyStatus.RESTRICTED)
             )
 
         elif status == "non-formulary":
-            queryset = (
-                queryset.filter(
-                    formulary_status=(
-                        Medication
-                        .FormularyStatus
-                        .NON_FORMULARY
-                    )
-                )
+            queryset = queryset.filter(
+                formulary_status=(Medication.FormularyStatus.NON_FORMULARY)
             )
 
         elif status == "retired":
-            queryset = (
-                queryset.filter(
-                    formulary_status=(
-                        Medication
-                        .FormularyStatus
-                        .RETIRED
-                    )
-                )
+            queryset = queryset.filter(
+                formulary_status=(Medication.FormularyStatus.RETIRED)
             )
 
         return queryset.order_by(
@@ -521,38 +635,22 @@ class MedicationCatalogListView(
         self,
         **kwargs,
     ):
-        context = (
-            super()
-            .get_context_data(
-                **kwargs
-            )
-        )
+        context = super().get_context_data(**kwargs)
 
-        context.update(
-            pharmacy_context(
-                "medication-catalog"
-            )
-        )
+        context.update(pharmacy_context("medication-catalog"))
 
         context.update(
             {
                 "form_mode": None,
-                "search_query": (
-                    self.request.GET
-                    .get("q", "")
-                    .strip()
-                ),
+                "search_query": (self.request.GET.get("q", "").strip()),
                 "status_filter": (
-                    self.request.GET
-                    .get(
+                    self.request.GET.get(
                         "status",
                         "all",
                     )
                 ),
                 "can_manage_catalog": (
-                    can_manage_medication_catalog(
-                        self.request.user
-                    )
+                    can_manage_medication_catalog(self.request.user)
                 ),
             }
         )
@@ -573,37 +671,22 @@ class MedicationCatalogCreateView(
     model = Medication
     form_class = MedicationForm
 
-    template_name = (
-        "pharmacy/medication_catalog.html"
-    )
+    template_name = "pharmacy/medication_catalog.html"
 
-    success_url = reverse_lazy(
-        "pharmacy:medication-catalog"
-    )
+    success_url = reverse_lazy("pharmacy:medication-catalog")
 
     def get_context_data(
         self,
         **kwargs,
     ):
-        context = (
-            super()
-            .get_context_data(
-                **kwargs
-            )
-        )
+        context = super().get_context_data(**kwargs)
 
-        context.update(
-            pharmacy_context(
-                "medication-catalog"
-            )
-        )
+        context.update(pharmacy_context("medication-catalog"))
 
         context.update(
             {
                 "form_mode": "create",
-                "medications": (
-                    medication_catalog_queryset()
-                ),
+                "medications": (medication_catalog_queryset()),
                 "can_manage_catalog": True,
             }
         )
@@ -616,10 +699,7 @@ class MedicationCatalogCreateView(
     ):
         try:
             with transaction.atomic():
-                response = (
-                    super()
-                    .form_valid(form)
-                )
+                response = super().form_valid(form)
 
         except IntegrityError:
             form.add_error(
@@ -631,16 +711,11 @@ class MedicationCatalogCreateView(
                 ),
             )
 
-            return self.form_invalid(
-                form
-            )
+            return self.form_invalid(form)
 
         messages.success(
             self.request,
-            (
-                f"{self.object.display_name} "
-                "was added to the medication formulary."
-            ),
+            (f"{self.object.display_name} was added to the medication formulary."),
         )
 
         return response
@@ -659,37 +734,22 @@ class MedicationCatalogUpdateView(
     model = Medication
     form_class = MedicationForm
 
-    template_name = (
-        "pharmacy/medication_catalog.html"
-    )
+    template_name = "pharmacy/medication_catalog.html"
 
-    success_url = reverse_lazy(
-        "pharmacy:medication-catalog"
-    )
+    success_url = reverse_lazy("pharmacy:medication-catalog")
 
     def get_context_data(
         self,
         **kwargs,
     ):
-        context = (
-            super()
-            .get_context_data(
-                **kwargs
-            )
-        )
+        context = super().get_context_data(**kwargs)
 
-        context.update(
-            pharmacy_context(
-                "medication-catalog"
-            )
-        )
+        context.update(pharmacy_context("medication-catalog"))
 
         context.update(
             {
                 "form_mode": "update",
-                "medications": (
-                    medication_catalog_queryset()
-                ),
+                "medications": (medication_catalog_queryset()),
                 "can_manage_catalog": True,
             }
         )
@@ -702,30 +762,19 @@ class MedicationCatalogUpdateView(
     ):
         try:
             with transaction.atomic():
-                response = (
-                    super()
-                    .form_valid(form)
-                )
+                response = super().form_valid(form)
 
         except IntegrityError:
             form.add_error(
                 None,
-                (
-                    "These changes conflict with "
-                    "an existing medication record."
-                ),
+                ("These changes conflict with an existing medication record."),
             )
 
-            return self.form_invalid(
-                form
-            )
+            return self.form_invalid(form)
 
         messages.success(
             self.request,
-            (
-                f"{self.object.display_name} "
-                "was updated."
-            ),
+            (f"{self.object.display_name} was updated."),
         )
 
         return response
@@ -748,37 +797,22 @@ class MedicationCatalogDeleteView(
 
     model = Medication
 
-    template_name = (
-        "pharmacy/medication_catalog.html"
-    )
+    template_name = "pharmacy/medication_catalog.html"
 
-    success_url = reverse_lazy(
-        "pharmacy:medication-catalog"
-    )
+    success_url = reverse_lazy("pharmacy:medication-catalog")
 
     def get_context_data(
         self,
         **kwargs,
     ):
-        context = (
-            super()
-            .get_context_data(
-                **kwargs
-            )
-        )
+        context = super().get_context_data(**kwargs)
 
-        context.update(
-            pharmacy_context(
-                "medication-catalog"
-            )
-        )
+        context.update(pharmacy_context("medication-catalog"))
 
         context.update(
             {
                 "form_mode": "delete",
-                "medications": (
-                    medication_catalog_queryset()
-                ),
+                "medications": (medication_catalog_queryset()),
                 "can_manage_catalog": True,
             }
         )
@@ -789,29 +823,19 @@ class MedicationCatalogDeleteView(
         self,
         form,
     ):
-        medication_name = (
-            self.object.display_name
-        )
+        medication_name = self.object.display_name
 
-        response = (
-            super()
-            .form_valid(form)
-        )
+        response = super().form_valid(form)
 
         messages.success(
             self.request,
-            (
-                f"{medication_name} "
-                "was removed from the medication catalog."
-            ),
+            (f"{medication_name} was removed from the medication catalog."),
         )
 
         return response
 
 
-medication_catalog = (
-    MedicationCatalogListView.as_view()
-)
+medication_catalog = MedicationCatalogListView.as_view()
 
 
 # ============================================================
@@ -837,15 +861,10 @@ def medication_list_api(
     clinical search eligibility.
     """
 
-    query = (
-        request.GET
-        .get("q", "")
-        .strip()
-    )
+    query = request.GET.get("q", "").strip()
 
     medications = (
-        Medication.objects
-        .active()
+        Medication.objects.active()
         .search(query)
         .order_by(
             "generic_name",
@@ -853,86 +872,43 @@ def medication_list_api(
             "dosage_form",
             "code",
             "pk",
-        )[
-            :MEDICATION_SEARCH_LIMIT
-        ]
+        )[:MEDICATION_SEARCH_LIMIT]
     )
 
     results = []
 
     for medication in medications:
-        quantity = (
-            medication.quantity_on_hand
-        )
+        quantity = medication.quantity_on_hand
 
-        reorder_level = (
-            medication.reorder_level
-        )
+        reorder_level = medication.reorder_level
 
         results.append(
             {
                 "id": medication.pk,
                 "code": medication.code,
-                "display_name": (
-                    medication.display_name
-                ),
-                "generic_name": (
-                    medication.generic_name
-                ),
-                "brand_name": (
-                    medication.brand_name
-                ),
-                "strength": (
-                    medication.strength
-                ),
-                "dosage_form": (
-                    medication.dosage_form
-                ),
-                "route": (
-                    medication.route
-                ),
-                "unit_of_measure": (
-                    medication.unit_of_measure
-                ),
-                "rxnorm_rxcui": (
-                    medication.rxnorm_rxcui
-                ),
-                "formulary_status": (
-                    medication.formulary_status
-                ),
+                "display_name": (medication.display_name),
+                "generic_name": (medication.generic_name),
+                "brand_name": (medication.brand_name),
+                "strength": (medication.strength),
+                "dosage_form": (medication.dosage_form),
+                "route": (medication.route),
+                "unit_of_measure": (medication.unit_of_measure),
+                "rxnorm_rxcui": (medication.rxnorm_rxcui),
+                "formulary_status": (medication.formulary_status),
                 "is_restricted": (
                     medication.formulary_status
-                    == (
-                        Medication
-                        .FormularyStatus
-                        .RESTRICTED
-                    )
+                    == (Medication.FormularyStatus.RESTRICTED)
                 ),
-                "is_high_alert": (
-                    medication.is_high_alert
-                ),
-                "is_lasa": (
-                    medication.is_lasa
-                ),
-                "is_controlled": (
-                    medication.is_controlled
-                ),
-
+                "is_high_alert": (medication.is_high_alert),
+                "is_lasa": (medication.is_lasa),
+                "is_controlled": (medication.is_controlled),
                 # Inventory is advisory metadata only.
-
-                "available_quantity": (
-                    quantity
-                ),
-
-                "reorder_level": (
-                    reorder_level
-                ),
-
+                "available_quantity": (quantity),
+                "reorder_level": (reorder_level),
                 "low_stock": (
                     quantity is not None
                     and reorder_level is not None
-                    and quantity
-                    <= reorder_level
+                    and quantity <= reorder_level
                 ),
             }
         )
@@ -967,16 +943,9 @@ def us_medication_search_api(
     - permission to prescribe
     """
 
-    query = (
-        request.GET
-        .get("q", "")
-        .strip()
-    )
+    query = request.GET.get("q", "").strip()
 
-    if (
-        len(query)
-        < RXNORM_SEARCH_MIN_LENGTH
-    ):
+    if len(query) < RXNORM_SEARCH_MIN_LENGTH:
         return JsonResponse(
             {
                 "query": query,
@@ -986,17 +955,11 @@ def us_medication_search_api(
         )
 
     try:
-        rxnorm_results = (
-            RxNormClient()
-            .search(query)
-        )
+        rxnorm_results = RxNormClient().search(query)
 
     except RxNormUnavailable as error:
         logger.warning(
-            (
-                "RxNorm search unavailable "
-                "for query %r: %s"
-            ),
+            ("RxNorm search unavailable for query %r: %s"),
             query,
             error,
         )
@@ -1013,120 +976,51 @@ def us_medication_search_api(
 
     except Exception:
         logger.exception(
-            (
-                "Unexpected error while "
-                "searching RxNorm for %r."
-            ),
+            ("Unexpected error while searching RxNorm for %r."),
             query,
         )
 
         return JsonResponse(
-            {
-                "detail": (
-                    "The medication terminology search "
-                    "could not be completed."
-                )
-            },
+            {"detail": ("The medication terminology search could not be completed.")},
             status=502,
         )
 
     {
-    "rxcui": result.rxcui,
-
-    "display_name": (
-        result.display_name
-    ),
-
-    "generic_name": (
-        result.generic_name
-    ),
-
-    "brand_name": (
-        result.brand_name
-    ),
-
-    "strength": (
-        result.strength
-    ),
-
-    "dosage_form": (
-        result.dosage_form
-    ),
-
-    "route": (
-        result.route
-    ),
-
-    "term_type": (
-        result.term_type
-    ),
-
-    "is_imported": (
-        local_medication
-        is not None
-    ),
-
-    "local_medication_id": (
-        local_medication.pk
-        if local_medication
-        else None
-    ),
-
-    "local_is_active": (
-        local_medication.is_active
-        if local_medication
-        else False
-    ),
-
-    "local_formulary_status": (
-        local_medication.formulary_status
-        if local_medication
-        else None
-    ),
-}
+        "rxcui": result.rxcui,
+        "display_name": (result.display_name),
+        "generic_name": (result.generic_name),
+        "brand_name": (result.brand_name),
+        "strength": (result.strength),
+        "dosage_form": (result.dosage_form),
+        "route": (result.route),
+        "term_type": (result.term_type),
+        "is_imported": (local_medication is not None),
+        "local_medication_id": (local_medication.pk if local_medication else None),
+        "local_is_active": (local_medication.is_active if local_medication else False),
+        "local_formulary_status": (
+            local_medication.formulary_status if local_medication else None
+        ),
+    }
 
     results = []
 
     for result in rxnorm_results:
-        local_medication = (
-            local_medications.get(
-                result.rxcui
-            )
-        )
+        local_medication = local_medications.get(result.rxcui)
 
         results.append(
             {
-                "rxcui": (
-                    result.rxcui
-                ),
-                "display_name": (
-                    result.name
-                ),
-                "term_type": (
-                    result.term_type
-                ),
-
-                "is_imported": (
-                    local_medication
-                    is not None
-                ),
-
+                "rxcui": (result.rxcui),
+                "display_name": (result.name),
+                "term_type": (result.term_type),
+                "is_imported": (local_medication is not None),
                 "local_medication_id": (
-                    local_medication.pk
-                    if local_medication
-                    else None
+                    local_medication.pk if local_medication else None
                 ),
-
                 "local_is_active": (
-                    local_medication.is_active
-                    if local_medication
-                    else False
+                    local_medication.is_active if local_medication else False
                 ),
-
                 "local_formulary_status": (
-                    local_medication.formulary_status
-                    if local_medication
-                    else None
+                    local_medication.formulary_status if local_medication else None
                 ),
             }
         )
@@ -1146,16 +1040,12 @@ def us_medication_search_api(
 
 # ============================================================
 
+
 @login_required
-
 @require_GET
-
 def us_medication_search_api(
-
     request: HttpRequest,
-
 ) -> JsonResponse:
-
     """
 
     Search NIH/NLM RxNorm terminology without automatically
@@ -1188,36 +1078,15 @@ def us_medication_search_api(
 
     """
 
-    query = (
+    query = request.GET.get("q", "").strip()
 
-        request.GET
-
-        .get("q", "")
-
-        .strip()
-
-    )
-
-    if (
-
-        len(query)
-
-        < RXNORM_SEARCH_MIN_LENGTH
-
-    ):
-
+    if len(query) < RXNORM_SEARCH_MIN_LENGTH:
         return JsonResponse(
-
             {
-
                 "query": query,
-
                 "count": 0,
-
                 "results": [],
-
             }
-
         )
 
     # ========================================================
@@ -1227,71 +1096,34 @@ def us_medication_search_api(
     # ========================================================
 
     try:
-
-        rxnorm_results = (
-
-            RxNormClient()
-
-            .search(query)
-
-        )
+        rxnorm_results = RxNormClient().search(query)
 
     except RxNormUnavailable as error:
-
         logger.warning(
-
             "RxNorm search unavailable for query %r: %s",
-
             query,
-
             error,
-
         )
 
         return JsonResponse(
-
             {
-
                 "detail": (
-
                     "The RxNorm medication terminology "
-
                     "service is temporarily unavailable."
-
                 )
-
             },
-
             status=503,
-
         )
 
     except Exception:
-
         logger.exception(
-
             "Unexpected error while searching RxNorm for %r.",
-
             query,
-
         )
 
         return JsonResponse(
-
-            {
-
-                "detail": (
-
-                    "The medication terminology search "
-
-                    "could not be completed."
-
-                )
-
-            },
-
+            {"detail": ("The medication terminology search could not be completed.")},
             status=502,
-
         )
 
     # ========================================================
@@ -1300,32 +1132,11 @@ def us_medication_search_api(
 
     # ========================================================
 
-    rxcuis = [
-
-        result.rxcui
-
-        for result in rxnorm_results
-
-        if result.rxcui
-
-    ]
+    rxcuis = [result.rxcui for result in rxnorm_results if result.rxcui]
 
     local_medications = {
-
         medication.rxnorm_rxcui: medication
-
-        for medication in (
-
-            Medication.objects
-
-            .filter(
-
-                rxnorm_rxcui__in=rxcuis
-
-            )
-
-        )
-
+        for medication in (Medication.objects.filter(rxnorm_rxcui__in=rxcuis))
     }
 
     # ========================================================
@@ -1337,124 +1148,39 @@ def us_medication_search_api(
     results = []
 
     for result in rxnorm_results:
-
-        local_medication = (
-
-            local_medications.get(
-
-                result.rxcui
-
-            )
-
-        )
+        local_medication = local_medications.get(result.rxcui)
 
         results.append(
-
             {
-
-                "rxcui": (
-
-                    result.rxcui
-
-                ),
-
-                "display_name": (
-
-                    result.display_name
-
-                ),
-
-                "generic_name": (
-
-                    result.generic_name
-
-                ),
-
-                "brand_name": (
-
-                    result.brand_name
-
-                ),
-
-                "strength": (
-
-                    result.strength
-
-                ),
-
-                "dosage_form": (
-
-                    result.dosage_form
-
-                ),
-
-                "route": (
-
-                    result.route
-
-                ),
-
-                "term_type": (
-
-                    result.term_type
-
-                ),
-
-                "is_imported": (
-
-                    local_medication
-
-                    is not None
-
-                ),
-
+                "rxcui": (result.rxcui),
+                "display_name": (result.display_name),
+                "generic_name": (result.generic_name),
+                "brand_name": (result.brand_name),
+                "strength": (result.strength),
+                "dosage_form": (result.dosage_form),
+                "route": (result.route),
+                "term_type": (result.term_type),
+                "is_imported": (local_medication is not None),
                 "local_medication_id": (
-
-                    local_medication.pk
-
-                    if local_medication
-
-                    else None
-
+                    local_medication.pk if local_medication else None
                 ),
-
                 "local_is_active": (
-
-                    local_medication.is_active
-
-                    if local_medication
-
-                    else False
-
+                    local_medication.is_active if local_medication else False
                 ),
-
                 "local_formulary_status": (
-
-                    local_medication.formulary_status
-
-                    if local_medication
-
-                    else None
-
+                    local_medication.formulary_status if local_medication else None
                 ),
-
             }
-
         )
 
     return JsonResponse(
-
         {
-
             "query": query,
-
             "count": len(results),
-
             "results": results,
-
         }
-
     )
+
 
 # ============================================================
 
@@ -1462,16 +1188,12 @@ def us_medication_search_api(
 
 # ============================================================
 
+
 @login_required
-
 @require_POST
-
 def us_medication_import_api(
-
     request: HttpRequest,
-
 ) -> JsonResponse:
-
     """
 
     Import or reuse an RxNorm medication so it can be selected
@@ -1506,46 +1228,24 @@ def us_medication_import_api(
 
     # ========================================================
 
-    rxcui = (
-
-        request.POST
-
-        .get("rxcui", "")
-
-        .strip()
-
-    )
+    rxcui = request.POST.get("rxcui", "").strip()
 
     if not rxcui:
-
         return JsonResponse(
-
             {
-
                 "success": False,
-
                 "error": "RxCUI is required.",
-
             },
-
             status=400,
-
         )
 
     if not rxcui.isdigit():
-
         return JsonResponse(
-
             {
-
                 "success": False,
-
                 "error": "Invalid RxCUI.",
-
             },
-
             status=400,
-
         )
 
     # ========================================================
@@ -1555,75 +1255,40 @@ def us_medication_import_api(
     # ========================================================
 
     try:
-
-        rxnorm_medication = (
-
-            RxNormClient()
-
-            .get(rxcui)
-
-        )
+        rxnorm_medication = RxNormClient().get(rxcui)
 
     except RxNormUnavailable as error:
-
         logger.warning(
-
             "RxNorm concept %s unavailable: %s",
-
             rxcui,
-
             error,
-
         )
 
         return JsonResponse(
-
             {
-
                 "success": False,
-
                 "error": (
-
                     "The RxNorm medication terminology "
-
                     "service is temporarily unavailable."
-
                 ),
-
             },
-
             status=503,
-
         )
 
     except Exception as error:
-
         logger.exception(
-
             "Unable to retrieve RxNorm concept %s.",
-
             rxcui,
-
         )
 
         return JsonResponse(
-
             {
-
                 "success": False,
-
                 "error": (
-
-                    "Unable to retrieve the selected "
-
-                    f"RxNorm medication: {error}"
-
+                    f"Unable to retrieve the selected RxNorm medication: {error}"
                 ),
-
             },
-
             status=400,
-
         )
 
     # ========================================================
@@ -1632,129 +1297,63 @@ def us_medication_import_api(
 
     # ========================================================
 
-    rxnorm_rxcui = (
-
-        str(
-
-            rxnorm_medication.rxcui
-
-        )
-
-        .strip()
-
-    )
+    rxnorm_rxcui = str(rxnorm_medication.rxcui).strip()
 
     generic_name = (
-
         getattr(
-
             rxnorm_medication,
-
             "generic_name",
-
             "",
-
         )
-
         or rxnorm_medication.name
-
         or "Unknown medication"
-
     )
 
-    generic_name = " ".join(
-
-        str(generic_name).split()
-
-    ).strip()
+    generic_name = " ".join(str(generic_name).split()).strip()
 
     brand_name = (
-
         getattr(
-
             rxnorm_medication,
-
             "brand_name",
-
             "",
-
         )
-
         or ""
-
     )
 
-    brand_name = " ".join(
-
-        str(brand_name).split()
-
-    ).strip()
+    brand_name = " ".join(str(brand_name).split()).strip()
 
     strength = (
-
         getattr(
-
             rxnorm_medication,
-
             "strength",
-
             "",
-
         )
-
         or "Unspecified"
-
     )
 
-    strength = " ".join(
-
-        str(strength).split()
-
-    ).strip()
+    strength = " ".join(str(strength).split()).strip()
 
     dosage_form = (
-
         getattr(
-
             rxnorm_medication,
-
             "dosage_form",
-
             "",
-
         )
-
         or "Unspecified"
-
     )
 
-    dosage_form = " ".join(
-
-        str(dosage_form).split()
-
-    ).strip()
+    dosage_form = " ".join(str(dosage_form).split()).strip()
 
     route = (
-
         getattr(
-
             rxnorm_medication,
-
             "route",
-
             "",
-
         )
-
         or "Unspecified"
-
     )
 
-    route = " ".join(
-
-        str(route).split()
-
-    ).strip()
+    route = " ".join(str(route).split()).strip()
 
     # ========================================================
 
@@ -1763,341 +1362,104 @@ def us_medication_import_api(
     # ========================================================
 
     try:
-
         with transaction.atomic():
-
-            medication = (
-
-                Medication.objects
-
-                .filter(
-
-                    rxnorm_rxcui=rxnorm_rxcui
-
-                )
-
-                .first()
-
-            )
+            medication = Medication.objects.filter(rxnorm_rxcui=rxnorm_rxcui).first()
 
             created = False
 
             if medication is None:
-
-                medication = (
-
-                    Medication.objects.create(
-
-                        code=(
-
-                            f"RXNORM-{rxnorm_rxcui}"
-
-                        ),
-
-                        terminology_source=(
-
-                            Medication
-
-                            .TerminologySource
-
-                            .RXNORM
-
-                        ),
-
-                        rxnorm_rxcui=(
-
-                            rxnorm_rxcui
-
-                        ),
-
-                        generic_name=(
-
-                            generic_name
-
-                        ),
-
-                        brand_name=(
-
-                            brand_name
-
-                        ),
-
-                        strength=(
-
-                            strength
-
-                        ),
-
-                        dosage_form=(
-
-                            dosage_form
-
-                        ),
-
-                        route=(
-
-                            route
-
-                        ),
-
-                        unit_of_measure="unit",
-
-                        formulary_status=(
-
-                            Medication
-
-                            .FormularyStatus
-
-                            .NON_FORMULARY
-
-                        ),
-
-                        # Required for the MedicationOrderForm
-
-                        # ModelChoiceField to accept the selected
-
-                        # local Medication row.
-
-                        is_active=True,
-
-                        quantity_on_hand=0,
-
-                        created_by=(
-
-                            request.user
-
-                        ),
-
-                        updated_by=(
-
-                            request.user
-
-                        ),
-
-                    )
-
+                medication = Medication.objects.create(
+                    code=(f"RXNORM-{rxnorm_rxcui}"),
+                    terminology_source=(Medication.TerminologySource.RXNORM),
+                    rxnorm_rxcui=(rxnorm_rxcui),
+                    generic_name=(generic_name),
+                    brand_name=(brand_name),
+                    strength=(strength),
+                    dosage_form=(dosage_form),
+                    route=(route),
+                    unit_of_measure="unit",
+                    formulary_status=(Medication.FormularyStatus.NON_FORMULARY),
+                    # Required for the MedicationOrderForm
+                    # ModelChoiceField to accept the selected
+                    # local Medication row.
+                    is_active=True,
+                    quantity_on_hand=0,
+                    created_by=(request.user),
+                    updated_by=(request.user),
                 )
 
                 created = True
 
             else:
-
                 changed_fields = []
 
-                if (
+                if generic_name and medication.generic_name != generic_name:
+                    medication.generic_name = generic_name
 
-                    generic_name
+                    changed_fields.append("generic_name")
 
-                    and medication.generic_name
+                if brand_name and medication.brand_name != brand_name:
+                    medication.brand_name = brand_name
 
-                    != generic_name
-
-                ):
-
-                    medication.generic_name = (
-
-                        generic_name
-
-                    )
-
-                    changed_fields.append(
-
-                        "generic_name"
-
-                    )
+                    changed_fields.append("brand_name")
 
                 if (
-
-                    brand_name
-
-                    and medication.brand_name
-
-                    != brand_name
-
-                ):
-
-                    medication.brand_name = (
-
-                        brand_name
-
-                    )
-
-                    changed_fields.append(
-
-                        "brand_name"
-
-                    )
-
-                if (
-
                     strength
-
                     and strength != "Unspecified"
-
-                    and medication.strength
-
-                    != strength
-
+                    and medication.strength != strength
                 ):
+                    medication.strength = strength
 
-                    medication.strength = (
-
-                        strength
-
-                    )
-
-                    changed_fields.append(
-
-                        "strength"
-
-                    )
+                    changed_fields.append("strength")
 
                 if (
-
                     dosage_form
-
                     and dosage_form != "Unspecified"
-
-                    and medication.dosage_form
-
-                    != dosage_form
-
+                    and medication.dosage_form != dosage_form
                 ):
+                    medication.dosage_form = dosage_form
 
-                    medication.dosage_form = (
+                    changed_fields.append("dosage_form")
 
-                        dosage_form
+                if route and route != "Unspecified" and medication.route != route:
+                    medication.route = route
 
-                    )
-
-                    changed_fields.append(
-
-                        "dosage_form"
-
-                    )
-
-                if (
-
-                    route
-
-                    and route != "Unspecified"
-
-                    and medication.route
-
-                    != route
-
-                ):
-
-                    medication.route = (
-
-                        route
-
-                    )
-
-                    changed_fields.append(
-
-                        "route"
-
-                    )
+                    changed_fields.append("route")
 
                 if not medication.is_active:
-
                     medication.is_active = True
 
-                    changed_fields.append(
+                    changed_fields.append("is_active")
 
-                        "is_active"
-
-                    )
-
-                if (
-
-                    medication.formulary_status
-
-                    == (
-
-                        Medication
-
-                        .FormularyStatus
-
-                        .RETIRED
-
-                    )
-
-                ):
-
+                if medication.formulary_status == (Medication.FormularyStatus.RETIRED):
                     medication.formulary_status = (
-
-                        Medication
-
-                        .FormularyStatus
-
-                        .NON_FORMULARY
-
+                        Medication.FormularyStatus.NON_FORMULARY
                     )
 
-                    changed_fields.append(
+                    changed_fields.append("formulary_status")
 
-                        "formulary_status"
+                medication.updated_by = request.user
 
-                    )
-
-                medication.updated_by = (
-
-                    request.user
-
-                )
-
-                changed_fields.append(
-
-                    "updated_by"
-
-                )
+                changed_fields.append("updated_by")
 
                 if changed_fields:
-
-                    medication.save(
-
-                        update_fields=list(
-
-                            dict.fromkeys(
-
-                                changed_fields
-
-                            )
-
-                        )
-
-                    )
+                    medication.save(update_fields=list(dict.fromkeys(changed_fields)))
 
     except IntegrityError:
-
         logger.exception(
-
             "Medication import conflict for RxCUI %s.",
-
             rxnorm_rxcui,
-
         )
 
         return JsonResponse(
-
             {
-
                 "success": False,
-
                 "error": (
-
                     "The medication could not be imported "
-
                     "because of a medication catalog conflict."
-
                 ),
-
             },
-
             status=409,
-
         )
 
     # ========================================================
@@ -2107,108 +1469,28 @@ def us_medication_import_api(
     # ========================================================
 
     return JsonResponse(
-
         {
-
             "success": True,
-
             "created": created,
-
             "medication": {
-
-                "id": (
-
-                    medication.pk
-
-                ),
-
-                "code": (
-
-                    medication.code
-
-                ),
-
-                "display_name": (
-
-                    medication.display_name
-
-                ),
-
-                "generic_name": (
-
-                    medication.generic_name
-
-                ),
-
-                "brand_name": (
-
-                    medication.brand_name
-
-                ),
-
-                "strength": (
-
-                    medication.strength
-
-                ),
-
-                "dosage_form": (
-
-                    medication.dosage_form
-
-                ),
-
-                "route": (
-
-                    medication.route
-
-                ),
-
-                "rxnorm_rxcui": (
-
-                    medication.rxnorm_rxcui
-
-                ),
-
-                "formulary_status": (
-
-                    medication.formulary_status
-
-                ),
-
-                "is_active": (
-
-                    medication.is_active
-
-                ),
-
-                "available_quantity": (
-
-                    medication.quantity_on_hand
-
-                ),
-
-                "low_stock": (
-
-                    medication.is_low_stock
-
-                ),
-
+                "id": (medication.pk),
+                "code": (medication.code),
+                "display_name": (medication.display_name),
+                "generic_name": (medication.generic_name),
+                "brand_name": (medication.brand_name),
+                "strength": (medication.strength),
+                "dosage_form": (medication.dosage_form),
+                "route": (medication.route),
+                "rxnorm_rxcui": (medication.rxnorm_rxcui),
+                "formulary_status": (medication.formulary_status),
+                "is_active": (medication.is_active),
+                "available_quantity": (medication.quantity_on_hand),
+                "low_stock": (medication.is_low_stock),
             },
-
         },
-
-        status=(
-
-            201
-
-            if created
-
-            else 200
-
-        ),
-
+        status=(201 if created else 200),
     )
+
 
 # ============================================================
 
@@ -2216,16 +1498,12 @@ def us_medication_import_api(
 
 # ============================================================
 
+
 @login_required
-
 @require_POST
-
 def import_us_medication(
-
     request: HttpRequest,
-
 ) -> JsonResponse:
-
     """
 
     Import an RxNorm concept into the medication catalog for
@@ -2248,30 +1526,16 @@ def import_us_medication(
 
     """
 
-    if not can_manage_medication_catalog(
-
-        request.user
-
-    ):
-
+    if not can_manage_medication_catalog(request.user):
         return JsonResponse(
-
             {
-
                 "detail": (
-
                     "You do not have permission "
-
                     "to add medications to the "
-
                     "local medication catalog."
-
                 )
-
             },
-
             status=403,
-
         )
 
     # ========================================================
@@ -2280,40 +1544,12 @@ def import_us_medication(
 
     # ========================================================
 
-    rxcui = (
+    rxcui = request.POST.get("rxcui", "").strip()
 
-        request.POST
-
-        .get("rxcui", "")
-
-        .strip()
-
-    )
-
-    if (
-
-        not rxcui
-
-        or not rxcui.isdigit()
-
-    ):
-
+    if not rxcui or not rxcui.isdigit():
         return JsonResponse(
-
-            {
-
-                "detail": (
-
-                    "A valid numeric RxNorm "
-
-                    "concept identifier is required."
-
-                )
-
-            },
-
+            {"detail": ("A valid numeric RxNorm concept identifier is required.")},
             status=400,
-
         )
 
     # ========================================================
@@ -2322,104 +1558,26 @@ def import_us_medication(
 
     # ========================================================
 
-    existing_medication = (
-
-        Medication.objects
-
-        .filter(
-
-            rxnorm_rxcui=rxcui
-
-        )
-
-        .first()
-
-    )
+    existing_medication = Medication.objects.filter(rxnorm_rxcui=rxcui).first()
 
     if existing_medication:
-
         return JsonResponse(
-
             {
-
-                "id": (
-
-                    existing_medication.pk
-
-                ),
-
-                "code": (
-
-                    existing_medication.code
-
-                ),
-
-                "display_name": (
-
-                    existing_medication.display_name
-
-                ),
-
-                "generic_name": (
-
-                    existing_medication.generic_name
-
-                ),
-
-                "brand_name": (
-
-                    existing_medication.brand_name
-
-                ),
-
-                "strength": (
-
-                    existing_medication.strength
-
-                ),
-
-                "dosage_form": (
-
-                    existing_medication.dosage_form
-
-                ),
-
-                "route": (
-
-                    existing_medication.route
-
-                ),
-
-                "formulary_status": (
-
-                    existing_medication.formulary_status
-
-                ),
-
-                "is_active": (
-
-                    existing_medication.is_active
-
-                ),
-
-                "available_quantity": (
-
-                    existing_medication.quantity_on_hand
-
-                ),
-
+                "id": (existing_medication.pk),
+                "code": (existing_medication.code),
+                "display_name": (existing_medication.display_name),
+                "generic_name": (existing_medication.generic_name),
+                "brand_name": (existing_medication.brand_name),
+                "strength": (existing_medication.strength),
+                "dosage_form": (existing_medication.dosage_form),
+                "route": (existing_medication.route),
+                "formulary_status": (existing_medication.formulary_status),
+                "is_active": (existing_medication.is_active),
+                "available_quantity": (existing_medication.quantity_on_hand),
                 "already_imported": True,
-
-                "requires_formulary_review": (
-
-                    not existing_medication.is_active
-
-                ),
-
+                "requires_formulary_review": (not existing_medication.is_active),
             },
-
             status=200,
-
         )
 
     # ========================================================
@@ -2429,80 +1587,38 @@ def import_us_medication(
     # ========================================================
 
     try:
-
-        rxnorm_medication = (
-
-            RxNormClient()
-
-            .get(rxcui)
-
-        )
+        rxnorm_medication = RxNormClient().get(rxcui)
 
     except RxNormUnavailable as error:
-
         logger.warning(
-
             "RxNorm concept %s unavailable: %s",
-
             rxcui,
-
             error,
-
         )
 
         return JsonResponse(
-
             {
-
                 "detail": (
-
                     "The RxNorm medication terminology "
-
                     "service is temporarily unavailable."
-
                 )
-
             },
-
             status=503,
-
         )
 
     except Exception:
-
         logger.exception(
-
             "Unexpected error retrieving RxNorm concept %s.",
-
             rxcui,
-
         )
 
         return JsonResponse(
-
-            {
-
-                "detail": (
-
-                    "The selected medication concept "
-
-                    "could not be retrieved."
-
-                )
-
-            },
-
+            {"detail": ("The selected medication concept could not be retrieved.")},
             status=502,
-
         )
 
     if not rxnorm_medication:
-
-        raise Http404(
-
-            "The selected RxNorm medication concept was not found."
-
-        )
+        raise Http404("The selected RxNorm medication concept was not found.")
 
     # ========================================================
 
@@ -2510,37 +1626,13 @@ def import_us_medication(
 
     # ========================================================
 
-    generic_name = (
+    generic_name = rxnorm_medication.generic_name or rxnorm_medication.name
 
-        rxnorm_medication.generic_name
+    strength = rxnorm_medication.strength or "Unspecified"
 
-        or rxnorm_medication.name
+    dosage_form = rxnorm_medication.dosage_form or "Unspecified"
 
-    )
-
-    strength = (
-
-        rxnorm_medication.strength
-
-        or "Unspecified"
-
-    )
-
-    dosage_form = (
-
-        rxnorm_medication.dosage_form
-
-        or "Unspecified"
-
-    )
-
-    route = (
-
-        rxnorm_medication.route
-
-        or "Unspecified"
-
-    )
+    route = rxnorm_medication.route or "Unspecified"
 
     # ========================================================
 
@@ -2549,155 +1641,44 @@ def import_us_medication(
     # ========================================================
 
     try:
-
         with transaction.atomic():
-
-            medication, created = (
-
-                Medication.objects
-
-                .get_or_create(
-
-                    rxnorm_rxcui=(
-
-                        rxnorm_medication.rxcui
-
-                    ),
-
-                    defaults={
-
-                        "code": (
-
-                            "RXNORM-"
-
-                            f"{rxnorm_medication.rxcui}"
-
-                        ),
-
-                        "terminology_source": (
-
-                            Medication
-
-                            .TerminologySource
-
-                            .RXNORM
-
-                        ),
-
-                        "generic_name": (
-
-                            generic_name
-
-                        ),
-
-                        "brand_name": (
-
-                            rxnorm_medication.brand_name
-
-                            or ""
-
-                        ),
-
-                        "strength": (
-
-                            strength
-
-                        ),
-
-                        "dosage_form": (
-
-                            dosage_form
-
-                        ),
-
-                        "route": (
-
-                            route
-
-                        ),
-
-                        "unit_of_measure": (
-
-                            "unit"
-
-                        ),
-
-                        "formulary_status": (
-
-                            Medication
-
-                            .FormularyStatus
-
-                            .NON_FORMULARY
-
-                        ),
-
-                        "is_active": False,
-
-                        "quantity_on_hand": 0,
-
-                        "created_by": (
-
-                            request.user
-
-                        ),
-
-                        "updated_by": (
-
-                            request.user
-
-                        ),
-
-                    },
-
-                )
-
+            medication, created = Medication.objects.get_or_create(
+                rxnorm_rxcui=(rxnorm_medication.rxcui),
+                defaults={
+                    "code": (f"RXNORM-{rxnorm_medication.rxcui}"),
+                    "terminology_source": (Medication.TerminologySource.RXNORM),
+                    "generic_name": (generic_name),
+                    "brand_name": (rxnorm_medication.brand_name or ""),
+                    "strength": (strength),
+                    "dosage_form": (dosage_form),
+                    "route": (route),
+                    "unit_of_measure": ("unit"),
+                    "formulary_status": (Medication.FormularyStatus.NON_FORMULARY),
+                    "is_active": False,
+                    "quantity_on_hand": 0,
+                    "created_by": (request.user),
+                    "updated_by": (request.user),
+                },
             )
 
     except IntegrityError:
-
         logger.exception(
-
             "Medication import conflict for RxCUI %s.",
-
             rxcui,
-
         )
 
-        medication = (
-
-            Medication.objects
-
-            .filter(
-
-                rxnorm_rxcui=rxcui
-
-            )
-
-            .first()
-
-        )
+        medication = Medication.objects.filter(rxnorm_rxcui=rxcui).first()
 
         if medication is None:
-
             return JsonResponse(
-
                 {
-
                     "detail": (
-
                         "The medication could not be "
-
                         "imported because of a "
-
                         "catalog data conflict."
-
                     )
-
                 },
-
                 status=409,
-
             )
 
         created = False
@@ -2709,106 +1690,25 @@ def import_us_medication(
     # ========================================================
 
     return JsonResponse(
-
         {
-
-            "id": (
-
-                medication.pk
-
-            ),
-
-            "code": (
-
-                medication.code
-
-            ),
-
-            "display_name": (
-
-                medication.display_name
-
-            ),
-
-            "generic_name": (
-
-                medication.generic_name
-
-            ),
-
-            "brand_name": (
-
-                medication.brand_name
-
-            ),
-
-            "strength": (
-
-                medication.strength
-
-            ),
-
-            "dosage_form": (
-
-                medication.dosage_form
-
-            ),
-
-            "route": (
-
-                medication.route
-
-            ),
-
-            "terminology_source": (
-
-                medication.terminology_source
-
-            ),
-
-            "formulary_status": (
-
-                medication.formulary_status
-
-            ),
-
-            "is_active": (
-
-                medication.is_active
-
-            ),
-
-            "available_quantity": (
-
-                medication.quantity_on_hand
-
-            ),
-
-            "already_imported": (
-
-                not created
-
-            ),
-
-            "requires_formulary_review": (
-
-                not medication.is_active
-
-            ),
-
+            "id": (medication.pk),
+            "code": (medication.code),
+            "display_name": (medication.display_name),
+            "generic_name": (medication.generic_name),
+            "brand_name": (medication.brand_name),
+            "strength": (medication.strength),
+            "dosage_form": (medication.dosage_form),
+            "route": (medication.route),
+            "terminology_source": (medication.terminology_source),
+            "formulary_status": (medication.formulary_status),
+            "is_active": (medication.is_active),
+            "available_quantity": (medication.quantity_on_hand),
+            "already_imported": (not created),
+            "requires_formulary_review": (not medication.is_active),
         },
-
-        status=(
-
-            201
-
-            if created
-
-            else 200
-
-        ),
-
+        status=(201 if created else 200),
     )
+
 
 # ============================================================
 # RXNORM IMPORT
@@ -2832,9 +1732,7 @@ def import_us_medication(
     medication becomes available for routine ordering.
     """
 
-    if not can_manage_medication_catalog(
-        request.user
-    ):
+    if not can_manage_medication_catalog(request.user):
         return JsonResponse(
             {
                 "detail": (
@@ -2846,23 +1744,11 @@ def import_us_medication(
             status=403,
         )
 
-    rxcui = (
-        request.POST
-        .get("rxcui", "")
-        .strip()
-    )
+    rxcui = request.POST.get("rxcui", "").strip()
 
-    if (
-        not rxcui
-        or not rxcui.isdigit()
-    ):
+    if not rxcui or not rxcui.isdigit():
         return JsonResponse(
-            {
-                "detail": (
-                    "A valid numeric RxNorm "
-                    "concept identifier is required."
-                )
-            },
+            {"detail": ("A valid numeric RxNorm concept identifier is required.")},
             status=400,
         )
 
@@ -2870,60 +1756,23 @@ def import_us_medication(
     # ALREADY IMPORTED
     # --------------------------------------------------------
 
-    existing_medication = (
-        Medication.objects
-        .filter(
-            rxnorm_rxcui=rxcui
-        )
-        .first()
-    )
+    existing_medication = Medication.objects.filter(rxnorm_rxcui=rxcui).first()
 
     if existing_medication:
         return JsonResponse(
             {
-                "id": (
-                    existing_medication.pk
-                ),
-                "code": (
-                    existing_medication.code
-                ),
-                "display_name": (
-                    existing_medication
-                    .display_name
-                ),
-                "generic_name": (
-                    existing_medication
-                    .generic_name
-                ),
-                "strength": (
-                    existing_medication
-                    .strength
-                ),
-                "dosage_form": (
-                    existing_medication
-                    .dosage_form
-                ),
-                "route": (
-                    existing_medication
-                    .route
-                ),
-                "formulary_status": (
-                    existing_medication
-                    .formulary_status
-                ),
-                "is_active": (
-                    existing_medication
-                    .is_active
-                ),
-                "available_quantity": (
-                    existing_medication
-                    .quantity_on_hand
-                ),
+                "id": (existing_medication.pk),
+                "code": (existing_medication.code),
+                "display_name": (existing_medication.display_name),
+                "generic_name": (existing_medication.generic_name),
+                "strength": (existing_medication.strength),
+                "dosage_form": (existing_medication.dosage_form),
+                "route": (existing_medication.route),
+                "formulary_status": (existing_medication.formulary_status),
+                "is_active": (existing_medication.is_active),
+                "available_quantity": (existing_medication.quantity_on_hand),
                 "already_imported": True,
-                "requires_formulary_review": (
-                    not existing_medication
-                    .is_active
-                ),
+                "requires_formulary_review": (not existing_medication.is_active),
             },
             status=200,
         )
@@ -2933,17 +1782,11 @@ def import_us_medication(
     # --------------------------------------------------------
 
     try:
-        rxnorm_medication = (
-            RxNormClient()
-            .get(rxcui)
-        )
+        rxnorm_medication = RxNormClient().get(rxcui)
 
     except RxNormUnavailable as error:
         logger.warning(
-            (
-                "RxNorm concept %s "
-                "unavailable: %s"
-            ),
+            ("RxNorm concept %s unavailable: %s"),
             rxcui,
             error,
         )
@@ -2960,30 +1803,17 @@ def import_us_medication(
 
     except Exception:
         logger.exception(
-            (
-                "Unexpected error retrieving "
-                "RxNorm concept %s."
-            ),
+            ("Unexpected error retrieving RxNorm concept %s."),
             rxcui,
         )
 
         return JsonResponse(
-            {
-                "detail": (
-                    "The selected medication concept "
-                    "could not be retrieved."
-                )
-            },
+            {"detail": ("The selected medication concept could not be retrieved.")},
             status=502,
         )
 
     if not rxnorm_medication:
-        raise Http404(
-            (
-                "The selected RxNorm medication "
-                "concept was not found."
-            )
-        )
+        raise Http404(("The selected RxNorm medication concept was not found."))
 
     # --------------------------------------------------------
     # CREATE LOCAL TERMINOLOGY RECORD
@@ -2991,92 +1821,38 @@ def import_us_medication(
 
     try:
         with transaction.atomic():
-
-            medication, created = (
-                Medication.objects
-                .get_or_create(
-                    rxnorm_rxcui=(
-                        rxnorm_medication.rxcui
-                    ),
-                    defaults={
-                        "code": (
-                            "RXNORM-"
-                            f"{rxnorm_medication.rxcui}"
-                        ),
-
-                        "terminology_source": (
-                            Medication
-                            .TerminologySource
-                            .RXNORM
-                        ),
-
-                        "generic_name": (
-                            rxnorm_medication.name
-                        ),
-
-                        # RxNorm search results may not yet
-                        # provide locally curated product data.
-
-                        "strength": (
-                            "Unspecified"
-                        ),
-
-                        "dosage_form": (
-                            "Unspecified"
-                        ),
-
-                        "route": (
-                            "Unspecified"
-                        ),
-
-                        "unit_of_measure": (
-                            "unit"
-                        ),
-
-                        # External terminology import does
-                        # not constitute local formulary
-                        # approval.
-
-                        "formulary_status": (
-                            Medication
-                            .FormularyStatus
-                            .NON_FORMULARY
-                        ),
-
-                        "is_active": False,
-
-                        # Terminology import does not imply
-                        # local stock.
-
-                        "quantity_on_hand": 0,
-
-                        "created_by": (
-                            request.user
-                        ),
-
-                        "updated_by": (
-                            request.user
-                        ),
-                    },
-                )
+            medication, created = Medication.objects.get_or_create(
+                rxnorm_rxcui=(rxnorm_medication.rxcui),
+                defaults={
+                    "code": (f"RXNORM-{rxnorm_medication.rxcui}"),
+                    "terminology_source": (Medication.TerminologySource.RXNORM),
+                    "generic_name": (rxnorm_medication.name),
+                    # RxNorm search results may not yet
+                    # provide locally curated product data.
+                    "strength": ("Unspecified"),
+                    "dosage_form": ("Unspecified"),
+                    "route": ("Unspecified"),
+                    "unit_of_measure": ("unit"),
+                    # External terminology import does
+                    # not constitute local formulary
+                    # approval.
+                    "formulary_status": (Medication.FormularyStatus.NON_FORMULARY),
+                    "is_active": False,
+                    # Terminology import does not imply
+                    # local stock.
+                    "quantity_on_hand": 0,
+                    "created_by": (request.user),
+                    "updated_by": (request.user),
+                },
             )
 
     except IntegrityError:
         logger.exception(
-            (
-                "Medication import conflict "
-                "for RxCUI %s."
-            ),
+            ("Medication import conflict for RxCUI %s."),
             rxcui,
         )
 
-        medication = (
-            Medication.objects
-            .filter(
-                rxnorm_rxcui=rxcui
-            )
-            .first()
-        )
+        medication = Medication.objects.filter(rxnorm_rxcui=rxcui).first()
 
         if medication is None:
             return JsonResponse(
@@ -3100,52 +1876,17 @@ def import_us_medication(
         {
             "id": medication.pk,
             "code": medication.code,
-
-            "display_name": (
-                medication.display_name
-            ),
-
-            "generic_name": (
-                medication.generic_name
-            ),
-
-            "strength": (
-                medication.strength
-            ),
-
-            "dosage_form": (
-                medication.dosage_form
-            ),
-
+            "display_name": (medication.display_name),
+            "generic_name": (medication.generic_name),
+            "strength": (medication.strength),
+            "dosage_form": (medication.dosage_form),
             "route": medication.route,
-
-            "terminology_source": (
-                medication.terminology_source
-            ),
-
-            "formulary_status": (
-                medication.formulary_status
-            ),
-
-            "is_active": (
-                medication.is_active
-            ),
-
-            "available_quantity": (
-                medication.quantity_on_hand
-            ),
-
-            "already_imported": (
-                not created
-            ),
-
-            "requires_formulary_review": (
-                not medication.is_active
-            ),
+            "terminology_source": (medication.terminology_source),
+            "formulary_status": (medication.formulary_status),
+            "is_active": (medication.is_active),
+            "available_quantity": (medication.quantity_on_hand),
+            "already_imported": (not created),
+            "requires_formulary_review": (not medication.is_active),
         },
-        status=(
-            201
-            if created
-            else 200
-        ),
+        status=(201 if created else 200),
     )

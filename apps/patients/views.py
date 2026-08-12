@@ -22,7 +22,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Prefetch, Q
+from django.db.models import Exists, OuterRef, Prefetch, Q
 from django.http import (
     Http404,
     HttpRequest,
@@ -39,7 +39,9 @@ from django.views import View
 from django.views.generic import CreateView, UpdateView
 
 from apps.core.htmx import is_htmx
+from apps.diagnoses.models import PatientDiagnosis
 from apps.encounters.models import Encounter
+from apps.orders.models import MedicationOrder
 
 from .forms import (
     EmergencyContactForm,
@@ -70,7 +72,6 @@ from .models import (
     PatientRelationship,
 )
 
-
 # ============================================================
 # CONFIGURATION
 # ============================================================
@@ -84,6 +85,7 @@ RECENT_ENCOUNTER_LIMIT = 10
 # SHARED QUERYSETS AND CONTEXT
 # ============================================================
 
+
 def patient_queryset():
     """
     Return the standard patient queryset used throughout the app.
@@ -92,33 +94,29 @@ def patient_queryset():
     here or through a dedicated selector layer.
     """
 
-    return (
-        Patient.objects
-        .select_related(
-            "registration_facility",
-            "created_by",
-            "updated_by",
-        )
-        .prefetch_related(
-            "identifiers",
-            "aliases",
-            "addresses",
-            "contact_points",
-            "emergency_contacts",
-            "relationships_from__related_patient",
-            "relationships_to__patient",
-            "consents",
-            "insurance_coverages",
-            "allergies",
-            Prefetch(
-                "flags",
-                queryset=PatientFlag.objects.order_by(
-                    "-is_active",
-                    "-severity",
-                    "-starts_at",
-                ),
+    return Patient.objects.select_related(
+        "registration_facility",
+        "created_by",
+        "updated_by",
+    ).prefetch_related(
+        "identifiers",
+        "aliases",
+        "addresses",
+        "contact_points",
+        "emergency_contacts",
+        "relationships_from__related_patient",
+        "relationships_to__patient",
+        "consents",
+        "insurance_coverages",
+        "allergies",
+        Prefetch(
+            "flags",
+            queryset=PatientFlag.objects.order_by(
+                "-is_active",
+                "-severity",
+                "-starts_at",
             ),
-        )
+        ),
     )
 
 
@@ -158,8 +156,7 @@ def get_patient_active_encounter(
     }
 
     return (
-        Encounter.objects
-        .filter(
+        Encounter.objects.filter(
             patient=patient,
             is_active=True,
             status__in=open_statuses,
@@ -176,8 +173,6 @@ def get_patient_active_encounter(
         .first()
     )
 
-from apps.encounters.models import Encounter
-
 
 def patient_recent_encounters(
     patient,
@@ -188,8 +183,7 @@ def patient_recent_encounters(
     """
 
     return (
-        Encounter.objects
-        .filter(
+        Encounter.objects.filter(
             patient=patient,
         )
         .select_related(
@@ -202,6 +196,7 @@ def patient_recent_encounters(
             "-created_at",
         )[:limit]
     )
+
 
 def patient_navigation_context(
     *,
@@ -262,6 +257,7 @@ def trigger_response(
 # PATIENT LIST AND SEARCH
 # ============================================================
 
+
 @login_required
 def patient_list(
     request: HttpRequest,
@@ -274,7 +270,29 @@ def patient_list(
     status = request.GET.get("status", "all").strip()
     facility_id = request.GET.get("facility", "").strip()
 
-    patients = patient_queryset()
+    open_statuses = (
+        Encounter.EncounterStatus.PLANNED,
+        Encounter.EncounterStatus.SCHEDULED,
+        Encounter.EncounterStatus.ARRIVED,
+        Encounter.EncounterStatus.TRIAGED,
+        Encounter.EncounterStatus.IN_PROGRESS,
+        Encounter.EncounterStatus.ON_HOLD,
+    )
+    patients = patient_queryset().annotate(
+        has_open_encounter=Exists(
+            Encounter.objects.filter(
+                patient_id=OuterRef("pk"),
+                is_active=True,
+                status__in=open_statuses,
+            )
+        ),
+        has_completed_encounter=Exists(
+            Encounter.objects.filter(
+                patient_id=OuterRef("pk"),
+                status=Encounter.EncounterStatus.COMPLETED,
+            )
+        ),
+    )
 
     if query:
         patients = patients.search(query)
@@ -286,15 +304,10 @@ def patient_list(
         )
 
     elif status == "inactive":
-        patients = (
-            patients
-            .filter(
-                Q(record_status=Patient.RecordStatus.INACTIVE)
-                | Q(is_active=False)
-            )
-            .exclude(
-                record_status=Patient.RecordStatus.MERGED,
-            )
+        patients = patients.filter(
+            Q(record_status=Patient.RecordStatus.INACTIVE) | Q(is_active=False)
+        ).exclude(
+            record_status=Patient.RecordStatus.MERGED,
         )
 
     elif status == "deceased":
@@ -400,6 +413,7 @@ def patient_search(
 # PATIENT DETAIL AND SIDEBAR
 # ============================================================
 
+
 @login_required
 def patient_detail(
     request: HttpRequest,
@@ -426,25 +440,17 @@ def patient_detail(
     # ACTIVE PATIENT FLAGS
     # ========================================================
 
-    active_flags = [
-        flag
-        for flag in patient.flags.all()
-        if flag.currently_active
-    ]
+    active_flags = [flag for flag in patient.flags.all() if flag.currently_active]
 
     # ========================================================
     # ACTIVE ALLERGIES
     # ========================================================
 
-    allergies = (
-        patient.allergies
-        .filter(
-            status=PatientAllergy.Status.ACTIVE,
-        )
-        .order_by(
-            "-severity",
-            "substance",
-        )
+    allergies = patient.allergies.filter(
+        status=PatientAllergy.Status.ACTIVE,
+    ).order_by(
+        "-severity",
+        "substance",
     )
 
     # ========================================================
@@ -464,13 +470,32 @@ def patient_detail(
     )
 
     # ========================================================
-    # DIAGNOSES
-    #
-    # Diagnosis integration can be added when the diagnosis
-    # related_name and field names are confirmed.
+    # CLINICAL OVERVIEW
     # ========================================================
 
-    diagnoses = []
+    diagnoses = list(
+        patient.diagnoses.exclude(
+            clinical_status=PatientDiagnosis.DiagnosisStatus.ENTERED_IN_ERROR
+        )
+        .select_related("concept")
+        .order_by("-diagnosed_on")[:6]
+    )
+    active_diagnosis_count = patient.diagnoses.filter(
+        clinical_status=PatientDiagnosis.DiagnosisStatus.ACTIVE
+    ).count()
+    current_vitals = (
+        patient.vital_observations.active().order_by("-recorded_at").first()
+    )
+    active_medications = list(
+        patient.medication_orders.filter(
+            status__in=(
+                MedicationOrder.Status.ACTIVE,
+                MedicationOrder.Status.ON_HOLD,
+            )
+        )
+        .select_related("medication")
+        .order_by("medication__generic_name")[:8]
+    )
 
     # ========================================================
     # PAGE CONTEXT
@@ -482,19 +507,25 @@ def patient_detail(
             subsection="overview",
             active_encounter=active_encounter,
         ),
-
         "patient": patient,
         "selected_patient": patient,
-
         "active_flags": active_flags,
         "allergies": allergies,
-
         "active_encounter": active_encounter,
         "recent_encounters": recent_encounters,
-
+        "encounter_count": patient.encounters.count(),
+        "clinical_note_count": patient.clinical_notes.count(),
+        "active_diagnosis_count": active_diagnosis_count,
+        "current_vitals": current_vitals,
+        "active_medications": active_medications,
+        "active_medication_count": patient.medication_orders.filter(
+            status=MedicationOrder.Status.ACTIVE
+        ).count(),
+        "structured_labs_available": False,
+        "structured_procedures_available": False,
         "physicians": [],
         "diagnoses": diagnoses,
-        "medications": [],
+        "medications": active_medications,
         "surgeries": [],
         "clinical_records": [],
     }
@@ -519,6 +550,7 @@ def patient_detail(
         "patients/patient_detail.html",
         context,
     )
+
 
 @login_required
 def patient_sidebar(
@@ -569,21 +601,13 @@ def patient_overview(
         patient,
     )
 
-    active_flags = [
-        flag
-        for flag in patient.flags.all()
-        if flag.currently_active
-    ]
+    active_flags = [flag for flag in patient.flags.all() if flag.currently_active]
 
-    allergies = (
-        patient.allergies
-        .filter(
-            status=PatientAllergy.Status.ACTIVE,
-        )
-        .order_by(
-            "-severity",
-            "substance",
-        )
+    allergies = patient.allergies.filter(
+        status=PatientAllergy.Status.ACTIVE,
+    ).order_by(
+        "-severity",
+        "substance",
     )
 
     context = {
@@ -613,6 +637,7 @@ def patient_overview(
 # PATIENT ALLERGY QUERYSET
 # ============================================================
 
+
 def patient_allergy_queryset(
     patient: Patient,
 ):
@@ -622,20 +647,17 @@ def patient_allergy_queryset(
     Active records appear first, followed by severity and substance.
     """
 
-    return (
-        PatientAllergy.objects
-        .filter(patient=patient)
-        .order_by(
-            "status",
-            "-severity",
-            "substance",
-        )
+    return PatientAllergy.objects.filter(patient=patient).order_by(
+        "status",
+        "-severity",
+        "substance",
     )
 
 
 # ============================================================
 # PATIENT ALLERGY CREATE
 # ============================================================
+
 
 @login_required
 def patient_allergy_create(
@@ -683,9 +705,7 @@ def patient_allergy_create(
             response["HX-Trigger"] = json.dumps(
                 {
                     "patientAllergySaved": {
-                        "message": (
-                            f"{allergy.substance} was added successfully."
-                        ),
+                        "message": (f"{allergy.substance} was added successfully."),
                     },
                 }
             )
@@ -704,9 +724,7 @@ def patient_allergy_create(
             },
         )
 
-        response["HX-Retarget"] = (
-            "#patient-allergy-modal-content"
-        )
+        response["HX-Retarget"] = "#patient-allergy-modal-content"
         response["HX-Reswap"] = "innerHTML"
 
         return response
@@ -729,6 +747,7 @@ def patient_allergy_create(
 # ============================================================
 # PATIENT ALLERGY UPDATE
 # ============================================================
+
 
 @login_required
 def patient_allergy_update(
@@ -782,9 +801,7 @@ def patient_allergy_update(
             response["HX-Trigger"] = json.dumps(
                 {
                     "patientAllergySaved": {
-                        "message": (
-                            f"{allergy.substance} was updated successfully."
-                        ),
+                        "message": (f"{allergy.substance} was updated successfully."),
                     },
                 }
             )
@@ -803,9 +820,7 @@ def patient_allergy_update(
             },
         )
 
-        response["HX-Retarget"] = (
-            "#patient-allergy-modal-content"
-        )
+        response["HX-Retarget"] = "#patient-allergy-modal-content"
         response["HX-Reswap"] = "innerHTML"
 
         return response
@@ -831,6 +846,7 @@ def patient_allergy_update(
 # PATIENT CREATE AND UPDATE
 # ============================================================
 
+
 class PatientCreateView(
     LoginRequiredMixin,
     CreateView,
@@ -845,9 +861,7 @@ class PatientCreateView(
     model = Patient
     form_class = PatientForm
     template_name = "patients/patient_form.html"
-    partial_template_name = (
-        "patients/partials/patient_form.html"
-    )
+    partial_template_name = "patients/partials/patient_form.html"
 
     def get_template_names(self):
         """
@@ -946,9 +960,7 @@ class PatientUpdateView(
     form_class = PatientForm
     pk_url_kwarg = "patient_id"
     template_name = "patients/patient_form.html"
-    partial_template_name = (
-        "patients/partials/patient_form.html"
-    )
+    partial_template_name = "patients/partials/patient_form.html"
 
     def get_queryset(self):
         """
@@ -1051,6 +1063,7 @@ class PatientUpdateView(
 # PATIENT ARCHIVE / RECORD STATUS
 # ============================================================
 
+
 class PatientArchiveView(
     LoginRequiredMixin,
     View,
@@ -1059,13 +1072,9 @@ class PatientArchiveView(
     Soft-deactivate a patient instead of deleting the record.
     """
 
-    template_name = (
-        "patients/patient_confirm_delete.html"
-    )
+    template_name = "patients/patient_confirm_delete.html"
 
-    partial_template_name = (
-        "patients/partials/patient_confirm_delete.html"
-    )
+    partial_template_name = "patients/partials/patient_confirm_delete.html"
 
     def get_object(self, patient_id):
         """
@@ -1091,9 +1100,7 @@ class PatientArchiveView(
         )
 
         template_name = (
-            self.partial_template_name
-            if is_htmx(request)
-            else self.template_name
+            self.partial_template_name if is_htmx(request) else self.template_name
         )
 
         return render(
@@ -1127,13 +1134,9 @@ class PatientArchiveView(
         ).strip()
 
         if not reason:
-            return HttpResponseBadRequest(
-                "An archive reason is required."
-            )
+            return HttpResponseBadRequest("An archive reason is required.")
 
-        patient.record_status = (
-            Patient.RecordStatus.INACTIVE
-        )
+        patient.record_status = Patient.RecordStatus.INACTIVE
         patient.is_active = False
         patient.updated_by = request.user
 
@@ -1144,9 +1147,7 @@ class PatientArchiveView(
         )
 
         if patient.registration_notes:
-            patient.registration_notes = (
-                f"{patient.registration_notes}\n\n{note}"
-            )
+            patient.registration_notes = f"{patient.registration_notes}\n\n{note}"
         else:
             patient.registration_notes = note
 
@@ -1205,9 +1206,7 @@ class PatientRestoreView(
                 "A deceased patient cannot be restored as active."
             )
 
-        patient.record_status = (
-            Patient.RecordStatus.ACTIVE
-        )
+        patient.record_status = Patient.RecordStatus.ACTIVE
         patient.is_active = True
         patient.updated_by = request.user
         patient.save()
@@ -1300,14 +1299,13 @@ def child_config(
     try:
         return CHILD_CONFIG[kind]
     except KeyError as exc:
-        raise Http404(
-            "Unsupported patient record type."
-        ) from exc
+        raise Http404("Unsupported patient record type.") from exc
 
 
 # ============================================================
 # GENERIC PATIENT CHILD RECORD LIST
 # ============================================================
+
 
 @login_required
 def patient_child_list(
@@ -1351,6 +1349,7 @@ def patient_child_list(
 # ============================================================
 # GENERIC PATIENT CHILD RECORD CREATE
 # ============================================================
+
 
 @login_required
 def patient_child_create(
@@ -1437,6 +1436,7 @@ def patient_child_create(
 # ============================================================
 # GENERIC PATIENT CHILD RECORD UPDATE
 # ============================================================
+
 
 @login_required
 def patient_child_update(
@@ -1528,6 +1528,7 @@ def patient_child_update(
 # GENERIC PATIENT CHILD RECORD DELETE
 # ============================================================
 
+
 @login_required
 def patient_child_delete(
     request: HttpRequest,
@@ -1600,6 +1601,7 @@ def patient_child_delete(
 # FLAG ACKNOWLEDGMENT
 # ============================================================
 
+
 @login_required
 @transaction.atomic
 def patient_flag_acknowledge(
@@ -1612,9 +1614,7 @@ def patient_flag_acknowledge(
     """
 
     if request.method != "POST":
-        return HttpResponseBadRequest(
-            "Flag acknowledgment requires POST."
-        )
+        return HttpResponseBadRequest("Flag acknowledgment requires POST.")
 
     patient = get_object_or_404(
         Patient,
@@ -1627,17 +1627,15 @@ def patient_flag_acknowledge(
         patient=patient,
     )
 
-    acknowledgment, created = (
-        PatientFlagAcknowledgment.objects.get_or_create(
-            flag=flag,
-            acknowledged_by=request.user,
-            defaults={
-                "notes": request.POST.get(
-                    "notes",
-                    "",
-                ).strip(),
-            },
-        )
+    acknowledgment, created = PatientFlagAcknowledgment.objects.get_or_create(
+        flag=flag,
+        acknowledged_by=request.user,
+        defaults={
+            "notes": request.POST.get(
+                "notes",
+                "",
+            ).strip(),
+        },
     )
 
     if not created:
@@ -1672,6 +1670,7 @@ def patient_flag_acknowledge(
 # PATIENT MERGE WORKFLOW
 # ============================================================
 
+
 @login_required
 def patient_merge_review(
     request: HttpRequest,
@@ -1687,10 +1686,8 @@ def patient_merge_review(
     )
 
     merge_records = (
-        PatientMergeRecord.objects
-        .filter(
-            Q(surviving_patient=patient)
-            | Q(duplicate_patient=patient)
+        PatientMergeRecord.objects.filter(
+            Q(surviving_patient=patient) | Q(duplicate_patient=patient)
         )
         .select_related(
             "surviving_patient",

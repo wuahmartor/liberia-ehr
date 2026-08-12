@@ -52,7 +52,7 @@
                 for="patient-status-filter"
                 class="text-xs font-medium text-slate-600"
             >
-                Status
+                Record status
             </label>
 
             <select
@@ -78,14 +78,14 @@
                     value="active"
                     {% if status == "active" %}selected{% endif %}
                 >
-                    Active
+                    Active records
                 </option>
 
                 <option
                     value="inactive"
                     {% if status == "inactive" %}selected{% endif %}
                 >
-                    Inactive
+                    Inactive records
                 </option>
 
                 <option

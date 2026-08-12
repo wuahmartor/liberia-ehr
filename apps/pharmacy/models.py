@@ -8,7 +8,6 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-
 # ============================================================
 # MEDICATION QUERYSET
 # ============================================================
@@ -201,8 +200,7 @@ class Medication(models.Model):
     strength = models.CharField(
         max_length=100,
         help_text=(
-            "Medication strength, for example: "
-            "500 mg, 40 mg/mL, or 250 mg/5 mL."
+            "Medication strength, for example: 500 mg, 40 mg/mL, or 250 mg/5 mL."
         ),
     )
 
@@ -225,9 +223,7 @@ class Medication(models.Model):
     therapeutic_class = models.CharField(
         max_length=150,
         blank=True,
-        help_text=(
-            "Optional therapeutic/pharmacologic classification."
-        ),
+        help_text=("Optional therapeutic/pharmacologic classification."),
     )
 
     # ========================================================
@@ -288,16 +284,13 @@ class Medication(models.Model):
         default=False,
         verbose_name="Look-alike / sound-alike",
         help_text=(
-            "Marks medications identified locally as look-alike or "
-            "sound-alike."
+            "Marks medications identified locally as look-alike or sound-alike."
         ),
     )
 
     safety_notes = models.TextField(
         blank=True,
-        help_text=(
-            "Local formulary safety notes or medication handling warnings."
-        ),
+        help_text=("Local formulary safety notes or medication handling warnings."),
     )
 
     # ========================================================
@@ -449,29 +442,17 @@ class Medication(models.Model):
         errors = {}
 
         self.code = (self.code or "").strip().upper()
-        self.generic_name = " ".join(
-            (self.generic_name or "").split()
-        ).strip()
+        self.generic_name = " ".join((self.generic_name or "").split()).strip()
 
-        self.brand_name = " ".join(
-            (self.brand_name or "").split()
-        ).strip()
+        self.brand_name = " ".join((self.brand_name or "").split()).strip()
 
-        self.strength = " ".join(
-            (self.strength or "").split()
-        ).strip()
+        self.strength = " ".join((self.strength or "").split()).strip()
 
-        self.dosage_form = " ".join(
-            (self.dosage_form or "").split()
-        ).strip()
+        self.dosage_form = " ".join((self.dosage_form or "").split()).strip()
 
-        self.route = " ".join(
-            (self.route or "").split()
-        ).strip()
+        self.route = " ".join((self.route or "").split()).strip()
 
-        self.rxnorm_rxcui = (
-            (self.rxnorm_rxcui or "").strip() or None
-        )
+        self.rxnorm_rxcui = (self.rxnorm_rxcui or "").strip() or None
 
         # ----------------------------------------------------
         # RxNorm validation
@@ -506,9 +487,7 @@ class Medication(models.Model):
             self.is_active = False
 
         if self.is_active and self.formulary_status == self.FormularyStatus.RETIRED:
-            errors["is_active"] = (
-                "A retired medication cannot remain active."
-            )
+            errors["is_active"] = "A retired medication cannot remain active."
 
         if errors:
             raise ValidationError(errors)
@@ -528,29 +507,17 @@ class Medication(models.Model):
 
         self.code = (self.code or "").strip().upper()
 
-        self.generic_name = " ".join(
-            (self.generic_name or "").split()
-        ).strip()
+        self.generic_name = " ".join((self.generic_name or "").split()).strip()
 
-        self.brand_name = " ".join(
-            (self.brand_name or "").split()
-        ).strip()
+        self.brand_name = " ".join((self.brand_name or "").split()).strip()
 
-        self.strength = " ".join(
-            (self.strength or "").split()
-        ).strip()
+        self.strength = " ".join((self.strength or "").split()).strip()
 
-        self.dosage_form = " ".join(
-            (self.dosage_form or "").split()
-        ).strip()
+        self.dosage_form = " ".join((self.dosage_form or "").split()).strip()
 
-        self.route = " ".join(
-            (self.route or "").split()
-        ).strip()
+        self.route = " ".join((self.route or "").split()).strip()
 
-        self.rxnorm_rxcui = (
-            (self.rxnorm_rxcui or "").strip() or None
-        )
+        self.rxnorm_rxcui = (self.rxnorm_rxcui or "").strip() or None
 
         super().save(*args, **kwargs)
 
@@ -575,11 +542,7 @@ class Medication(models.Model):
         if self.dosage_form:
             components.append(self.dosage_form)
 
-        return " ".join(
-            component
-            for component in components
-            if component
-        )
+        return " ".join(component for component in components if component)
 
     @property
     def is_low_stock(self) -> bool:
@@ -591,10 +554,7 @@ class Medication(models.Model):
 
     @property
     def is_retired(self) -> bool:
-        return (
-            self.formulary_status
-            == self.FormularyStatus.RETIRED
-        )
+        return self.formulary_status == self.FormularyStatus.RETIRED
 
     def retire(
         self,
@@ -663,3 +623,127 @@ class Medication(models.Model):
 
     def __str__(self) -> str:
         return f"{self.display_name} [{self.code}]"
+
+
+class PharmacyReview(models.Model):
+    """Auditable pharmacist review of a medication order."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        VERIFIED = "verified", "Verified"
+        CLARIFICATION = "clarification", "Clarification required"
+        REJECTED = "rejected", "Rejected"
+
+    order = models.OneToOneField(
+        "orders.MedicationOrder",
+        on_delete=models.PROTECT,
+        related_name="pharmacy_review",
+    )
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True
+    )
+    allergy_checked = models.BooleanField(default=False)
+    dose_checked = models.BooleanField(default=False)
+    route_frequency_checked = models.BooleanField(default=False)
+    interactions_checked = models.BooleanField(default=False)
+    formulary_checked = models.BooleanField(default=False)
+    clinical_notes = models.TextField(blank=True)
+    clarification_reason = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="pharmacy_reviews",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+
+    @property
+    def is_verified(self):
+        return self.status == self.Status.VERIFIED
+
+    def __str__(self):
+        return f"{self.order} — {self.get_status_display()}"
+
+
+class DispenseRecord(models.Model):
+    """Medication quantity supplied against a pharmacist-verified order."""
+
+    order = models.ForeignKey(
+        "orders.MedicationOrder",
+        on_delete=models.PROTECT,
+        related_name="dispense_records",
+    )
+    medication = models.ForeignKey(
+        Medication, on_delete=models.PROTECT, related_name="dispense_records"
+    )
+    quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    unit_of_measure = models.CharField(max_length=50)
+    lot_number = models.CharField(max_length=100, blank=True)
+    expiration_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    dispensed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="pharmacy_dispenses",
+    )
+    dispensed_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ("-dispensed_at",)
+
+    def clean(self):
+        super().clean()
+        if self.quantity is not None and self.quantity <= 0:
+            raise ValidationError(
+                {"quantity": "Dispensed quantity must be greater than zero."}
+            )
+        if self.order_id and self.medication_id != self.order.medication_id:
+            raise ValidationError({"medication": "Medication must match the order."})
+
+    def __str__(self):
+        return f"{self.medication.display_name} × {self.quantity}"
+
+
+class InventoryTransaction(models.Model):
+    """Immutable stock movement ledger for the aggregate formulary inventory."""
+
+    class MovementType(models.TextChoices):
+        RECEIPT = "receipt", "Receipt"
+        ADJUSTMENT = "adjustment", "Adjustment"
+        DISPENSE = "dispense", "Dispense"
+        RETURN = "return", "Return"
+        WASTE = "waste", "Waste"
+
+    medication = models.ForeignKey(
+        Medication, on_delete=models.PROTECT, related_name="inventory_transactions"
+    )
+    movement_type = models.CharField(max_length=20, choices=MovementType.choices)
+    quantity_change = models.DecimalField(max_digits=12, decimal_places=3)
+    balance_after = models.DecimalField(max_digits=12, decimal_places=3)
+    reference = models.CharField(max_length=120, blank=True)
+    notes = models.TextField(blank=True)
+    dispense_record = models.OneToOneField(
+        DispenseRecord,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="inventory_transaction",
+    )
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="pharmacy_inventory_transactions",
+    )
+    recorded_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ("-recorded_at",)
+
+    def __str__(self):
+        return f"{self.medication.code}: {self.quantity_change:+}"

@@ -46,7 +46,7 @@ Medication Order | Liberia EHR
 
             bg-white
 
-            px-4 py-3
+            px-3 py-2
 
         "
 
@@ -56,7 +56,7 @@ Medication Order | Liberia EHR
 
             class="
 
-                flex flex-col gap-3
+                flex flex-col gap-2
 
                 sm:flex-row
 
@@ -76,7 +76,7 @@ Medication Order | Liberia EHR
 
                         class="
 
-                            text-base font-semibold
+                            text-sm font-semibold
 
                             text-slate-900
 
@@ -116,55 +116,9 @@ Medication Order | Liberia EHR
 
                 </div>
 
-                <div
-
-                    class="
-
-                        mt-1
-
-                        flex flex-wrap
-
-                        items-center gap-x-2
-
-                        text-[11px]
-
-                        text-slate-500
-
-                    "
-
-                >
-
-                    {% if selected_patient %}
-
-                        <span class="font-medium text-slate-700">
-
-                            {{ selected_patient.display_name }}
-
-                        </span>
-
-                    {% endif %}
-
-                    {% if selected_patient.mrn %}
-
-                        <span>
-
-                            · MRN {{ selected_patient.mrn }}
-
-                        </span>
-
-                    {% endif %}
-
-                    {% if active_encounter.encounter_number %}
-
-                        <span>
-
-                            · Encounter {{ active_encounter.encounter_number }}
-
-                        </span>
-
-                    {% endif %}
-
-                </div>
+                {% if active_encounter.encounter_number %}
+                    <p class="mt-0.5 text-[9px] text-slate-500">Encounter {{ active_encounter.encounter_number }}</p>
+                {% endif %}
 
             </div>
 
@@ -186,9 +140,9 @@ Medication Order | Liberia EHR
 
                             bg-white
 
-                            px-3 py-2
+                            px-2.5 py-1.5
 
-                            text-xs font-medium
+                            text-[10px] font-medium
 
                             text-slate-700
 
@@ -218,9 +172,9 @@ Medication Order | Liberia EHR
 
                             bg-emerald-700
 
-                            px-3 py-2
+                            px-2.5 py-1.5
 
-                            text-xs font-semibold
+                            text-[10px] font-semibold
 
                             text-white
 
@@ -256,7 +210,7 @@ Medication Order | Liberia EHR
 
             overflow-y-auto
 
-            p-4
+            p-2.5
 
         "
 
@@ -266,7 +220,7 @@ Medication Order | Liberia EHR
 
             class="
 
-                grid gap-4
+                grid gap-2.5
 
                 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]
 
@@ -286,7 +240,7 @@ Medication Order | Liberia EHR
 
                     overflow-visible
 
-                    rounded-lg
+                    rounded-md
 
                     border border-slate-200
 
@@ -302,7 +256,7 @@ Medication Order | Liberia EHR
 
                         border-b border-slate-200
 
-                        px-4 py-3
+                        px-3 py-2
 
                     "
 
@@ -312,7 +266,7 @@ Medication Order | Liberia EHR
 
                         class="
 
-                            text-sm font-semibold
+                            text-xs font-semibold
 
                             text-slate-900
 
@@ -330,7 +284,7 @@ Medication Order | Liberia EHR
 
                             mt-0.5
 
-                            text-[11px]
+                            text-[9px]
 
                             text-slate-500
 
@@ -350,7 +304,7 @@ Medication Order | Liberia EHR
     method="post"
     action="{{ request.path }}"
     @submit="submitting = true"
-    class="p-4"
+    class="p-3"
 >
 
     {% csrf_token %}
@@ -359,7 +313,7 @@ Medication Order | Liberia EHR
 
     <footer
         class="
-            mt-5
+            mt-3
             flex items-center
             justify-end gap-2
             border-t border-slate-200
@@ -428,9 +382,9 @@ Medication Order | Liberia EHR
 
                 class="
 
-                    overflow-hidden
+                    overflow-visible
 
-                    rounded-lg
+                    rounded-md
 
                     border border-slate-200
 
@@ -450,7 +404,7 @@ Medication Order | Liberia EHR
 
                         border-b border-slate-200
 
-                        px-4 py-3
+                        px-3 py-2
 
                     "
 
@@ -462,7 +416,7 @@ Medication Order | Liberia EHR
 
                             class="
 
-                                text-sm font-semibold
+                                text-xs font-semibold
 
                                 text-slate-900
 
@@ -480,7 +434,7 @@ Medication Order | Liberia EHR
 
                                 mt-0.5
 
-                                text-[11px]
+                                text-[9px]
 
                                 text-slate-500
 
@@ -520,9 +474,9 @@ Medication Order | Liberia EHR
 
                 {% if medication_orders %}
 
-                    <div class="overflow-x-auto">
+                    <div class="overflow-visible">
 
-                        <table class="min-w-full text-xs">
+                        <table class="min-w-full text-[10px]">
 
                             <thead
 
@@ -600,6 +554,10 @@ Medication Order | Liberia EHR
 
                                         Safety
 
+                                    </th>
+
+                                    <th class="px-3 py-2 text-right font-semibold">
+                                        Actions
                                     </th>
 
                                 </tr>
@@ -694,6 +652,13 @@ Medication Order | Liberia EHR
 
                                             </div>
 
+                                            <div class="mt-0.5 text-[9px] text-slate-500">
+                                                {{ medication_order.get_order_type_display }}
+                                                {% if medication_order.clinical_indication %}
+                                                    · {{ medication_order.clinical_indication }}
+                                                {% endif %}
+                                            </div>
+
                                             {% if medication_order.instructions %}
 
                                                 <div
@@ -740,6 +705,12 @@ Medication Order | Liberia EHR
 
                                                     {% firstof medication_order.ordered_by.get_full_name medication_order.ordered_by.username %}
 
+                                                {% endif %}
+
+                                                · {{ medication_order.get_order_method_display }}
+
+                                                {% if medication_order.received_by %}
+                                                    · Received by {% firstof medication_order.received_by.get_full_name medication_order.received_by.username %}
                                                 {% endif %}
 
                                             </div>
@@ -852,6 +823,16 @@ Medication Order | Liberia EHR
 
                                             {% endif %}
 
+                                            {% if medication_order.status == "discontinued" and medication_order.discontinued_at %}
+                                                <div class="mt-1 text-[9px] leading-4 text-red-700">
+                                                    Discontinued {{ medication_order.discontinued_at|date:"m/d/Y h:i A" }}
+                                                    {% if medication_order.discontinuation_ordered_by %}· Ordered by {% firstof medication_order.discontinuation_ordered_by.get_full_name medication_order.discontinuation_ordered_by.username %}{% endif %}
+                                                    {% if medication_order.discontinuation_order_method %}· {{ medication_order.get_discontinuation_order_method_display }}{% endif %}
+                                                    {% if medication_order.discontinuation_received_by %}· Received by {% firstof medication_order.discontinuation_received_by.get_full_name medication_order.discontinuation_received_by.username %}{% endif %}
+                                                    {% if medication_order.discontinuation_reason %}· {{ medication_order.discontinuation_reason }}{% endif %}
+                                                </div>
+                                            {% endif %}
+
                                         </td>
 
                                         <!-- =====================
@@ -864,6 +845,43 @@ Medication Order | Liberia EHR
 
                                             {% include "medications/components/safety_badges.html" with medication=medication_order.medication %}
 
+                                        </td>
+
+                                        <td class="px-3 py-2.5 text-right align-top">
+                                            <div class="flex items-start justify-end gap-1">
+                                                {% if medication_order.status == "active" %}
+                                                    <form method="post">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="order_action" value="hold">
+                                                        <input type="hidden" name="medication_order" value="{{ medication_order.pk }}">
+                                                        <button type="submit" class="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-800 hover:bg-amber-100">Hold</button>
+                                                    </form>
+                                                {% elif medication_order.status == "on_hold" %}
+                                                    <form method="post">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="order_action" value="resume">
+                                                        <input type="hidden" name="medication_order" value="{{ medication_order.pk }}">
+                                                        <button type="submit" class="rounded border border-emerald-300 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800 hover:bg-emerald-100">Resume</button>
+                                                    </form>
+                                                {% endif %}
+                                                {% if medication_order.status == "active" or medication_order.status == "on_hold" %}
+                                                    <details class="w-72 text-left">
+                                                        <summary class="ml-auto w-fit cursor-pointer rounded border border-red-300 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-700">Discontinue</summary>
+                                                        <form method="post" class="mt-2 grid gap-2 rounded border border-red-200 bg-white p-3 shadow-md">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="order_action" value="discontinue">
+                                                            <input type="hidden" name="medication_order" value="{{ medication_order.pk }}">
+                                                            <label class="text-[10px] font-semibold">Ordering provider</label>
+                                                            <select name="discontinuation_ordered_by" required class="h-8 rounded border border-slate-300 px-2 text-xs"><option value="">Select provider</option>{% for provider in ordering_providers %}<option value="{{ provider.pk }}">{% firstof provider.get_full_name provider.username %}</option>{% endfor %}</select>
+                                                            <label class="text-[10px] font-semibold">Order medium</label>
+                                                            <select name="discontinuation_order_method" required class="h-8 rounded border border-slate-300 px-2 text-xs"><option value="">Select medium</option>{% for value, label in order_methods %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+                                                            <label class="text-[10px] font-semibold">Reason</label>
+                                                            <textarea name="discontinuation_reason" required rows="2" class="rounded border border-slate-300 p-2 text-xs"></textarea>
+                                                            <button type="submit" class="rounded bg-red-700 px-3 py-2 text-xs font-semibold text-white">Record discontinuation order</button>
+                                                        </form>
+                                                    </details>
+                                                {% endif %}
+                                            </div>
                                         </td>
 
                                     </tr>

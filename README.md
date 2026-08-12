@@ -1,2201 +1,684 @@
-Below is the upgraded README.md, aligned with your selected Design Option 4: Analytics-Focused EHR layout, Django architecture, HTMX interactions, and Tailwind CSS styling.
-
-Liberia EHR
-
-Liberia EHR is a modular, analytics-enabled Electronic Health Record platform designed to support clinical care, nursing informatics, healthcare data analytics, and responsibly governed clinical decision support.
-
-The platform is being developed for healthcare environments where affordability, usability, reliability, interoperability, and limited infrastructure must all be considered—including hospitals, clinics, community health centers, and public-health programs in Liberia.
-
-Project status: Active development.
-This software is not yet certified or approved for production clinical use.
-
-⸻
-
-Table of Contents
-
-* Project Vision⁠￼
-* Core Objectives⁠￼
-* Key Features⁠￼
-* User Roles⁠￼
-* Technology Stack⁠￼
-* System Architecture⁠￼
-* Design Option 4: Analytics-Focused Layout⁠￼
-* Project Structure⁠￼
-* Template Architecture⁠￼
-* Django Application Responsibilities⁠￼
-* Recommended Internal App Pattern⁠￼
-* Database Strategy⁠￼
-* HTMX Strategy⁠￼
-* Alpine.js Responsibilities⁠￼
-* Tailwind CSS Design System⁠￼
-* Clinical Decision Support⁠￼
-* Artificial Intelligence Governance⁠￼
-* Analytics and Nursing Informatics⁠￼
-* Security and Clinical Safety⁠￼
-* Audit Logging⁠￼
-* Local Development Setup⁠￼
-* PostgreSQL Setup⁠￼
-* Docker Setup⁠￼
-* Testing⁠￼
-* Development Standards⁠￼
-* Suggested Implementation Order⁠￼
-* Initial Milestone⁠￼
-* Future Roadmap⁠￼
-* Contributing⁠￼
-* License⁠￼
-* Clinical Disclaimer⁠￼
-
-⸻
-
-Project Vision
-
-Liberia EHR aims to provide a practical healthcare information platform that combines:
-
-* Patient registration and longitudinal health records
-* Clinical documentation
-* Nursing workflows
-* Medication and order management
-* Laboratory and imaging workflows
-* Public-health and facility analytics
-* Nursing informatics
-* Rule-based clinical decision support
-* Carefully governed artificial intelligence
-* Role-based and facility-based access control
-* Complete patient-record audit trails
-
-The long-term goal is to support safer clinical care and better healthcare decision-making while remaining adaptable to the infrastructure and operational realities of Liberia.
-
-⸻
-
-Core Objectives
-
-The project is designed around the following objectives:
-
-1. Improve continuity of care
-    Maintain a longitudinal patient record across encounters, departments, and healthcare facilities.
-2. Support nursing practice
-    Provide structured nursing assessments, care plans, flowsheets, handoff documentation, and task management.
-3. Improve clinical visibility
-    Present vital signs, laboratory results, medications, diagnoses, allergies, orders, notes, and care plans in one coordinated workspace.
-4. Enable healthcare analytics
-    Support clinical, operational, quality, nursing, and public-health dashboards.
-5. Strengthen patient safety
-    Introduce allergy warnings, abnormal-result alerts, medication checks, deterioration rules, and clinical reminders.
-6. Support resource-limited environments
-    Use a server-rendered architecture that minimizes unnecessary browser complexity and can be adapted for constrained networks.
-7. Maintain human oversight
-    Ensure that clinical decision support and AI outputs remain explainable, reviewable, attributable, and subordinate to clinician judgment.
-8. Promote modular development
-    Separate major clinical domains into independent Django applications with predictable internal structures.
-
-⸻
-
-Key Features
-
-Patient Management
-
-* Patient registration
-* Medical record number generation
-* National and facility-specific identifiers
-* Demographic information
-* Address and contact information
-* Emergency contacts
-* Next-of-kin information
-* Patient photographs or generated initials
-* Patient search by name, MRN, phone number, date of birth, or identifier
-* Duplicate-patient review
-* Patient merge workflow
-* Patient status management
-* Deceased-patient documentation
-* Patient archival without destructive deletion
-
-Encounter Management
-
-* Outpatient visits
-* Emergency encounters
-* Inpatient admissions
-* Transfers
-* Discharges
-* Encounter timelines
-* Assigned clinicians
-* Care-team membership
-* Encounter status tracking
-* Visit-reason documentation
-* Admission and discharge diagnoses
-* Follow-up instructions
-
-Nursing Informatics
-
-* Nursing intake assessments
-* Head-to-toe assessments
-* Nursing notes
-* Care plans
-* Nursing diagnoses
-* Patient goals and interventions
-* Shift handoff
-* Intake and output
-* Pain assessment
-* Fall-risk assessment
-* Pressure-injury risk assessment
-* Neurological observations
-* Nursing task lists
-* Escalation documentation
-* Structured flowsheets
-
-Clinical Documentation
-
-* Problems and diagnoses
-* Allergies and reactions
-* Vital signs
-* Clinical notes
-* Progress notes
-* History and physical examination
-* Procedure documentation
-* Clinical summaries
-* Document uploads
-* Encounter and patient timelines
-
-Medication Management
-
-* Medication catalog
-* Medication reconciliation
-* Prescriptions
-* Medication orders
-* Medication administration records
-* Dose and frequency documentation
-* Route of administration
-* Start and stop dates
-* Allergy checks
-* Duplicate-therapy warnings
-* Contraindication rules
-* Medication status tracking
-
-Orders and Results
-
-* Laboratory orders
-* Imaging orders
-* Medication orders
-* Procedure orders
-* Nursing orders
-* Order lifecycle tracking
-* Specimen collection
-* Laboratory result entry
-* Result verification
-* Reference ranges
-* Abnormal-result flags
-* Critical-result acknowledgment
-* Imaging reports
-* Order cancellation and discontinuation
-
-Care Management
-
-* Multidisciplinary care plans
-* Referrals
-* Follow-up tasks
-* Discharge planning
-* Social needs documentation
-* Care-team coordination
-* Patient education
-* Appointment and follow-up reminders
-* Case-management notes
-
-Analytics
-
-* Clinical dashboards
-* Nursing dashboards
-* Facility operations dashboards
-* Quality-improvement dashboards
-* Disease-surveillance dashboards
-* Medication-use dashboards
-* Laboratory turnaround-time monitoring
-* Admission and discharge trends
-* Patient-volume analysis
-* Staff workload indicators
-* Clinical alert monitoring
-* Patient outcome indicators
-
-Decision Support
-
-* Abnormal vital-sign alerts
-* Critical laboratory alerts
-* Allergy warnings
-* Medication contraindication checks
-* Duplicate medication warnings
-* Fall-risk reminders
-* Sepsis screening rules
-* Deterioration alerts
-* Clinical follow-up reminders
-* Alert acknowledgment
-* Override-reason documentation
-* Rule-version tracking
-
-⸻
-
-User Roles
-
-The authorization system should support configurable roles rather than relying only on Django’s default staff and superuser flags.
-
-Suggested roles include:
-
-* System administrator
-* Facility administrator
-* Department administrator
-* Physician
-* Physician assistant
-* Nurse practitioner
-* Registered nurse
-* Licensed practical nurse
-* Nursing assistant
-* Pharmacist
-* Pharmacy technician
-* Laboratory scientist
-* Laboratory technician
-* Radiology staff
-* Medical records officer
-* Registration staff
-* Care manager
-* Social worker
-* Data analyst
-* Quality-improvement officer
-* Public-health officer
-* Auditor
-
-Permissions should be assigned through Django groups, model permissions, custom domain permissions, and object-level authorization.
-
-⸻
-
-Technology Stack
-
-Layer	Technology
-Backend framework	Django
-Programming language	Python
-Dynamic server-rendered UI	HTMX
-Lightweight browser interaction	Alpine.js
-Styling	Tailwind CSS
-Production database	PostgreSQL
-Local development database	SQLite
-Background jobs	Celery or Django-Q, planned
-Task broker and cache	Redis, planned
-Testing	Pytest and pytest-django
-Application server	Gunicorn
-Reverse proxy	Nginx
-Containerization	Docker and Docker Compose
-Analytics foundation	Python and Django services
-Clinical decision support	Versioned rules engine
-AI integration	Governed model-service adapters
-Version control	Git and GitHub
-
-Database Policy
-
-* SQLite is used for lightweight local development and testing.
-* PostgreSQL is the recommended database for staging and production.
-* PostgreSQL should be used when developing features that depend on:
-    * Full-text search
-    * Trigram similarity
-    * JSON fields
-    * Advanced indexing
-    * Concurrent users
-    * Production-grade transactional behavior
-
-⸻
-
-System Architecture
-
-Liberia EHR follows a modular Django architecture.
-
-┌────────────────────────────────────────────────────────────────────┐
-│                         Browser Interface                           │
-│                                                                    │
-│             Tailwind CSS + HTMX + Alpine.js                        │
-└────────────────────────────────┬───────────────────────────────────┘
-                                 │
-                                 │ HTTPS requests
-                                 ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                         Django Web Layer                            │
-│                                                                    │
-│  URL routing → permissions → views → forms → templates/partials   │
-└────────────────────────────────┬───────────────────────────────────┘
-                                 │
-                                 ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                      Domain Service Layer                           │
-│                                                                    │
-│  Patients | Encounters | Nursing | Orders | Medications | CDS     │
-└────────────────────────────────┬───────────────────────────────────┘
-                                 │
-                                 ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                          Data Layer                                 │
-│                                                                    │
-│        Django ORM → PostgreSQL or SQLite → Audit Records           │
-└────────────────────────────────┬───────────────────────────────────┘
-                                 │
-                                 ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                 Analytics and Integration Layer                     │
-│                                                                    │
-│ Dashboards | Reporting | Rules Engine | AI Adapters | APIs         │
-└────────────────────────────────────────────────────────────────────┘
-
-Architectural Principles
-
-* Django remains the owner of clinical state.
-* HTMX updates server-rendered fragments.
-* Alpine.js manages presentation state only.
-* Service functions coordinate write operations.
-* Selector functions coordinate complex read operations.
-* Clinical rules are versioned and testable.
-* All sensitive record access is auditable.
-* AI features are isolated behind governed service adapters.
-* Clinical records should not be permanently deleted through ordinary workflows.
-
-⸻
-
-Design Option 4: Analytics-Focused Layout
-
-Liberia EHR uses the selected Design Option 4: Analytics-Focused application shell.
-
-The interface contains four persistent regions.
-
-1. Primary Navigation
-
-The first navigation row controls the major system domain:
-
-* Clinical
-* Nursing
-* Analytics
-* AI/CDS
-* Orders
-* Medication
-* Care Management
-* Administration
-
-2. Contextual Secondary Navigation
-
-The second navigation row changes according to the selected primary module.
-
-For example, under Clinical → Patients, the secondary navigation may contain:
-
-* Patient search
-* Patient list
-* Recent patients
-* Register patient
-* Admit
-* Transfer
-* Discharge
-* Clinical alerts
-* Additional actions
-
-3. Patient Context Sidebar
-
-When a patient is selected, the left sidebar displays persistent patient context:
-
-* Patient photograph or initials
-* Full name
-* Medical record number
-* Date of birth
-* Age
-* Sex
-* Patient status
-* Current location
-* Current encounter
-* Allergies
-* Clinical alerts
-* Overview
-* Clinical summary
-* Vitals and laboratories
-* Medications
-* Problems
-* Care plan
-* Notes
-* Documents
-* Flowsheets
-
-4. Analytics-Focused Workspace
-
-The central workspace supports:
-
-* Clinical overview
-* Summary cards
-* Vital-sign trends
-* Laboratory trends
-* Medication status
-* Intake and output
-* Pain trends
-* Encounter timelines
-* Nursing documentation
-* Clinical forms
-* Orders and results
-* AI/CDS recommendations
-* Risk alerts
-* Analytics visualizations
-* Drill-down tables
-* Time-range filtering
-
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Clinical | Nursing | Analytics | AI/CDS | Orders | Medication | Admin       │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Patients | Search | Recent | Register | Admit | Transfer | Discharge        │
-├──────────────────────┬───────────────────────────────────────────────────────┤
-│ Patient Context      │ Clinical Overview                     Last 24 Hours   │
-│                      ├───────────────────────────────────────────────────────┤
-│ Identity             │ Vitals | Labs | Medications | I/O | Pain             │
-│ Encounter            ├────────────────────────────────┬──────────────────────┤
-│ Alerts               │ Clinical Trends                │ AI/CDS Alerts        │
-│ Overview             │                                │                      │
-│ Clinical Summary     │ Vital-sign charts              │ Recommendations      │
-│ Vitals & Labs        │ Laboratory trends              │ Risk notifications   │
-│ Medications          │ Encounter timeline             │ Required actions     │
-│ Problems             │ Nursing indicators             │ Acknowledgments      │
-│ Care Plan            │                                │                      │
-│ Notes                │                                │                      │
-│ Documents            │                                │                      │
-│ Flowsheets           │                                │                      │
-└──────────────────────┴────────────────────────────────┴──────────────────────┘
-
-Responsive Behavior
-
-On smaller screens:
-
-* The patient sidebar becomes collapsible.
-* The primary menu becomes a mobile navigation panel.
-* The secondary navigation becomes horizontally scrollable.
-* Summary cards stack vertically.
-* Charts and data tables use responsive overflow containers.
-* Clinical alerts remain visible and prioritized.
-* Important patient identifiers remain available in a compact header.
-
-⸻
-
-Project Structure
-
+# Liberia EHR
+
+Liberia EHR is a modular, server-rendered electronic health record under active development. It combines longitudinal patient records, encounter-based clinical workflows, nursing documentation, medication ordering and administration, pharmacy operations, scheduling, and operational analytics in a compact Django interface.
+
+> [!WARNING]
+> This project is not certified or validated for production clinical use. Do not load real protected health information until security, privacy, clinical-safety, backup, recovery, and regulatory reviews are complete.
+
+## Contents
+
+- [Project status](#project-status)
+- [Implemented workflows](#implemented-workflows)
+- [Architecture](#architecture)
+- [Technology stack](#technology-stack)
+- [Repository layout](#repository-layout)
+- [Domain model](#domain-model)
+- [Navigation and application areas](#navigation-and-application-areas)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running the application](#running-the-application)
+- [Development workflow](#development-workflow)
+- [Testing](#testing)
+- [Security and clinical safety](#security-and-clinical-safety)
+- [Deployment](#deployment)
+- [Known limitations](#known-limitations)
+- [Roadmap](#roadmap)
+- [Documentation](#documentation)
+
+## Project status
+
+- **Status:** active development
+- **Framework:** Django 5.x
+- **Default development database:** SQLite
+- **Recommended production database:** PostgreSQL
+- **Application timezone:** `America/Chicago` (Iowa local time)
+**UI model:** Django templates + HTMX + Alpine.js + Tailwind CSS
+
+The repository contains both operational workflows and scaffold applications. “Installed” in Django does not necessarily mean “clinically complete.” The table below describes the current implementation rather than the intended final product.
+
+| Area | Current state |
+| --- | --- |
+| Authentication and staff profiles | Implemented foundation |
+| Facilities, departments, units, rooms, and beds | Implemented management foundation |
+| Patient registry and longitudinal overview | Implemented |
+| Encounters and encounter audit timeline | Implemented |
+| Admission navigation | Implemented through patient registration/admission entry |
+| Discharge and transfer | Encounter-scoped nursing assessment workflow; discharge completes encounter |
+| Nursing workspace | Implemented assessment, task, I/O, and handoff foundation |
+| Vital signs | Implemented entry, history, detail, trends, validation, and correction workflow |
+| Diagnoses | Data model and patient integration implemented; dedicated UI remains incomplete |
+| Clinical notes | Implemented create, edit, detail, list, and signing workflow |
+| Medication orders | Implemented provider order entry and order status workflow |
+| MAR | Implemented scheduled/PRN administration and administration history |
+| Pharmacy | Implemented review, clarification, verification, dispensing, formulary, and stock ledger foundation |
+| Scheduling | Implemented appointment management foundation |
+| Clinical dashboard | Live database statistics implemented |
+| Analytics dashboards | Implemented foundations; metric governance and validation remain ongoing |
+| Laboratory, imaging, documents, flowsheets | Application scaffolds/partial foundations; not complete workflows |
+| Decision support and AI assistant | Scaffolds only; not production clinical decision support |
+| Billing, patient portal, integrations | Placeholder or early foundation |
+
+## Implemented workflows
+
+### Patient registry
+
+- Register and update patient demographics.
+- Search by supported identity fields.
+- Maintain MRN, DOB/age, sex, contact information, identifiers, addresses, emergency contacts, relationships, insurance, consent, allergies, and patient flags.
+- Archive and restore patient records without treating encounter discharge as chart deactivation.
+- Review possible duplicate/merge candidates.
+- Display a compact longitudinal overview with encounter, diagnosis, medication, note, and current-vitals statistics.
+- Distinguish permanent record status from current care status (`Encounter open`, `Discharged`, or `No open encounter`).
+
+### Encounters
+
+- Create, update, view, complete, cancel, or mark an encounter entered in error.
+- Support outpatient, inpatient, emergency, observation, telehealth, home visit, community, maternity, surgical, pharmacy, laboratory, imaging, and other encounter types.
+- Track planned, scheduled, arrived, triaged, in-progress, on-hold, completed, cancelled, and entered-in-error states.
+- Preserve workflow timestamps and status history for audit display.
+- Load encounter-associated clinical notes from the encounter summary.
+- Expose Discharge/Transfer actions only within an open encounter.
+- Complete the encounter when a valid discharge nursing assessment is saved.
+
+### Nursing
+
+- Admission, shift, focused, transfer, discharge, post-procedure, and change-in-condition assessments.
+- Categorical body-system assessments with WNL/exception behavior.
+- Structured neurological, respiratory, cardiovascular, gastrointestinal, genitourinary, integumentary, musculoskeletal, and psychosocial findings.
+- Nursing tasks with priority, due time, completion user, and completion time.
+- Intake/output records and daily totals.
+- Handoff documentation with giving and receiving clinicians.
+- Fall-risk and pressure-injury-risk indicators.
+
+### Vital signs
+
+- Patient- and encounter-associated observations.
+- Blood pressure, pulse, respiratory rate, temperature, oxygen saturation, pain, and supporting clinical context.
+- Observation date/time in Iowa local time.
+- History, trend, abnormal-vitals, detail, update, and entered-in-error views.
+- Current vitals on the patient overview include the actual measurement timestamp.
+
+### Clinical notes
+
+- Encounter-optional patient notes.
+- Progress, SOAP, physician, NP, nursing, admission, consultation, procedure, discharge, case-management, care-coordination, telephone, follow-up, and general note types.
+- Draft, signed, amended, and voided lifecycle foundation.
+- Combined note-detail presentation with clearly separated subjective, objective, assessment, plan, and related sections.
+
+### Medication ordering and MAR
+
+- Provider, order method, order type, clinical indication, receiving user, dose, unit, route, frequency, quantity, timing, and instructions.
+- Electronic, written, verbal, and telephone order methods.
+- Active, on-hold, discontinued, and completed medication-order states.
+- Ordered discontinuation workflow with prescriber, method, reason, date, and receiving user.
+- Scheduled and PRN MAR organization.
+- Due, overdue, early/not-due, held, refused, omitted, not-given, and administered handling.
+- Out-of-window reason capture and next-dose recalculation.
+- Grouped administration history to reduce repeated medication names.
+
+### Pharmacy
+
+- Live active-order queue.
+- Pharmacist review with allergy, dose, route/frequency, interaction, and formulary checks.
+- Verification, clarification-required, and rejection decisions.
+- Required reason for clarification or rejection.
+- Verified-order dispensing with quantity, lot, expiration, notes, pharmacist, and timestamp.
+- Transactional stock decrement that prevents negative inventory.
+- Formulary catalog with local/RxNorm terminology support.
+- Low-stock and out-of-stock visibility.
+- Auditable receipts, adjustments, dispensing movements, and balances.
+- Local high-alert, LASA, controlled-medication, and safety-note display.
+
+RxNorm is used for terminology support. The local safety screen is not a substitute for a maintained drug-interaction knowledge base.
+
+### Clinical dashboard
+
+The dashboard uses live database aggregates for the selected 24-hour, 48-hour, or 7-day period:
+
+- Registered patients.
+- Open, new, and completed encounters.
+- Encounter-type mix and linked current workload.
+- Active diagnoses.
+- Vital observations, patients assessed, and high-pain observations.
+- Active medication orders and administrations.
+- Held/refused/not-given medication events.
+- Pending pharmacy reviews and low-stock items.
+- Nursing assessments, risks, open tasks, and overdue tasks.
+- Signed and draft clinical notes.
+
+## Architecture
+
+```text
+Browser
+  ├─ Django-rendered HTML
+  ├─ HTMX fragment requests
+  ├─ Alpine.js presentation state
+  └─ Tailwind CSS
+          │
+          ▼
+Django URL routing and authentication
+          │
+          ▼
+Views / forms / selectors / services
+          │
+          ▼
+Domain models and transactional workflows
+          │
+          ▼
+SQLite (development) or PostgreSQL (recommended production)
+```
+
+Architectural rules used by the project:
+
+- Django owns authoritative clinical state.
+- HTMX returns server-rendered partials; it does not duplicate the domain model in JavaScript.
+- Alpine.js controls local disclosure, tabs, conditional form sections, and presentation state.
+- Multi-record clinical writes use database transactions.
+- Patient records and clinical history should normally be archived, voided, amended, discontinued, or entered in error—not hard-deleted.
+- Patient identity is longitudinal; an encounter is one episode of care.
+- Medication catalog, provider order, pharmacy review/dispense, and bedside administration are separate records.
+- Time values are stored timezone-aware and displayed in `America/Chicago`.
+
+See [Architecture](docs/architecture.md) and [Database](docs/database.md).
+
+## Technology stack
+
+| Layer | Technology |
+| --- | --- |
+| Backend | Python, Django 5.x |
+| UI rendering | Django templates |
+| Partial page updates | HTMX |
+| Local UI state | Alpine.js |
+| Styling | Tailwind CSS 3.x, Tailwind Forms |
+| Development database | SQLite |
+| Production database | PostgreSQL via psycopg |
+| Static files | WhiteNoise |
+| WSGI server | Gunicorn |
+| Environment configuration | django-environ |
+| Testing | Django test runner, pytest, pytest-django, factory-boy |
+| Code quality | Ruff |
+| Production monitoring dependency | Sentry SDK |
+
+## Repository layout
+
+```text
 liberia_ehr/
-├── README.md
-├── manage.py
-├── .env
-├── .env.example
-├── .gitignore
-├── package.json
-├── package-lock.json
-├── tailwind.config.js
-├── postcss.config.js
-├── pytest.ini
-├── docker-compose.yml
-├── Dockerfile
-│
-├── requirements/
-│   ├── base.txt
-│   ├── development.txt
-│   ├── production.txt
-│   └── test.txt
-│
+├── apps/                    # Django domain applications
+│   ├── accounts/           # Authentication profiles and role metadata
+│   ├── administration/     # Scheduling and administrative workspaces
+│   ├── analytics/          # Operational/clinical analytics foundations
+│   ├── clinical_notes/     # Clinical documentation
+│   ├── encounters/         # Episodes of care and encounter lifecycle
+│   ├── facilities/         # Facility hierarchy and locations
+│   ├── medications/        # MAR and medication administration
+│   ├── nursing/            # Assessments, tasks, I/O, handoff
+│   ├── orders/             # Medication orders
+│   ├── patients/           # Patient identity and longitudinal record
+│   ├── pharmacy/           # Formulary, review, dispensing, inventory
+│   ├── vitals/             # Vital observations and trends
+│   └── ...                 # Partial/planned clinical domains
 ├── config/
-│   ├── __init__.py
-│   ├── asgi.py
-│   ├── urls.py
-│   ├── wsgi.py
-│   └── settings/
-│       ├── __init__.py
-│       ├── base.py
-│       ├── development.py
-│       ├── production.py
-│       └── test.py
-│
-├── apps/
-│   ├── __init__.py
-│   ├── core/
-│   ├── accounts/
-│   ├── facilities/
-│   ├── patients/
-│   ├── encounters/
-│   ├── nursing/
-│   ├── vitals/
-│   ├── diagnoses/
-│   ├── allergies/
-│   ├── medications/
-│   ├── orders/
-│   ├── laboratories/
-│   ├── imaging/
-│   ├── procedures/
-│   ├── care_management/
-│   ├── documents/
-│   ├── flowsheets/
-│   ├── appointments/
-│   ├── analytics/
-│   ├── decision_support/
-│   ├── ai_assistant/
-│   ├── audit/
-│   ├── notifications/
-│   └── integrations/
-│
-├── templates/
-│   ├── base.html
-│   ├── layouts/
-│   │   ├── app_shell.html
-│   │   ├── auth_layout.html
-│   │   └── printable_layout.html
-│   ├── components/
-│   │   ├── primary_nav.html
-│   │   ├── secondary_nav.html
-│   │   ├── patient_sidebar.html
-│   │   ├── patient_banner.html
-│   │   ├── summary_card.html
-│   │   ├── status_badge.html
-│   │   ├── cds_alert.html
-│   │   ├── modal.html
-│   │   ├── toast.html
-│   │   ├── pagination.html
-│   │   └── loading_indicator.html
-│   ├── includes/
-│   │   ├── messages.html
-│   │   ├── form_errors.html
-│   │   └── scripts.html
-│   ├── dashboard/
-│   │   └── clinical_overview.html
-│   ├── partials/
-│   │   ├── navigation/
-│   │   ├── patients/
-│   │   ├── dashboard/
-│   │   ├── nursing/
-│   │   ├── orders/
-│   │   └── decision_support/
-│   ├── registration/
-│   │   ├── login.html
-│   │   ├── logged_out.html
-│   │   ├── password_change_form.html
-│   │   └── password_change_done.html
-│   └── errors/
-│       ├── 400.html
-│       ├── 403.html
-│       ├── 404.html
-│       └── 500.html
-│
-├── static/
-│   ├── src/
-│   │   ├── css/
-│   │   │   └── input.css
-│   │   └── js/
-│   │       └── app.js
-│   └── dist/
-│       ├── css/
-│       │   └── output.css
-│       └── js/
-│           └── app.js
-│
-├── media/
-│   ├── patient_photos/
-│   ├── clinical_documents/
-│   └── temporary/
-│
-├── tests/
-│   ├── conftest.py
-│   ├── factories/
-│   ├── integration/
-│   └── security/
-│
-├── scripts/
-│   ├── create_initial_roles.py
-│   ├── load_reference_data.py
-│   └── backup_database.sh
-│
-├── docs/
-│   ├── architecture/
-│   ├── clinical-workflows/
-│   ├── data-dictionary/
-│   ├── deployment/
-│   ├── security/
-│   └── decision-support/
-│
-└── locale/
+│   ├── settings/           # Base, development, test, production settings
+│   └── urls.py             # Project URL composition
+├── docs/                   # Architecture, safety, database, deployment docs
+├── requirements/           # Python dependency sets
+├── static/                 # Tailwind source and static assets
+├── templates/              # Shared shell, navigation, sidebars, components
+├── manage.py
+├── package.json
+├── pytest.ini
+└── README.md
+```
 
-⸻
+The directory `apps/liberia_ehr_patient_facility_htmx_views 2/` appears to be a legacy/reference copy and is not listed in `INSTALLED_APPS`. Do not make new application changes there.
 
-Template Architecture
+## Domain model
 
-Global templates belong in the root templates/ directory. Templates that are specific to a domain should remain inside the owning Django application.
+```text
+Patient
+  └─ Encounter
+      ├─ VitalObservation
+      ├─ PatientDiagnosis
+      ├─ ClinicalNote
+      ├─ NursingAssessment / NursingTask / IntakeOutput / Handoff
+      ├─ MedicationOrder
+      │   ├─ PharmacyReview
+      │   ├─ DispenseRecord ── InventoryTransaction
+      │   └─ MedicationAdministration
+      └─ audit/status timing
 
-liberia_ehr/
-├── templates/
-│   ├── base.html
-│   ├── layouts/
-│   ├── components/
-│   ├── includes/
-│   ├── partials/
-│   ├── registration/
-│   └── errors/
-│
-└── apps/
-    ├── patients/
-    │   └── templates/
-    │       └── patients/
-    │           ├── patient_list.html
-    │           ├── patient_detail.html
-    │           ├── patient_form.html
-    │           ├── patient_confirm_delete.html
-    │           └── partials/
-    │               ├── patient_list.html
-    │               ├── patient_form.html
-    │               ├── patient_search_results.html
-    │               ├── patient_sidebar.html
-    │               ├── patient_summary.html
-    │               └── child_form.html
-    │
-    ├── nursing/
-    │   └── templates/
-    │       └── nursing/
-    │           ├── assessment_list.html
-    │           ├── assessment_form.html
-    │           ├── care_plan.html
-    │           └── partials/
-    │
-    ├── vitals/
-    │   └── templates/
-    │       └── vitals/
-    │           ├── vital_form.html
-    │           ├── vital_history.html
-    │           └── partials/
-    │
-    ├── analytics/
-    │   └── templates/
-    │       └── analytics/
-    │           ├── clinical_dashboard.html
-    │           ├── nursing_dashboard.html
-    │           ├── facility_dashboard.html
-    │           └── partials/
-    │
-    └── decision_support/
-        └── templates/
-            └── decision_support/
-                ├── alert_list.html
-                ├── alert_detail.html
-                └── partials/
+Medication (formulary)
+  ├─ MedicationOrder
+  ├─ DispenseRecord
+  ├─ MedicationAdministration
+  └─ InventoryTransaction
+```
 
-Template Rules
+Important distinctions:
 
-* Full pages extend a shared layout.
-* HTMX endpoints return partial templates.
-* Reusable UI elements belong in templates/components/.
-* Domain-specific fragments remain inside the owning application.
-* Partial templates should not unnecessarily repeat page-level markup.
-* Clinical forms must display validation errors clearly.
-* Destructive or high-risk actions must require deliberate confirmation.
+- `Patient.is_active` describes the administrative availability of the longitudinal chart. Discharge does not deactivate it.
+- `Encounter.status` describes the current episode of care. A discharge assessment completes that encounter.
+- `Medication` is the formulary product/concept.
+- `MedicationOrder` is the provider authorization.
+- `PharmacyReview` documents pharmacist verification or clarification.
+- `DispenseRecord` documents supply from pharmacy.
+- `MedicationAdministration` documents what occurred at the bedside.
 
-⸻
+## Navigation and application areas
 
-Django Application Responsibilities
+### Clinical
 
-core
+Implemented links include Clinical Dashboard, Patients, Admission, patient-specific Encounters, Nursing, Orders, Medications/MAR, and Pharmacy. Patient-specific items are hidden until a patient—and where required an open encounter—is selected.
 
-Provides system-wide functionality:
+### Encounter actions
 
-* Shared base models
-* Dashboard routing
-* Health checks
-* Common context processors
-* Shared constants
-* Shared validators
-* HTMX utilities
-* Generic status types
-* Common template helpers
-* Application-level exception handling
+Discharge and Transfer belong to the selected open encounter, not the global navbar. Discharge and Transfer open the appropriate nursing assessment. Saving a discharge assessment completes the encounter.
 
-accounts
+### Analytics
 
-Responsible for identity and workforce access:
+Clinical, nursing, operations, quality, population, and patient-outcomes routes exist. These remain subject to metric-definition, data-quality, access-control, and clinical-validation work.
 
-* Authentication
-* User profiles
-* Staff records
-* Professional credentials
-* Staff roles
-* Django groups and permissions
-* Facility assignments
-* Department assignments
-* Password policies
-* Session security
-* Account activation and deactivation
-* Login history
+### Administration
 
-A custom Django user model should be created before the first production migration.
+Scheduling, users, roles, facilities, departments, rooms, system settings, dictionaries, integrations, audit logs, and system-health routes exist. Some are operational foundations rather than finished administrative products.
 
-facilities
+### Remaining navbar work
 
-Represents the healthcare organization:
+Laboratory, imaging/radiology, billing, care management, documents, flowsheets, notifications, decision support, AI assistant, patient portal, and integrations require further implementation or validation. See [Roadmap](#roadmap).
 
-* Healthcare facilities
-* Hospitals
-* Clinics
-* Departments
-* Units
-* Wards
-* Rooms
-* Beds
-* Service locations
-* Facility settings
-* Facility-specific identifiers
-* Facility-level data access
+## Installation
 
-patients
+### Prerequisites
 
-Manages the patient identity domain:
+- Python 3.12 or newer (the current local environment may use a newer Python version).
+- Node.js and npm.
+- Git.
+- PostgreSQL 17 if using the included database container or a production-like database.
 
-* Registration
-* Demographics
-* Medical record numbers
-* National and facility identifiers
-* Contact information
-* Addresses
-* Emergency contacts
-* Next of kin
-* Patient photographs
-* Patient search
-* Duplicate review
-* Merge review
-* Patient status
-* Archival
+### 1. Create the Python environment
 
-encounters
-
-Manages episodes of care:
-
-* Outpatient visits
-* Emergency visits
-* Inpatient admissions
-* Transfers
-* Discharges
-* Encounter types
-* Encounter status
-* Care teams
-* Clinical locations
-* Encounter timelines
-* Admission and discharge summaries
-
-nursing
-
-Supports nursing workflows:
-
-* Nursing intake
-* Nursing assessments
-* Nursing notes
-* Care plans
-* Nursing diagnoses
-* Patient goals
-* Nursing interventions
-* Shift handoff
-* Intake and output
-* Pain assessment
-* Fall-risk assessment
-* Pressure-injury risk
-* Nursing task lists
-* Escalation workflows
-
-vitals
-
-Handles physiological observations:
-
-* Temperature
-* Pulse
-* Respiratory rate
-* Blood pressure
-* Oxygen saturation
-* Height
-* Weight
-* Body mass index
-* Blood glucose
-* Level of consciousness
-* Validation
-* Abnormal flags
-* Trend views
-* Observation history
-
-diagnoses
-
-Manages clinical problems and diagnoses:
-
-* Problem lists
-* Encounter diagnoses
-* Primary diagnoses
-* Secondary diagnoses
-* Diagnostic status
-* Onset dates
-* Resolution dates
-* Coding-system integration
-* Clinical comments
-
-allergies
-
-Manages:
-
-* Drug allergies
-* Food allergies
-* Environmental allergies
-* Intolerances
-* Reaction types
-* Severity
-* Verification status
-* Allergy reconciliation
-
-medications
-
-Manages:
-
-* Medication catalog
-* Medication reconciliation
-* Prescriptions
-* Medication orders
-* Administration records
-* Dose
-* Route
-* Frequency
-* Duration
-* Status
-* Discontinuation
-* Allergy checks
-* Safety checks
-
-orders
-
-Coordinates:
-
-* Laboratory orders
-* Imaging orders
-* Medication orders
-* Procedure orders
-* Nursing orders
-* Order priority
-* Order status
-* Approval
-* Cancellation
-* Completion
-* Lifecycle history
-
-laboratories
-
-Supports laboratory workflows:
-
-* Test catalog
-* Laboratory panels
-* Specimens
-* Collection
-* Accession numbers
-* Result entry
-* Result verification
-* Reference ranges
-* Abnormal flags
-* Critical-result workflows
-* Result acknowledgment
-* Turnaround-time analysis
-
-imaging
-
-Supports:
-
-* Imaging orders
-* Imaging procedures
-* Radiology reports
-* Report status
-* Result review
-* Uploaded images or external imaging references
-* Critical finding acknowledgment
-
-procedures
-
-Supports:
-
-* Procedure catalog
-* Procedure documentation
-* Consent status
-* Procedure status
-* Clinical personnel
-* Complications
-* Post-procedure notes
-
-care_management
-
-Supports multidisciplinary coordination:
-
-* Care plans
-* Referrals
-* Follow-up tasks
-* Discharge planning
-* Social needs
-* Patient education
-* Care-team communication
-* Case-management notes
-
-documents
-
-Supports:
-
-* Clinical document uploads
-* Document categories
-* Patient-document association
-* Encounter-document association
-* Version metadata
-* Secure file access
-* Document audit trails
-
-flowsheets
-
-Supports structured repeated documentation:
-
-* Vital-sign flowsheets
-* Intake and output
-* Neurological checks
-* Nursing observations
-* Pain assessments
-* Configurable rows and columns
-* Time-series display
-
-appointments
-
-Supports:
-
-* Appointment scheduling
-* Appointment status
-* Assigned provider
-* Facility and department
-* Reminder status
-* Check-in
-* Cancellation
-* Missed appointments
-
-analytics
-
-Provides:
-
-* Clinical dashboards
-* Nursing dashboards
-* Operational dashboards
-* Quality measures
-* Public-health indicators
-* Surveillance reports
-* Data extracts
-* Time-range comparisons
-* Drill-down analysis
-* Data-quality monitoring
-
-decision_support
-
-Provides rule-based clinical support:
-
-* Clinical rule definitions
-* Rule versions
-* Alert generation
-* Contraindication checks
-* Deterioration detection
-* Abnormal-result interpretation
-* Recommendation review
-* Alert acknowledgment
-* Override reasons
-* Rule performance monitoring
-
-ai_assistant
-
-Provides future governed AI capabilities:
-
-* Clinical summarization
-* Natural-language patient-record search
-* Documentation assistance
-* Risk prediction
-* Coding assistance
-* Explainable recommendations
-* Model-service integration
-* Prompt and output tracking
-* Human review workflows
-
-AI output must remain reviewable, attributable, and subordinate to clinician judgment.
-
-audit
-
-Records:
-
-* Authentication activity
-* Patient-record access
-* Record creation
-* Record modification
-* Record archival
-* Data exports
-* Printed records
-* Decision-support acknowledgments
-* Override actions
-* Administrative changes
-* Failed access attempts
-
-notifications
-
-Supports:
-
-* In-application notifications
-* Clinical reminders
-* Task reminders
-* Alert escalation
-* Email integration
-* SMS integration
-* Delivery status
-* Notification preferences
-
-integrations
-
-Provides controlled interfaces for:
-
-* External APIs
-* Laboratory systems
-* Pharmacy systems
-* Messaging providers
-* National health systems
-* Interoperability standards
-* Data import and export
-
-⸻
-
-Recommended Internal App Pattern
-
-Larger domain applications should use a predictable structure.
-
-apps/patients/
-├── __init__.py
-├── admin.py
-├── apps.py
-├── urls.py
-├── models/
-│   ├── __init__.py
-│   ├── patient.py
-│   ├── identifier.py
-│   ├── contact.py
-│   └── relationship.py
-├── forms/
-│   ├── __init__.py
-│   ├── patient.py
-│   ├── contact.py
-│   └── search.py
-├── selectors/
-│   ├── __init__.py
-│   ├── patients.py
-│   └── search.py
-├── services/
-│   ├── __init__.py
-│   ├── registration.py
-│   ├── update.py
-│   └── merge.py
-├── permissions.py
-├── validators.py
-├── constants.py
-├── views/
-│   ├── __init__.py
-│   ├── pages.py
-│   └── partials.py
-├── templates/
-│   └── patients/
-├── migrations/
-└── tests/
-    ├── test_models.py
-    ├── test_forms.py
-    ├── test_services.py
-    ├── test_permissions.py
-    └── test_views.py
-
-Module Responsibilities
-
-* models/: Database entities and model-level invariants
-* forms/: Input validation and presentation-aware form behavior
-* selectors/: Read-only queries and retrieval logic
-* services/: Write operations and business workflows
-* permissions.py: Role-based and object-level authorization
-* validators.py: Reusable domain validation
-* constants.py: Domain constants and choices
-* views/pages.py: Full-page responses
-* views/partials.py: HTMX fragment responses
-* tests/: Unit, integration, and permission tests
-
-Views should remain thin. Complex business workflows should be implemented in services.
-
-⸻
-
-Database Strategy
-
-The database engine is selected through environment variables.
-
-Development with SQLite
-
-DJANGO_SETTINGS_MODULE=config.settings.development
-DATABASE_ENGINE=sqlite
-SQLITE_NAME=db.sqlite3
-
-Production with PostgreSQL
-
-DJANGO_SETTINGS_MODULE=config.settings.production
-DATABASE_ENGINE=postgres
-POSTGRES_DB=liberia_ehr
-POSTGRES_USER=liberia_ehr
-POSTGRES_PASSWORD=replace-with-a-secure-password
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_CONN_MAX_AGE=60
-
-Recommended Database Practices
-
-* Use UUIDs for externally exposed identifiers where appropriate.
-* Keep facility-specific MRNs separate from internal database keys.
-* Use database constraints for critical invariants.
-* Use transactions for multi-record clinical workflows.
-* Use PROTECT where deletion would damage historical integrity.
-* Use archival or status changes instead of deleting clinical records.
-* Record the user and timestamp associated with important changes.
-* Add indexes for common patient-search fields.
-* Use PostgreSQL trigram search for tolerant patient-name matching.
-* Use full-text search only after core data quality is established.
-* Test backup restoration regularly.
-
-Recommended Base Model Fields
-
-Many clinical models should inherit common fields such as:
-
-id
-created_at
-updated_at
-created_by
-updated_by
-is_active
-facility
-
-Clinical records may additionally require:
-
-status
-recorded_at
-recorded_by
-verified_at
-verified_by
-voided_at
-voided_by
-void_reason
-
-⸻
-
-HTMX Strategy
-
-HTMX should be used for server-owned clinical state and partial page updates.
-
-Recommended HTMX Use Cases
-
-* Patient search suggestions
-* Patient-list filtering
-* Loading a selected patient into the sidebar
-* Replacing secondary navigation
-* Loading patient overview panels
-* Filtering observations by time range
-* Opening forms in a modal
-* Saving clinical forms without full-page reloads
-* Updating summary cards after documentation
-* Acknowledging decision-support alerts
-* Paginating tables
-* Loading chart data
-* Validating order forms
-* Updating care-plan tasks
-* Refreshing patient timelines
-
-Patient Search Example
-
-<input
-    type="search"
-    name="q"
-    placeholder="Search by name, MRN, date of birth, or phone..."
-    hx-get="{% url 'patients:search-results' %}"
-    hx-trigger="input changed delay:350ms, search"
-    hx-target="#patient-search-results"
-    hx-indicator="#patient-search-spinner"
-    hx-include="[name='facility']"
-    autocomplete="off"
->
-
-Workspace Navigation Example
-
-<a
-    href="{% url 'patients:overview' patient.id %}"
-    hx-get="{% url 'patients:overview' patient.id %}"
-    hx-target="#workspace"
-    hx-push-url="true"
-    hx-indicator="#workspace-loading"
->
-    Overview
-</a>
-
-Clinical Form Example
-
-<form
-    method="post"
-    hx-post="{% url 'vitals:create' patient.id %}"
-    hx-target="#vitals-panel"
-    hx-swap="innerHTML"
->
-    {% csrf_token %}
-    {{ form.as_div }}
-    <button type="submit">
-        Save vital signs
-    </button>
-</form>
-
-HTMX Response Rules
-
-* Return full pages for ordinary browser navigation.
-* Return partials when request.htmx is true.
-* Validate permissions for every HTMX endpoint.
-* Do not rely on hidden buttons as authorization.
-* Return clear validation errors.
-* Use HTTP status codes consistently.
-* Avoid returning sensitive data outside the selected patient context.
-* Refresh dependent panels after successful writes.
-* Use hx-push-url only when browser history should reflect the state.
-* Provide loading indicators for slower operations.
-
-⸻
-
-Alpine.js Responsibilities
-
-Alpine.js is intended for lightweight presentation behavior.
-
-Recommended uses include:
-
-* Mobile navigation
-* Dropdown menus
-* Sidebar collapse
-* Temporary tabs
-* Modal visibility
-* Dismissible alerts
-* Menu expansion
-* Tooltips
-* Non-clinical display preferences
-* Local chart-control visibility
-
-Do not keep authoritative clinical information only in Alpine.js state.
-
-Clinical data must be validated, persisted, and reloaded from Django.
-
-⸻
-
-Tailwind CSS Design System
-
-Liberia EHR uses Tailwind CSS for all primary styling.
-
-Standalone custom CSS should be minimized and reserved for cases that Tailwind utilities or components cannot reasonably address.
-
-Visual Direction
-
-The analytics-focused interface uses:
-
-* Deep teal primary navigation
-* Slightly lighter teal patient sidebar
-* White workspace panels
-* Slate application background
-* Emerald success indicators
-* Amber warning indicators
-* Red critical alerts
-* Blue actions and chart accents
-* High-contrast text for clinical readability
-
-Suggested Tailwind Color Tokens
-
-// tailwind.config.js
-module.exports = {
-  content: [
-    "./templates/**/*.html",
-    "./apps/**/templates/**/*.html",
-    "./static/src/js/**/*.js",
-  ],
-  theme: {
-    extend: {
-      colors: {
-        ehr: {
-          50: "#effcfb",
-          100: "#d5f6f2",
-          200: "#acece5",
-          300: "#75d9d0",
-          400: "#3abeb4",
-          500: "#0f9f8f",
-          600: "#0b8378",
-          700: "#087368",
-          800: "#075d57",
-          900: "#064b47",
-          950: "#033c3a",
-        },
-      },
-      boxShadow: {
-        panel: "0 1px 3px rgba(15, 23, 42, 0.08)",
-      },
-    },
-  },
-  plugins: [
-    require("@tailwindcss/forms"),
-    require("@tailwindcss/typography"),
-  ],
-};
-
-Accessibility Expectations
-
-* Maintain adequate color contrast.
-* Do not communicate severity through color alone.
-* Use visible focus styles.
-* Provide labels for every form field.
-* Ensure keyboard access to menus and dialogs.
-* Provide text alternatives for meaningful images.
-* Use semantic HTML.
-* Mark invalid fields with accessible error messages.
-* Avoid small text for essential clinical information.
-* Make critical alerts understandable without icons.
-
-⸻
-
-Clinical Decision Support
-
-Clinical decision support should begin with transparent, deterministic rules.
-
-Initial Rule Categories
-
-* Abnormal vital signs
-* Critical laboratory values
-* Medication allergies
-* Duplicate medication therapy
-* Drug contraindications
-* Fall-risk reminders
-* Sepsis screening
-* Patient deterioration
-* Required follow-up
-* Missing documentation
-* Age-specific safety checks
-
-Minimum Rule Metadata
-
-Each rule should include:
-
-* Rule name
-* Rule identifier
-* Rule version
-* Clinical purpose
-* Trigger conditions
-* Exclusion conditions
-* Severity
-* Recommendation
-* Evidence or policy source
-* Effective date
-* Expiration or review date
-* Owning clinical group
-* Activation status
-
-Alert Lifecycle
-
-Trigger detected
-      │
-      ▼
-Alert created
-      │
-      ▼
-Displayed to authorized clinician
-      │
-      ├── Acknowledged
-      ├── Action completed
-      ├── Overridden with reason
-      └── Escalated
-
-Every acknowledgment, override, and action should be auditable.
-
-⸻
-
-Artificial Intelligence Governance
-
-AI functions must be introduced only after the underlying clinical records and workflows are stable.
-
-Potential AI Capabilities
-
-* Clinical note summarization
-* Patient timeline summarization
-* Natural-language record search
-* Documentation assistance
-* Risk prediction
-* Coding suggestions
-* Missing-information detection
-* Patient-education drafts
-* Public-health pattern identification
-
-AI Safety Requirements
-
-* AI output must be clearly labeled.
-* AI output must not silently modify the clinical record.
-* A clinician must review clinical recommendations.
-* Model name and version must be recorded.
-* Source data used for an output must be traceable.
-* Confidence and limitations should be displayed where meaningful.
-* Unsupported conclusions must be avoided.
-* Protected health information must not be sent to unapproved services.
-* AI actions must follow facility-level authorization.
-* AI output and clinician action should be auditable.
-* Models must be assessed for bias and population suitability.
-* Clinical staff must be able to reject or correct an output.
-
-AI must assist clinical judgment, not replace it.
-
-⸻
-
-Analytics and Nursing Informatics
-
-Analytics should be built from validated operational and clinical records rather than independent duplicate data entry.
-
-Clinical Analytics
-
-* Patient census
-* Admissions and discharges
-* Diagnosis patterns
-* Abnormal vital-sign trends
-* Medication utilization
-* Laboratory result trends
-* Readmissions
-* Length of stay
-* Care-plan completion
-* Referral completion
-
-Nursing Informatics
-
-* Nursing documentation completion
-* Assessment timeliness
-* Care-plan compliance
-* Fall-risk documentation
-* Pressure-injury risk
-* Medication-administration timeliness
-* Nursing workload
-* Patient acuity
-* Shift handoff completion
-* Escalation patterns
-
-Operational Analytics
-
-* Facility patient volume
-* Department volume
-* Appointment completion
-* Wait times
-* Bed occupancy
-* Laboratory turnaround time
-* Staff workload
-* Supply utilization
-* Alert-response time
-
-Public-Health Analytics
-
-* Disease trends
-* Geographic distribution
-* Maternal and child-health indicators
-* Communicable-disease surveillance
-* Vaccination activity
-* Outbreak signals
-* Facility reporting completeness
-
-Analytics Principles
-
-* Define every metric clearly.
-* Display the reporting period.
-* Document inclusion and exclusion rules.
-* Separate preliminary and verified data.
-* Show missing-data rates.
-* Restrict access to identifiable information.
-* Prefer aggregated data where individual records are unnecessary.
-* Record report-generation and export activity.
-
-⸻
-
-Security and Clinical Safety
-
-Before production deployment, the project must implement and validate:
-
-* Role-based authorization
-* Object-level authorization
-* Facility-level data separation
-* Department-level access where appropriate
-* Secure password policies
-* Multi-factor authentication for privileged users
-* HTTPS
-* CSRF protection
-* Secure cookies
-* Content Security Policy
-* Session expiration
-* Automatic screen locking
-* Rate limiting
-* Login-attempt monitoring
-* Sensitive-data masking
-* Audit logging
-* Encrypted backups
-* Tested restoration procedures
-* Database encryption strategy
-* Secure file storage
-* Data-retention policies
-* Clinical alert governance
-* AI and CDS version tracking
-* Clinician acknowledgment
-* Override-reason documentation
-* Downtime workflows
-* Incident-response procedures
-* Disaster-recovery procedures
-
-Clinical Record Integrity
-
-Clinical information should not normally be hard-deleted.
-
-Corrections should use:
-
-* Amendments
-* Addenda
-* Status changes
-* Void workflows
-* Correction reasons
-* Recorded user identity
-* Original and corrected timestamps
-
-Facility Separation
-
-Every patient, encounter, order, result, and clinical record should be associated with the appropriate facility or organization context.
-
-Authorization must verify that the signed-in user is permitted to access that facility and patient.
-
-⸻
-
-Audit Logging
-
-Audit logging is a core clinical requirement, not an optional administrative feature.
-
-Events to Audit
-
-* Successful login
-* Failed login
-* Logout
-* Password change
-* Patient search
-* Patient-record access
-* Record creation
-* Record update
-* Record voiding
-* Record archival
-* Document download
-* Record printing
-* Data export
-* Permission change
-* User activation or deactivation
-* CDS acknowledgment
-* CDS override
-* AI request and response metadata
-* Administrative configuration changes
-
-Suggested Audit Fields
-
-id
-event_type
-event_timestamp
-user
-facility
-patient
-encounter
-object_type
-object_identifier
-request_method
-request_path
-ip_address
-user_agent
-success
-reason
-metadata
-
-Audit records should be immutable to ordinary users.
-
-⸻
-
-Local Development Setup
-
-Prerequisites
-
-Install:
-
-* Python 3.12 or later
-* Node.js 20 or later
-* npm
-* Git
-* PostgreSQL for production-like development
-* A Python virtual-environment tool
-
-1. Clone the Repository
-
-git clone https://github.com/YOUR-GITHUB-USERNAME/liberia-ehr.git
-cd liberia-ehr
-
-Replace YOUR-GITHUB-USERNAME with the GitHub account that owns the repository.
-
-2. Create a Virtual Environment
-
-macOS and Linux:
-
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install --upgrade pip setuptools wheel
+pip install -r requirements/development.txt
+```
 
 Windows PowerShell:
 
+```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
-
-3. Upgrade Python Packaging Tools
-
 python -m pip install --upgrade pip setuptools wheel
-
-4. Install Python Dependencies
-
 pip install -r requirements/development.txt
+```
 
-5. Install Frontend Dependencies
+### 2. Install frontend dependencies
 
+```bash
 npm install
+```
 
-6. Create the Environment File
+### 3. Create `.env`
 
-macOS and Linux:
+There is currently no committed `.env.example`; create `.env` in the repository root. `.env` is ignored by Git.
 
-cp .env.example .env
+SQLite development example:
 
-Windows PowerShell:
-
-Copy-Item .env.example .env
-
-7. Configure Development Environment Variables
-
-Example .env:
-
+```dotenv
 DJANGO_SETTINGS_MODULE=config.settings.development
-DJANGO_SECRET_KEY=replace-this-with-a-development-secret
+DJANGO_SECRET_KEY=replace-with-a-long-development-secret
 DJANGO_DEBUG=True
 DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
 DATABASE_ENGINE=sqlite
 SQLITE_NAME=db.sqlite3
-DEFAULT_FROM_EMAIL=noreply@example.com
-SESSION_COOKIE_SECURE=False
-CSRF_COOKIE_SECURE=False
+RXNORM_API_BASE_URL=https://rxnav.nlm.nih.gov/REST
+```
 
-Do not commit .env to Git.
+PostgreSQL example:
 
-8. Run Django System Checks
-
-python manage.py check
-
-9. Create and Apply Migrations
-
-python manage.py makemigrations
-python manage.py migrate
-
-10. Create an Administrator
-
-python manage.py createsuperuser
-
-11. Load Initial Roles and Reference Data
-
-When the scripts are available:
-
-python manage.py setup_roles
-python manage.py load_reference_data
-
-12. Compile Tailwind CSS
-
-Development watch mode:
-
-npm run dev
-
-Production build:
-
-npm run build
-
-13. Start Django
-
-In a separate terminal with the virtual environment activated:
-
-python manage.py runserver
-
-Open:
-
-http://127.0.0.1:8000/
-
-14. Access Django Administration
-
-http://127.0.0.1:8000/admin/
-
-⸻
-
-PostgreSQL Setup
-
-Create a PostgreSQL database and user.
-
-CREATE DATABASE liberia_ehr;
-CREATE USER liberia_ehr WITH PASSWORD 'replace-with-a-secure-password';
-GRANT ALL PRIVILEGES ON DATABASE liberia_ehr TO liberia_ehr;
-
-Configure .env:
-
+```dotenv
+DJANGO_SETTINGS_MODULE=config.settings.development
+DJANGO_SECRET_KEY=replace-with-a-long-development-secret
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
 DATABASE_ENGINE=postgres
 POSTGRES_DB=liberia_ehr
 POSTGRES_USER=liberia_ehr
-POSTGRES_PASSWORD=replace-with-a-secure-password
-POSTGRES_HOST=localhost
+POSTGRES_PASSWORD=replace-this-password
+POSTGRES_HOST=127.0.0.1
 POSTGRES_PORT=5432
-POSTGRES_CONN_MAX_AGE=60
+RXNORM_API_BASE_URL=https://rxnav.nlm.nih.gov/REST
+```
 
-Apply migrations:
+### 4. Initialize the database
 
+```bash
+python manage.py check
 python manage.py migrate
+python manage.py createsuperuser
+```
 
-Verify the connection:
+Do not run `makemigrations` routinely during setup. Migrations should already be committed; use it only while intentionally changing models.
 
-python manage.py check --database default
+### 5. Build CSS
 
-⸻
+Watch during development:
 
-Docker Setup
+```bash
+npm run dev
+```
 
-A future production-style local environment may include:
+One-time minimized build:
 
-* Django
-* PostgreSQL
-* Redis
-* Celery worker
-* Nginx
+```bash
+npm run build
+```
 
-Start the services:
+## Configuration
 
-docker compose up --build
+| Variable | Purpose | Default/requirement |
+| --- | --- | --- |
+| `DJANGO_SETTINGS_MODULE` | Settings module | Use `config.settings.development` locally |
+| `DJANGO_SECRET_KEY` | Django signing secret | Unsafe development default exists; required securely in production |
+| `DJANGO_DEBUG` | Debug mode | `False` in base settings |
+| `DJANGO_ALLOWED_HOSTS` | Comma-separated hosts | `127.0.0.1,localhost` |
+| `DATABASE_ENGINE` | `sqlite` or `postgres` | `sqlite` |
+| `SQLITE_NAME` | SQLite filename | `db.sqlite3` |
+| `POSTGRES_DB` | PostgreSQL database | Required for PostgreSQL |
+| `POSTGRES_USER` | PostgreSQL user | Required for PostgreSQL |
+| `POSTGRES_PASSWORD` | PostgreSQL password | Required for PostgreSQL |
+| `POSTGRES_HOST` | PostgreSQL host | `127.0.0.1` |
+| `POSTGRES_PORT` | PostgreSQL port | `5432` |
+| `RXNORM_API_BASE_URL` | RxNorm REST endpoint | NLM RxNav REST URL |
 
-Run migrations:
+Base settings enable timezone-aware datetimes and set `TIME_ZONE = "America/Chicago"`.
 
-docker compose exec web python manage.py migrate
+## Running the application
 
-Create an administrator:
+Run Tailwind in one terminal:
 
-docker compose exec web python manage.py createsuperuser
+```bash
+npm run dev
+```
 
-Stop the services:
+Run Django in another:
 
+```bash
+source .venv/bin/activate
+python manage.py runserver
+```
+
+Open:
+
+- Application: <http://127.0.0.1:8000/>
+- Django Admin: <http://127.0.0.1:8000/admin/>
+- Patient registry: <http://127.0.0.1:8000/patients/>
+- Pharmacy: <http://127.0.0.1:8000/pharmacy/>
+
+The development server is not suitable for production.
+
+### PostgreSQL container
+
+The included `docker-compose.yml` starts **only PostgreSQL**; it does not build or run the Django web application.
+
+```bash
+docker compose up -d db
+docker compose logs -f db
 docker compose down
+```
 
-Remove containers and development volumes only when intentionally resetting the environment:
+The compose file uses development credentials. Change them before any shared or persistent deployment.
 
-docker compose down --volumes
+## Development workflow
 
-⸻
+### Before editing
 
-Testing
+```bash
+git status --short
+python manage.py check
+```
 
-Run the complete test suite:
+### After Python changes
 
+```bash
+ruff format apps config
+ruff check apps config
+python manage.py check
+```
+
+The current repository contains pre-existing Ruff findings in legacy sections of `apps/pharmacy/views.py`; targeted checks are sometimes necessary until that file is consolidated.
+
+### After model changes
+
+```bash
+python manage.py makemigrations <app_name>
+python manage.py migrate
+python manage.py makemigrations --check --dry-run
+```
+
+Review generated migrations before applying them, especially migrations that populate clinical or administrative records.
+
+### After template/navigation changes
+
+- Load the full page while authenticated.
+- Test HTMX requests separately.
+- Check desktop and mobile navigation.
+- Verify no patient-specific links appear without an active patient.
+- Verify encounter-specific actions disappear after completion.
+- Run `python manage.py check`.
+
+### Data integrity practices
+
+- Use `transaction.atomic()` for multi-record state transitions.
+- Use `select_for_update()` for stock or other contested balances.
+- Preserve the user and timestamp for clinical transitions.
+- Do not infer that patient-chart deactivation equals discharge.
+- Do not directly edit computed/audit timestamps unless implementing a correction workflow.
+
+## Testing
+
+Run Django checks:
+
+```bash
+python manage.py check
+python manage.py makemigrations --check --dry-run
+```
+
+Run pytest:
+
+```bash
 pytest
+```
+
+Run one application:
+
+```bash
+pytest apps/vitals
+pytest apps/pharmacy
+```
 
-Run tests for one application:
+Run Django tests directly:
 
-pytest apps/patients/tests/
+```bash
+python manage.py test
+python manage.py test apps.pharmacy
+```
 
-Run one test module:
-
-pytest apps/patients/tests/test_services.py
-
-Run tests with coverage:
-
-pytest --cov=apps --cov-report=term-missing
+### Current test-database caveat
+
+At the time of writing, creation of a clean test database can fail in `apps/administration/migrations/0002_populate_appointment_assignments.py` when no active physician, nurse practitioner, clinical staff member, staff user, or superuser exists. The migration raises intentionally instead of assigning an invalid provider.
 
-Generate an HTML coverage report:
-
-pytest --cov=apps --cov-report=html
-
-Required Test Categories
-
-* Model tests
-* Form-validation tests
-* Service tests
-* Selector tests
-* Permission tests
-* View tests
-* HTMX response tests
-* Audit-log tests
-* Clinical-rule tests
-* Facility-separation tests
-* Authentication tests
-* Integration tests
-* Security regression tests
-
-High-Risk Workflows Requiring Strong Coverage
-
-* Patient registration
-* Duplicate-patient detection
-* Patient merge
-* Medication ordering
-* Allergy checking
-* Medication administration
-* Critical laboratory results
-* Admission, transfer, and discharge
-* Clinical-record corrections
-* Decision-support overrides
-* User permission changes
-* Data exports
-
-⸻
-
-Development Standards
-
-Python
-
-* Follow PEP 8.
-* Use descriptive names.
-* Add type hints where they improve clarity.
-* Keep views thin.
-* Keep business logic in service functions.
-* Keep complex reads in selectors.
-* Use transactions for multi-step writes.
-* Avoid signals for complex clinical workflows.
-* Document safety-critical logic.
-* Validate at both form and domain levels where appropriate.
-
-Django
-
-* Use named URLs.
-* Use application namespaces.
-* Use select_related() and prefetch_related() deliberately.
-* Use database constraints for important invariants.
-* Avoid hard-coded role names throughout views.
-* Centralize permission checks.
-* Use custom managers or selectors for reusable queries.
-* Avoid destructive cascading deletion of clinical records.
-* Use timezone-aware datetimes.
-
-Templates
-
-* Use Tailwind CSS classes.
-* Keep reusable patterns in components.
-* Use partial templates for HTMX responses.
-* Display validation errors near the affected fields.
-* Keep patient identity visible during documentation.
-* Show loading and success states.
-* Do not hide safety-critical information behind hover-only UI.
-
-JavaScript
-
-* Prefer HTMX for server interactions.
-* Prefer Alpine.js for small presentation states.
-* Avoid duplicating authoritative Django state in the browser.
-* Keep JavaScript modules small.
-* Avoid adding a large frontend framework without a demonstrated need.
-
-Git
-
-Use small, focused commits.
-
-Suggested branch names:
-
-feature/patient-registration
-feature/patient-search
-feature/vital-sign-entry
-fix/login-redirect
-fix/facility-permissions
-refactor/patient-services
-docs/update-readme
-
-Suggested commit format:
-
-feat: add HTMX patient search
-fix: enforce facility access in patient detail
-refactor: move registration workflow into service
-test: add patient permission coverage
-docs: expand local setup instructions
-
-⸻
-
-Suggested Implementation Order
-
-Phase 1: Foundation
-
-1. Django project configuration
-2. Environment-based settings
-3. Custom user model
-4. Authentication
-5. Tailwind CSS integration
-6. HTMX integration
-7. Alpine.js integration
-8. Shared application shell
-9. Error templates
-10. Basic audit infrastructure
-
-Phase 2: Organization and Access
-
-1. Facilities
-2. Departments
-3. Units and wards
-4. Staff profiles
-5. Roles and groups
-6. Facility assignments
-7. Permission framework
-8. Session security
-
-Phase 3: Patient Identity
-
-1. Patient registration
-2. Medical record numbers
-3. Patient identifiers
-4. Contacts and addresses
-5. Emergency contacts
-6. HTMX patient search
-7. Duplicate detection
-8. Patient context sidebar
-9. Patient audit logging
-
-Phase 4: Encounters and Nursing
-
-1. Outpatient encounters
-2. Admissions
-3. Transfers
-4. Discharges
-5. Vital-sign entry
-6. Nursing assessments
-7. Nursing notes
-8. Care plans
-9. Intake and output
-10. Flowsheets
-
-Phase 5: Core Clinical Workflows
-
-1. Diagnoses
-2. Allergies
-3. Medications
-4. Orders
-5. Laboratory results
-6. Imaging reports
-7. Procedures
-8. Clinical documents
-
-Phase 6: Analytics and Safety
-
-1. Clinical overview dashboard
-2. Nursing dashboard
-3. Operational dashboard
-4. Audit reporting
-5. Rule-based clinical alerts
-6. Alert acknowledgment
-7. Override workflow
-8. Data-quality indicators
-
-Phase 7: Advanced Capabilities
-
-1. Public-health analytics
-2. Interoperability
-3. Notifications
-4. Background processing
-5. Governed AI services
-6. Explainable risk models
-7. Natural-language search
-8. Documentation assistance
-
-⸻
-
-Initial Milestone
-
-The first functional milestone should support:
-
-* Staff login and logout
-* Secure authenticated application shell
-* Facility and department assignment
-* Patient registration
-* HTMX patient search
-* Patient-list filtering
-* Patient selection
-* Persistent patient context sidebar
-* Patient overview dashboard
-* Encounter creation
-* Vital-sign entry
-* Recent vital-sign history
-* Vital-sign trend display
-* Allergy display
-* Problem-list display
-* Basic rule-based abnormal-vital alert
-* Alert acknowledgment
-* Audit record for patient access
-* Audit record for clinical documentation
-
-Initial Milestone Workflow
-
-Staff login
-    │
-    ▼
-Patient search or registration
-    │
-    ▼
-Patient selection
-    │
-    ▼
-Patient context sidebar loaded
-    │
-    ▼
-Encounter selected or created
-    │
-    ▼
-Vital signs documented
-    │
-    ▼
-Clinical rule evaluated
-    │
-    ├── No alert
-    │
-    └── Alert displayed and acknowledged
-    │
-    ▼
-Patient overview and audit trail updated
-
-⸻
-
-Future Roadmap
-
-Near-Term
-
-* Complete patient registration
-* Improve HTMX patient search
-* Add facility-scoped permissions
-* Build persistent patient sidebar
-* Add encounter lifecycle
-* Add vital-sign entry and history
-* Add nursing documentation
-* Add audit logging
-
-Medium-Term
-
-* Medication reconciliation
-* Medication administration record
-* Laboratory ordering and results
-* Imaging reports
-* Structured nursing flowsheets
-* Care-management workflows
-* Facility dashboards
-* Data-quality dashboards
-* Notification system
-
-Long-Term
-
-* Inter-facility patient exchange
-* National patient identifiers
-* FHIR-compatible APIs
-* Offline-tolerant workflows
-* Public-health reporting
-* Disease-surveillance tools
-* Mobile-friendly clinical workflows
-* SMS appointment reminders
-* Governed AI summarization
-* Explainable clinical-risk models
-* Natural-language clinical search
-* Integration with national health systems
-
-⸻
-
-Contributing
-
-Contributions should preserve the project’s clinical-safety, privacy, and maintainability principles.
-
-Before submitting code:
-
-1. Create a focused branch.
-2. Follow the application architecture.
-3. Add or update tests.
-4. Run Django system checks.
-5. Run the test suite.
-6. Compile Tailwind successfully.
-7. Document new environment variables.
-8. Document new clinical rules.
-9. Confirm facility and role permissions.
-10. Avoid including real patient information.
-
-Example workflow:
-
-git checkout -b feature/vital-sign-entry
-git add .
-git commit -m "feat: add vital-sign entry workflow"
-git push origin feature/vital-sign-entry
-
-Never commit:
-
-* Real patient records
-* Passwords
-* Secret keys
-* API tokens
-* Production database exports
-* Unencrypted backups
-* Protected health information
-* Private encryption keys
-* .env files
-
-⸻
-
-License
-
-A license should be selected before public production distribution.
-
-Potential options include:
-
-* MIT License
-* Apache License 2.0
-* GNU Affero General Public License
-* A custom healthcare deployment license
-
-The selected license should account for:
-
-* Source-code use
-* Commercial deployment
-* Modification and redistribution
-* Clinical liability
-* Data ownership
-* Third-party integrations
-* Contributions
-* AI and model components
-
-Until a license is added, all rights remain reserved by the project owner.
-
-⸻
-
-Clinical Disclaimer
-
-Liberia EHR is currently a software-development project.
-
-It is not yet:
-
-* A certified medical device
-* A replacement for professional clinical judgment
-* A substitute for emergency medical care
-* Approved for storing real patient data
-* Validated for production clinical deployment
-* Guaranteed to meet every legal or regulatory requirement
-
-Clinical decision-support and AI outputs must be reviewed by qualified healthcare professionals.
-
-Before real-world deployment, the system must undergo:
-
-* Clinical workflow validation
-* Security assessment
-* Privacy assessment
-* Performance testing
-* Backup and recovery testing
-* Data-quality validation
-* User-acceptance testing
-* Accessibility review
-* Clinical-risk assessment
-* Legal and regulatory review
-* Staff training
-* Controlled pilot implementation
-
-⸻
-
-Project Summary
-
-Liberia EHR combines:
-
-* Django’s secure server-side framework
-* HTMX-powered clinical interactions
-* Alpine.js for lightweight presentation behavior
-* Tailwind CSS for a consistent professional interface
-* PostgreSQL for production data management
-* Nursing informatics
-* Healthcare analytics
-* Rule-based clinical decision support
-* Carefully governed AI integration
-
-The project’s purpose is to create a practical, modular, and safety-conscious EHR foundation that can grow alongside the needs of healthcare facilities in Liberia.
+This should be fixed by making the data migration safe for an empty database and adding deterministic seed/test data. Until then:
+
+- `python manage.py check` still validates application configuration.
+- Authenticated route and HTMX smoke tests can run against a development database.
+- Rollback-safe transactional integration checks can verify writes without retaining test clinical data.
+- A failing clean test bootstrap must not be described as a passing full suite.
+
+### High-risk workflows requiring coverage
+
+- Patient registration, duplicate review, merge, archive, and restoration.
+- Encounter state transitions, discharge, cancellation, and entered-in-error.
+- Vital validation and correction.
+- Medication-order discontinuation and hold/unhold.
+- MAR time-window enforcement and next-dose calculation.
+- Pharmacy verification, stock locking, dispensing, and ledger creation.
+- Clinical-note signing and amendment.
+- Facility/patient access control and audit events.
+
+## Security and clinical safety
+
+Existing foundations include Django authentication, CSRF middleware, secure cookie settings in non-debug mode, clickjacking protection, password validators, and production HTTPS/HSTS settings.
+
+These foundations are not a completed healthcare security program. Before production use, implement and verify:
+
+- Explicit role-, facility-, department-, encounter-, and patient-level authorization.
+- Least privilege and separation of clinical/administrative duties.
+- Multi-factor authentication for privileged and remote access.
+- Immutable and reviewable access/change audit trails.
+- Audit events for search, view, print, export, correction, and override.
+- Encrypted transport, encrypted backups, key management, and recovery testing.
+- Session timeout, workstation locking, rate limiting, and login monitoring.
+- Secure media/document storage and malware scanning.
+- Data retention, legal hold, correction, and release-of-information policies.
+- Downtime, reconciliation, incident response, and disaster recovery procedures.
+- Clinical content governance, medication knowledge maintenance, and alert validation.
+- Accessibility and user-acceptance testing with actual clinical roles.
+
+Never commit real patient data, `.env`, credentials, tokens, database exports, private keys, or unencrypted backups.
+
+See [Clinical Safety](docs/clinical-safety.md) and [Permissions](docs/permissions.md).
+
+## Deployment
+
+Production settings enable SSL redirect, secure session/CSRF cookies, and one-year HSTS with subdomains and preload.
+
+A production deployment still requires:
+
+1. PostgreSQL with restricted credentials.
+2. A unique secret key stored outside source control.
+3. Explicit allowed hosts.
+4. HTTPS termination and trusted proxy configuration.
+5. `python manage.py collectstatic`.
+6. Gunicorn or another production application server.
+7. Static/media storage strategy.
+8. Database and media backups with tested restoration.
+9. Monitoring, error reporting, log retention, and alerting.
+10. Capacity, concurrency, failure-mode, and security testing.
+11. Clinical validation and controlled release approval.
+
+Example checks:
+
+```bash
+DJANGO_SETTINGS_MODULE=config.settings.production python manage.py check --deploy
+python manage.py collectstatic --noinput
+gunicorn config.wsgi:application
+```
+
+The repository currently does not include a complete production Docker image or reverse-proxy configuration. See [Deployment](docs/deployment.md).
+
+## Known limitations
+
+- The project is not certified for clinical production.
+- Object-level and facility-level authorization require further systematic enforcement and testing.
+- Clean test-database creation is blocked by the appointment assignment data migration described above.
+- Laboratory and imaging applications are not complete end-to-end workflows.
+- The local medication safety screen does not provide a comprehensive interaction database.
+- Aggregate medication stock currently lives on the formulary medication while the ledger records movements; multi-location, batch-first inventory is not yet modeled.
+- Discharge currently completes an encounter from the nursing discharge assessment; formal discharge-order and disposition governance may require additional role/authorization rules.
+- Transfer captures a nursing assessment but does not yet implement bed/unit/facility movement orders.
+- Analytics are live operational counts but still require formal metric definitions, denominator governance, facility scoping, missing-data reporting, and validation.
+- Decision-support and AI applications are scaffolds, not validated clinical tools.
+- Background job processing, caching, interoperability APIs, and offline workflows are not implemented.
+- `docker-compose.yml` runs PostgreSQL only.
+- No `.env.example` is currently committed.
+- Legacy duplicate/reference files remain outside installed apps and should be cleaned up deliberately.
+
+## Roadmap
+
+The next work should complete navbar areas in dependency order rather than adding disconnected screens.
+
+### 1. Foundation hardening
+
+- Repair clean test-database migrations.
+- Add repeatable seed/reference-data commands.
+- Complete role/facility/patient permission services.
+- Expand immutable audit logging.
+- Add `.env.example` and production deployment manifests.
+- Consolidate duplicate/legacy code and existing Ruff findings.
+
+### 2. Encounter movement and inpatient operations
+
+- Formal admission order and bed assignment.
+- Transfer order with origin, destination, accepting service/provider, timestamps, and bed movement.
+- Discharge order, medication reconciliation, diagnoses, disposition, instructions, follow-up, and summary.
+- Census and bed-board integration.
+
+### 3. Laboratory
+
+- Catalog/tests, order entry, collection, accession, specimen status, results, reference ranges, verification, critical result communication, amendments, and patient/encounter display.
+
+### 4. Imaging
+
+- Order entry, modality/work queue, scheduling, study status, report drafting/signing, critical findings, and result display.
+
+### 5. Nursing and flowsheets
+
+- Care plans, interventions, goals, structured flowsheets, wound assessment, device management, shift worklists, escalation, and validated acuity indicators.
+
+### 6. Medication and pharmacy maturity
+
+- Multi-location inventory, lots/batches, expiration-first selection, receipts, transfers, returns, waste witnesses, controlled-drug registers, dispense labels, partial fills, and formulary approval governance.
+- Maintained drug knowledge integration for interactions, renal/hepatic dosing, duplicate therapy, contraindications, and monitoring.
+
+### 7. Care management, documents, and notifications
+
+- Referrals, discharge planning, social needs, patient education, document upload/classification, task routing, secure notifications, and follow-up reminders.
+
+### 8. Billing and revenue cycle
+
+- Coverage verification, charge capture, coding, claims, payments, adjustments, remittance, and audit controls.
+
+### 9. Analytics and reporting
+
+- Governed metric catalog, facility filters, data-quality indicators, validated dashboards, exports, scheduled reports, and public-health reporting.
+
+### 10. Interoperability and patient access
+
+- FHIR-compatible resources/APIs, terminology governance, external identity matching, consent-aware exchange, patient portal, and secure messaging.
+
+### 11. Decision support and AI
+
+- Versioned deterministic rules first.
+- Clinical ownership, evidence, validation, alert lifecycle, acknowledgment, override reason, and monitoring.
+- Only then governed AI summarization/assistance with provenance, human approval, model/version capture, and PHI controls.
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Clinical safety](docs/clinical-safety.md)
+- [Database](docs/database.md)
+- [Deployment](docs/deployment.md)
+- [Permissions](docs/permissions.md)
+
+These short documents complement this README. Update them alongside implementation changes that alter architecture, safety assumptions, data storage, deployment, or authorization.
+
+## Contribution expectations
+
+- Keep changes scoped and clinically explainable.
+- Add tests proportional to patient-safety and data-integrity risk.
+- Use named URLs and application namespaces.
+- Keep HTMX responses as reusable server-rendered partials.
+- Use Alpine.js for presentation state, not authoritative clinical state.
+- Preserve patient and encounter context in clinical workflows.
+- Document new environment variables, migrations, permissions, and clinical rules.
+- Never use real patient information in fixtures, screenshots, commits, or issue reports.
+
+## License
+
+No license file is currently present. Until the project owner selects and adds a license, all rights are reserved.
+
+## Clinical disclaimer
+
+Liberia EHR is a software-development project. It is not a medical device, a substitute for professional judgment, an emergency service, or a validated production medical record system. Clinical users remain responsible for verifying patient identity, orders, results, medication safety, documentation, and disposition. Real-world deployment requires clinical governance, legal review, privacy/security assessment, validation, training, controlled rollout, monitoring, and tested downtime/recovery procedures.

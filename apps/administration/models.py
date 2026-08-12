@@ -143,29 +143,19 @@ class Appointment(models.Model):
     )
 
     department = models.ForeignKey(
-
-    "facilities.Department",
-
-    on_delete=models.PROTECT,
-
-    related_name="appointments",
-
-    null=True,
-
-    blank=True,
+        "facilities.Department",
+        on_delete=models.PROTECT,
+        related_name="appointments",
+        null=True,
+        blank=True,
     )
 
     clinical_unit = models.ForeignKey(
-
-    "facilities.ClinicalUnit",
-
-    on_delete=models.PROTECT,
-
-    related_name="appointments",
-
-    null=True,
-
-    blank=True,
+        "facilities.ClinicalUnit",
+        on_delete=models.PROTECT,
+        related_name="appointments",
+        null=True,
+        blank=True,
     )
 
     room = models.ForeignKey(
@@ -177,18 +167,12 @@ class Appointment(models.Model):
     )
 
     provider = models.ForeignKey(
-
-    settings.AUTH_USER_MODEL,
-
-    on_delete=models.PROTECT,
-
-    related_name="scheduled_appointments",
-
-    null=True,
-
-    blank=True,
-
-)
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="scheduled_appointments",
+        null=True,
+        blank=True,
+    )
 
     start_datetime = models.DateTimeField(
         db_index=True,
@@ -317,9 +301,7 @@ class Appointment(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.appointment_number:
-            self.appointment_number = (
-                self.generate_appointment_number()
-            )
+            self.appointment_number = self.generate_appointment_number()
 
         super().save(*args, **kwargs)
 
@@ -335,8 +317,7 @@ class Appointment(models.Model):
         prefix = today.strftime("APT-%Y%m%d")
 
         last_appointment = (
-            Appointment.objects
-            .filter(
+            Appointment.objects.filter(
                 appointment_number__startswith=prefix,
             )
             .order_by("-appointment_number")
@@ -348,12 +329,7 @@ class Appointment(models.Model):
         if last_appointment:
             try:
                 sequence = (
-                    int(
-                        last_appointment
-                        .appointment_number
-                        .rsplit("-", 1)[-1]
-                    )
-                    + 1
+                    int(last_appointment.appointment_number.rsplit("-", 1)[-1]) + 1
                 )
             except (TypeError, ValueError):
                 sequence = 1
@@ -368,56 +344,46 @@ class Appointment(models.Model):
         if (
             self.start_datetime
             and self.end_datetime
-            and self.end_datetime
-            <= self.start_datetime
+            and self.end_datetime <= self.start_datetime
         ):
             errors["end_datetime"] = (
-                "The appointment end time must be after "
-                "the start time."
+                "The appointment end time must be after the start time."
             )
 
         if (
             self.department_id
             and self.facility_id
-            and self.department.facility_id
-            != self.facility_id
+            and self.department.facility_id != self.facility_id
         ):
             errors["department"] = (
-                "The selected department does not belong "
-                "to the selected facility."
+                "The selected department does not belong to the selected facility."
             )
 
         if (
             self.clinical_unit_id
             and self.facility_id
-            and self.clinical_unit.facility_id
-            != self.facility_id
+            and self.clinical_unit.facility_id != self.facility_id
         ):
             errors["clinical_unit"] = (
-                "The selected clinical unit does not belong "
-                "to the selected facility."
+                "The selected clinical unit does not belong to the selected facility."
             )
 
         if (
             self.clinical_unit_id
             and self.department_id
-            and self.clinical_unit.department_id
-            != self.department_id
+            and self.clinical_unit.department_id != self.department_id
         ):
             errors["clinical_unit"] = (
-                "The selected clinical unit does not belong "
-                "to the selected department."
+                "The selected clinical unit does not belong to the selected department."
             )
 
         if (
             self.room_id
             and self.facility_id
-            and self.room.facility_id
-            != self.facility_id
+            and self.room.facility_id != self.facility_id
         ):
             errors["room"] = (
-                "The selected room does not belong to the "
-                "selected facility."
+                "The selected room does not belong to the selected facility."
             )
 
         if (
@@ -476,10 +442,7 @@ class Appointment(models.Model):
         if not self.start_datetime or not self.end_datetime:
             return 0
 
-        duration = (
-            self.end_datetime
-            - self.start_datetime
-        )
+        duration = self.end_datetime - self.start_datetime
 
         return max(
             int(duration.total_seconds() / 60),
@@ -505,3 +468,65 @@ class Appointment(models.Model):
     @property
     def can_be_restored(self):
         return self.status == self.Status.CANCELLED
+
+
+class SystemSetting(models.Model):
+    key = models.SlugField(max_length=100, unique=True)
+    label = models.CharField(max_length=150)
+    category = models.CharField(max_length=80, default="general", db_index=True)
+    value = models.TextField(blank=True)
+    description = models.TextField(blank=True)
+    is_sensitive = models.BooleanField(default=False)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("category", "label")
+
+
+class ClinicalDictionaryEntry(models.Model):
+    dictionary = models.SlugField(max_length=80, db_index=True)
+    code = models.CharField(max_length=80)
+    display = models.CharField(max_length=180)
+    description = models.TextField(blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("dictionary", "sort_order", "display")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("dictionary", "code"), name="admin_dictionary_code_unique"
+            )
+        ]
+
+
+class IntegrationConfiguration(models.Model):
+    class Status(models.TextChoices):
+        DISABLED = "disabled", "Disabled"
+        CONFIGURED = "configured", "Configured"
+        ERROR = "error", "Error"
+
+    name = models.CharField(max_length=150, unique=True)
+    integration_type = models.CharField(max_length=80)
+    base_url = models.URLField(blank=True)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.DISABLED
+    )
+    configuration = models.JSONField(
+        default=dict, blank=True, help_text="Do not store unencrypted secrets here."
+    )
+    last_checked_at = models.DateTimeField(null=True, blank=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("name",)

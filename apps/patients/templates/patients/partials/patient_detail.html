@@ -1,227 +1,42 @@
-<!-- =========================================================
-     RECENT ENCOUNTERS
-========================================================== -->
-<section
-    class="border-t border-slate-200"
-    aria-labelledby="encounters-heading"
->
-    <!-- =====================================================
-         SECTION HEADER
-    ====================================================== -->
-    <div
-        class="
-            flex items-center justify-between gap-3
-            border-b border-slate-200
-            bg-slate-50 px-3 py-2
-        "
-    >
-        <div>
-            <h2
-                id="encounters-heading"
-                class="text-xs font-semibold text-slate-900"
-            >
-                Recent Encounters
-            </h2>
-
-            <p class="mt-0.5 text-[10px] text-slate-500">
-                Recent visits and care activity
-            </p>
-        </div>
-
-        <a
-            href="{% url 'encounters:list' %}?patient={{ patient.pk }}"
-            hx-boost="false"
-            class="
-                shrink-0 text-[11px] font-semibold
-                text-emerald-700 transition
-                hover:text-emerald-900
-            "
-        >
-            View all
-        </a>
+<div class="mr-auto w-full max-w-4xl">
+<section class="space-y-3 p-3">
+    <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <article class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><p class="text-[9px] font-bold uppercase text-slate-500">Encounters</p><p class="mt-1 text-xl font-bold text-slate-900">{{ encounter_count }}</p></article>
+        <article class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><p class="text-[9px] font-bold uppercase text-slate-500">Active diagnoses</p><p class="mt-1 text-xl font-bold text-slate-900">{{ active_diagnosis_count }}</p></article>
+        <article class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><p class="text-[9px] font-bold uppercase text-slate-500">Active medications</p><p class="mt-1 text-xl font-bold text-slate-900">{{ active_medication_count }}</p></article>
+        <article class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><p class="text-[9px] font-bold uppercase text-slate-500">Clinical notes</p><p class="mt-1 text-xl font-bold text-slate-900">{{ clinical_note_count }}</p></article>
     </div>
 
+    <div class="grid gap-3 lg:grid-cols-2">
+        <article class="rounded-lg border border-slate-200 bg-white shadow-sm"><header class="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2"><h2 class="text-xs font-bold text-slate-900">Current vitals</h2>{% if current_vitals %}<time datetime="{{ current_vitals.recorded_at|date:'c' }}" class="shrink-0 text-[9px] font-semibold text-slate-500">Taken {{ current_vitals.recorded_at|date:"M j, Y" }} · {{ current_vitals.recorded_at|time:"g:i A" }}</time>{% endif %}</header>{% if current_vitals %}<div class="grid grid-cols-3 gap-2 p-3 text-center"><div><p class="text-[9px] uppercase text-slate-500">BP</p><p class="font-bold">{% if current_vitals.systolic_blood_pressure %}{{ current_vitals.systolic_blood_pressure }}/{{ current_vitals.diastolic_blood_pressure }}{% else %}—{% endif %}</p></div><div><p class="text-[9px] uppercase text-slate-500">Pulse</p><p class="font-bold">{{ current_vitals.heart_rate|default:"—" }}</p></div><div><p class="text-[9px] uppercase text-slate-500">Resp</p><p class="font-bold">{{ current_vitals.respiratory_rate|default:"—" }}</p></div><div><p class="text-[9px] uppercase text-slate-500">SpO₂</p><p class="font-bold">{% if current_vitals.oxygen_saturation %}{{ current_vitals.oxygen_saturation }}%{% else %}—{% endif %}</p></div><div><p class="text-[9px] uppercase text-slate-500">Temp °F</p><p class="font-bold">{{ current_vitals.temperature_fahrenheit|default:"—" }}</p></div><div><p class="text-[9px] uppercase text-slate-500">Pain</p><p class="font-bold">{{ current_vitals.pain_score|default:"—" }}</p></div></div><a href="{% url 'vitals:patient_history' patient_id=patient.pk %}" class="block border-t border-slate-200 px-3 py-2 text-[10px] font-semibold text-emerald-700">View vital history →</a>{% else %}<p class="p-3 text-xs text-slate-500">No vital signs recorded.</p>{% endif %}</article>
+        <article class="rounded-lg border border-slate-200 bg-white shadow-sm"><header class="border-b border-slate-200 bg-slate-50 px-3 py-2"><h2 class="text-xs font-bold text-slate-900">Diagnoses</h2></header><div class="divide-y divide-slate-100">{% for diagnosis in diagnoses %}<div class="px-3 py-2"><p class="truncate text-xs font-semibold text-slate-900">{{ diagnosis.display_snapshot }}</p><p class="text-[9px] text-slate-500">{{ diagnosis.get_clinical_status_display }}{% if diagnosis.code_snapshot %} · {{ diagnosis.code_snapshot }}{% endif %}</p></div>{% empty %}<p class="p-3 text-xs text-slate-500">No diagnoses recorded.</p>{% endfor %}</div></article>
+        <article class="rounded-lg border border-slate-200 bg-white shadow-sm"><header class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2"><h2 class="text-xs font-bold text-slate-900">Current medications</h2><a href="{% url 'medications:patient-list' patient_id=patient.pk %}" class="text-[9px] font-semibold text-emerald-700">View all</a></header><div class="divide-y divide-slate-100">{% for order in active_medications %}<div class="px-3 py-2"><p class="truncate text-xs font-semibold text-slate-900">{{ order.medication.generic_name }}</p><p class="text-[9px] text-slate-500">{{ order.dose }} {{ order.dose_unit }} · {{ order.get_route_display }} · {{ order.get_frequency_display }}</p></div>{% empty %}<p class="p-3 text-xs text-slate-500">No active medications.</p>{% endfor %}</div></article>
+    </div>
 
-    <!-- =====================================================
-         ENCOUNTER RECORDS
-    ====================================================== -->
-    <div class="divide-y divide-slate-100">
-        {% for encounter in recent_encounters %}
-            <article
-                class="
-                    px-3 py-2.5
-                    transition hover:bg-slate-50
-                "
-            >
-                <div class="flex items-start justify-between gap-3">
+    <div class="grid gap-3 sm:grid-cols-2"><article class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><h2 class="text-xs font-bold text-slate-900">Pertinent laboratory results</h2><p class="mt-2 text-[10px] leading-4 text-slate-500">No structured laboratory results available.</p></article><article class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"><h2 class="text-xs font-bold text-slate-900">Surgeries and procedures</h2><p class="mt-2 text-[10px] leading-4 text-slate-500">No structured surgical history available.</p></article></div>
+</section>
 
-                    <!-- =========================================
-                         ENCOUNTER INFORMATION
-                    ========================================== -->
-                    <div class="min-w-0">
-                        <a
-                            href="{% url 'encounters:detail' encounter.pk %}"
-                            hx-boost="false"
-                            class="
-                                block truncate text-xs
-                                font-semibold text-slate-900
-                                transition hover:text-emerald-700
-                            "
-                        >
-                            {{ encounter.get_encounter_type_display }}
-                        </a>
-
-                        <p class="mt-0.5 text-[10px] text-slate-500">
-                            {{ encounter.encounter_number }}
-                        </p>
-
-                        <p class="mt-0.5 text-[10px] text-slate-500">
-                            {% if encounter.attending_provider %}
-                                {% firstof encounter.attending_provider.get_full_name encounter.attending_provider.username %}
-                            {% else %}
-                                Provider not assigned
-                            {% endif %}
-                        </p>
-
-                        {% if encounter.reason_for_visit %}
-                            <p
-                                class="
-                                    mt-1 line-clamp-2
-                                    text-xs leading-4 text-slate-600
-                                "
-                            >
-                                {{ encounter.reason_for_visit }}
-                            </p>
-                        {% endif %}
-
-
-                        <!-- =====================================
-                             STATUS AND PRIORITY
-                        ====================================== -->
-                        <div class="mt-2 flex flex-wrap items-center gap-1.5">
-                            <span
-                                class="
-                                    inline-flex rounded-full
-                                    px-1.5 py-0.5
-                                    text-[9px] font-semibold
-
-                                    {% if encounter.status == 'COMPLETED' %}
-                                        bg-blue-100 text-blue-700
-                                    {% elif encounter.status == 'CANCELLED' %}
-                                        bg-red-100 text-red-700
-                                    {% elif encounter.status == 'ENTERED_IN_ERROR' %}
-                                        bg-red-100 text-red-700
-                                    {% elif encounter.status == 'IN_PROGRESS' %}
-                                        bg-emerald-100 text-emerald-700
-                                    {% elif encounter.status == 'ON_HOLD' %}
-                                        bg-amber-100 text-amber-700
-                                    {% else %}
-                                        bg-slate-100 text-slate-700
-                                    {% endif %}
-                                "
-                            >
-                                {{ encounter.get_status_display }}
-                            </span>
-
-                            <span
-                                class="
-                                    inline-flex rounded-full
-                                    px-1.5 py-0.5
-                                    text-[9px] font-semibold
-
-                                    {% if encounter.priority == 'EMERGENCY' %}
-                                        bg-red-100 text-red-700
-                                    {% elif encounter.priority == 'URGENT' %}
-                                        bg-amber-100 text-amber-700
-                                    {% elif encounter.priority == 'SEMI_URGENT' %}
-                                        bg-yellow-100 text-yellow-700
-                                    {% else %}
-                                        bg-emerald-100 text-emerald-700
-                                    {% endif %}
-                                "
-                            >
-                                {{ encounter.get_priority_display }}
-                            </span>
-                        </div>
-                    </div>
-
-
-                    <!-- =========================================
-                         ENCOUNTER DATE AND ACTION
-                    ========================================== -->
-                    <div class="shrink-0 text-right">
-                        <time
-                            datetime="{{ encounter.start_datetime|date:'c' }}"
-                            class="
-                                block text-[10px]
-                                font-medium text-slate-500
-                            "
-                        >
-                            {{ encounter.start_datetime|date:"M j, Y" }}
-                        </time>
-
-                        <span
-                            class="
-                                mt-0.5 block text-[10px]
-                                text-slate-400
-                            "
-                        >
-                            {{ encounter.start_datetime|time:"g:i A" }}
-                        </span>
-
-                        <a
-                            href="{% url 'encounters:detail' encounter.pk %}"
-                            hx-boost="false"
-                            class="
-                                mt-2 inline-flex items-center
-                                justify-center rounded-md
-                                border border-slate-300
-                                bg-white px-2 py-1
-                                text-[10px] font-semibold
-                                text-slate-700 transition
-                                hover:bg-slate-100
-                            "
-                        >
-                            Open
-                        </a>
-                    </div>
-                </div>
-            </article>
-
-        {% empty %}
-            <!-- =================================================
-                 EMPTY ENCOUNTER STATE
-            ================================================== -->
-            <div class="px-3 py-6 text-center">
-                <p class="text-xs font-medium text-slate-700">
-                    No encounters recorded.
-                </p>
-
-                <p class="mt-1 text-[10px] text-slate-500">
-                    Start an encounter to begin clinical documentation
-                    for this patient.
-                </p>
-
-                <a
-                    href="{% url 'encounters:create' %}?patient={{ patient.pk }}"
-                    hx-boost="false"
-                    class="
-                        mt-3 inline-flex min-h-9
-                        items-center justify-center gap-1.5
-                        rounded-lg border border-emerald-800
-                        bg-emerald-700 px-3 py-2
-                        text-[11px] font-semibold text-white
-                        shadow-sm transition
-                        hover:bg-emerald-800
-                        focus:outline-none
-                        focus:ring-2 focus:ring-emerald-500
-                    "
-                    style="background-color: #047857; color: #ffffff;"
-                >
-                    <span aria-hidden="true">＋</span>
-                    <span>Start Encounter</span>
+<section class="border-t border-slate-200" aria-labelledby="encounters-heading">
+    <div class="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2">
+        <div><h2 id="encounters-heading" class="text-xs font-semibold text-slate-900">Recent Encounters</h2><p class="mt-0.5 text-[10px] text-slate-500">Recent visits and care activity</p></div>
+        <a href="{% url 'encounters:list' %}?patient={{ patient.pk }}" hx-boost="false" class="shrink-0 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900">View all</a>
+    </div>
+    <div class="overflow-x-auto bg-white">
+        <div class="min-w-[900px] divide-y divide-slate-100">
+            {% for encounter in recent_encounters %}
+                <a href="{% url 'encounters:detail' encounter.pk %}" hx-boost="false" class="flex items-center gap-2 whitespace-nowrap px-3 py-2.5 text-[10px] text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-900">
+                    <span class="font-bold text-emerald-700">{{ encounter.get_encounter_type_display }}</span><span class="text-slate-300">•</span>
+                    <span class="font-semibold text-slate-800">{{ encounter.encounter_number }}</span><span class="text-slate-300">•</span>
+                    <span class="max-w-32 truncate">{% if encounter.attending_provider %}{% firstof encounter.attending_provider.get_full_name encounter.attending_provider.username %}{% else %}Provider not assigned{% endif %}</span><span class="text-slate-300">•</span>
+                    <span class="min-w-0 flex-1 truncate text-xs text-slate-800">{{ encounter.reason_for_visit|default:"Not recorded" }}</span>
+                    <span class="rounded bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-700">{{ encounter.get_status_display }}</span>
+                    <span class="rounded px-1.5 py-0.5 font-semibold {% if encounter.priority == 'EMERGENCY' %}bg-red-100 text-red-700{% elif encounter.priority == 'URGENT' %}bg-amber-100 text-amber-700{% else %}bg-emerald-100 text-emerald-700{% endif %}">{{ encounter.get_priority_display }}</span>
+                    <time datetime="{{ encounter.start_datetime|date:'c' }}" class="text-slate-500">{{ encounter.start_datetime|date:"M j, Y" }} {{ encounter.start_datetime|time:"g:i A" }}</time><span class="font-bold text-emerald-700">Open →</span>
                 </a>
-            </div>
-        {% endfor %}
+            {% empty %}
+                <div class="px-3 py-6 text-center"><p class="text-xs font-medium text-slate-700">No encounters recorded.</p><a href="{% url 'encounters:create' %}?patient={{ patient.pk }}" hx-boost="false" class="mt-3 inline-flex rounded-lg bg-emerald-700 px-3 py-2 text-[11px] font-semibold text-white">＋ Start Encounter</a></div>
+            {% endfor %}
+        </div>
     </div>
 </section>
+</div>

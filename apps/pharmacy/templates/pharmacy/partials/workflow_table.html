@@ -1,0 +1,25 @@
+<div id="pharmacy-workflow" class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-[11px]">
+      <thead class="bg-slate-50 text-left text-[9px] font-bold uppercase tracking-wide text-slate-500">
+        <tr><th class="px-3 py-2">Patient / encounter</th><th class="px-3 py-2">Medication order</th><th class="px-3 py-2">Indication</th><th class="px-3 py-2">Ordered</th><th class="px-3 py-2">Pharmacy status</th><th class="px-3 py-2 text-right">Action</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for order in orders %}
+          {% with review=order.pharmacy_review %}
+          <tr class="hover:bg-slate-50">
+            <td class="px-3 py-2"><a href="{% url 'patients:detail' patient_id=order.patient.pk %}" class="font-bold text-emerald-700">{{ order.patient.display_name }}</a><p class="text-[9px] text-slate-500">{{ order.patient.mrn }} · {{ order.encounter.encounter_number }}</p></td>
+            <td class="px-3 py-2"><p class="font-bold text-slate-900">{{ order.medication.display_name }}</p><p class="text-[9px] text-slate-500">{{ order.dose }} {{ order.get_dose_unit_display }} · {{ order.get_route_display }} · {{ order.get_frequency_display }}</p></td>
+            <td class="max-w-52 px-3 py-2 text-slate-600"><span class="line-clamp-2">{{ order.clinical_indication|default:"Not documented" }}</span></td>
+            <td class="px-3 py-2 text-slate-600"><time datetime="{{ order.ordered_at|date:'c' }}">{{ order.ordered_at|date:"M j, Y" }}<br>{{ order.ordered_at|time:"g:i A" }}</time></td>
+            <td class="px-3 py-2">{% if review %}<span class="rounded-full px-2 py-1 font-semibold {% if review.status == 'verified' %}bg-emerald-100 text-emerald-800{% elif review.status == 'rejected' %}bg-red-100 text-red-700{% elif review.status == 'clarification' %}bg-amber-100 text-amber-800{% else %}bg-blue-100 text-blue-700{% endif %}">{{ review.get_status_display }}</span>{% else %}<span class="rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-600">New</span>{% endif %}</td>
+            <td class="px-3 py-2 text-right whitespace-nowrap">
+              {% if workflow_kind == 'dispensing' or workflow_kind == 'verified' %}<a href="{% url 'pharmacy:dispense-order' order.pk %}" class="rounded bg-blue-600 px-2.5 py-1.5 font-bold text-white hover:bg-blue-700">Dispense</a>{% else %}<a href="{% url 'pharmacy:review-order' order.pk %}" class="rounded bg-emerald-700 px-2.5 py-1.5 font-bold text-white hover:bg-emerald-800">{% if review %}Review details{% else %}Start review{% endif %}</a>{% endif %}
+            </td>
+          </tr>
+          {% endwith %}
+        {% empty %}<tr><td colspan="6" class="px-4 py-10 text-center text-xs text-slate-500">No medication orders in this workflow.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

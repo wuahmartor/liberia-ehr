@@ -1,17 +1,3 @@
 {% extends "layouts/app_shell.html" %}
-
-{% block title %}
-    facilities Details | Liberia EHR
-{% endblock %}
-
-{% block workspace %}
-<section>
-    <h1 class="text-2xl font-bold capitalize">
-        facilities Details
-    </h1>
-
-    <div id="facilities-detail" class="mt-5">
-        {% include "facilities/partials/detail_content.html" %}
-    </div>
-</section>
-{% endblock %}
+{% block title %}{{ facility.name }} | Liberia EHR{% endblock %}
+{% block workspace %}<section class="p-3 sm:p-4"><div id="facilities-detail">{% include "facilities/partials/detail_content.html" %}</div></section>{% endblock %}

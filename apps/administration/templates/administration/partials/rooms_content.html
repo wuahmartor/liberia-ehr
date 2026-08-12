@@ -12,9 +12,10 @@
                 bg-white p-4 shadow-sm
             "
         >
-            <h2 class="text-sm font-semibold text-slate-900">
-                Rooms
-            </h2>
+            <div class="flex items-center justify-between gap-3">
+                <h2 class="text-sm font-semibold text-slate-900">Rooms</h2>
+                <a href="{% url 'facilities:list' %}" class="rounded-lg bg-ehr-700 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-ehr-800" title="Select a facility to create a room">Create Room</a>
+            </div>
 
             <div class="mt-4 divide-y divide-slate-200">
                 {% for room in rooms %}
@@ -42,9 +43,10 @@
                 bg-white p-4 shadow-sm
             "
         >
-            <h2 class="text-sm font-semibold text-slate-900">
-                Beds
-            </h2>
+            <div class="flex items-center justify-between gap-3">
+                <h2 class="text-sm font-semibold text-slate-900">Beds</h2>
+                <a href="{% url 'facilities:list' %}" class="rounded-lg bg-ehr-700 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-ehr-800" title="Select a facility to create a bed">Create Bed</a>
+            </div>
 
             <div class="mt-4 divide-y divide-slate-200">
                 {% for bed in beds %}

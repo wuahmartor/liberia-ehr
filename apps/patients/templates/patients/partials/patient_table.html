@@ -83,7 +83,7 @@
                         text-slate-500
                     "
                 >
-                    Status
+                    Care status
                 </th>
 
                 <th
@@ -371,7 +371,7 @@
                                 Entered in Error
                             </span>
 
-                        {% elif patient.is_active %}
+                        {% elif patient.has_open_encounter %}
                             <span
                                 class="
                                     inline-flex items-center gap-1.5
@@ -390,7 +390,23 @@
                                     aria-hidden="true"
                                 ></span>
 
-                                Active
+                                Encounter open
+                            </span>
+
+                        {% elif patient.has_completed_encounter %}
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700 ring-1 ring-inset ring-blue-200"
+                            >
+                                <span class="h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden="true"></span>
+                                Discharged
+                            </span>
+
+                        {% elif patient.is_active %}
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200"
+                            >
+                                <span class="h-1.5 w-1.5 rounded-full bg-slate-400" aria-hidden="true"></span>
+                                No open encounter
                             </span>
 
                         {% else %}
