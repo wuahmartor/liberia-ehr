@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import uuid
@@ -10,7 +8,6 @@ from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
-
 
 phone_validator = RegexValidator(
     regex=r"^\+?[0-9()\-\s]{7,25}$",
@@ -59,8 +56,7 @@ class PatientQuerySet(models.QuerySet):
 
     def inactive(self):
         return self.filter(
-            Q(is_active=False)
-            | Q(record_status=Patient.RecordStatus.INACTIVE)
+            Q(is_active=False) | Q(record_status=Patient.RecordStatus.INACTIVE)
         )
 
     def deceased(self):
@@ -70,9 +66,7 @@ class PatientQuerySet(models.QuerySet):
         return self.filter(record_status=Patient.RecordStatus.MERGED)
 
     def entered_in_error(self):
-        return self.filter(
-            record_status=Patient.RecordStatus.ENTERED_IN_ERROR
-        )
+        return self.filter(record_status=Patient.RecordStatus.ENTERED_IN_ERROR)
 
     def search(self, query: str):
         query = (query or "").strip()
@@ -96,6 +90,57 @@ class PatientQuerySet(models.QuerySet):
 
 
 class Patient(UserTrackedModel):
+    @property
+    def sidebar_allergy_summary(self):
+        """Active allergy summary for the patient identity card."""
+        allergies = self.allergies.filter(status=PatientAllergy.Status.ACTIVE).order_by(
+            "-severity", "substance"
+        )
+        return {
+            "items": allergies[:3],
+            "count": allergies.count(),
+        }
+
+    @property
+    def latest_morse_fall_risk(self):
+        """Latest nurse-recorded Morse result for the patient."""
+        from apps.nursing.models import NursingFallRiskAssessment
+
+        return (
+            NursingFallRiskAssessment.objects.filter(patient=self)
+            .select_related("encounter", "recorded_by")
+            .order_by("-assessment_date", "-recorded_at")
+            .first()
+        )
+
+    @property
+    def sidebar_clinical_alert_summary(self):
+        """Return open moderate-to-critical alerts for the patient sidebar."""
+        from apps.decision_support.models import ClinicalAlert, ClinicalRule
+
+        alerts = ClinicalAlert.objects.filter(
+            patient=self,
+            status=ClinicalAlert.Status.OPEN,
+            rule__severity__in=(
+                ClinicalRule.Severity.MODERATE,
+                ClinicalRule.Severity.HIGH,
+                ClinicalRule.Severity.CRITICAL,
+            ),
+        ).select_related("rule", "encounter")
+        return {
+            "alerts": alerts[:5],
+            "count": alerts.count(),
+            "critical_count": alerts.filter(
+                rule__severity=ClinicalRule.Severity.CRITICAL
+            ).count(),
+            "high_count": alerts.filter(
+                rule__severity=ClinicalRule.Severity.HIGH
+            ).count(),
+            "moderate_count": alerts.filter(
+                rule__severity=ClinicalRule.Severity.MODERATE
+            ).count(),
+        }
+
     class RecordStatus(models.TextChoices):
         ACTIVE = "active", "Active"
         INACTIVE = "inactive", "Inactive"
@@ -302,17 +347,14 @@ class Patient(UserTrackedModel):
     def get_full_name(self):
         return self.full_name
 
-
     def get_short_name(self):
         return self.preferred_name or self.first_name
-
 
     @property
     def age_display(self):
         if self.date_of_birth_estimated:
             return f"Approximately {self.age}"
         return str(self.age)
-
 
     @property
     def primary_emergency_contact(self):
@@ -322,7 +364,6 @@ class Patient(UserTrackedModel):
             .first()
         )
 
-
     @property
     def active_flags(self):
         now = timezone.now()
@@ -330,11 +371,7 @@ class Patient(UserTrackedModel):
         return self.flags.filter(
             is_active=True,
             starts_at__lte=now,
-        ).filter(
-            Q(ends_at__isnull=True) | Q(ends_at__gte=now)
-        )
-
-
+        ).filter(Q(ends_at__isnull=True) | Q(ends_at__gte=now))
 
     @property
     def primary_address(self):
@@ -349,9 +386,7 @@ class Patient(UserTrackedModel):
         today = timezone.localdate()
 
         if self.date_of_birth and self.date_of_birth > today:
-            errors["date_of_birth"] = (
-                "Date of birth cannot be in the future."
-            )
+            errors["date_of_birth"] = "Date of birth cannot be in the future."
 
         if self.deceased_at and self.date_of_birth:
             if self.deceased_at.date() < self.date_of_birth:
@@ -370,31 +405,29 @@ class Patient(UserTrackedModel):
             )
 
         if self.is_deceased and self.is_active:
-            errors["is_active"] = (
-                "A deceased patient cannot remain active."
-            )
+            errors["is_active"] = "A deceased patient cannot remain active."
 
         if self.is_deceased and self.record_status == self.RecordStatus.ACTIVE:
             errors["record_status"] = (
                 "A deceased patient cannot have an active record status."
             )
 
-        if (
-            self.record_status == self.RecordStatus.ACTIVE
-            and not self.is_active
-        ):
+        if self.record_status == self.RecordStatus.ACTIVE and not self.is_active:
             errors["is_active"] = (
                 "An active patient record must have is_active enabled."
             )
 
-        if self.record_status in {
-            self.RecordStatus.INACTIVE,
-            self.RecordStatus.MERGED,
-            self.RecordStatus.ENTERED_IN_ERROR,
-        } and self.is_active:
+        if (
+            self.record_status
+            in {
+                self.RecordStatus.INACTIVE,
+                self.RecordStatus.MERGED,
+                self.RecordStatus.ENTERED_IN_ERROR,
+            }
+            and self.is_active
+        ):
             errors["is_active"] = (
-                "Inactive, merged, and entered-in-error records "
-                "cannot remain active."
+                "Inactive, merged, and entered-in-error records cannot remain active."
             )
 
         if self.gender_identity == self.GenderIdentity.OTHER:
@@ -408,14 +441,10 @@ class Patient(UserTrackedModel):
             and self.gender_identity_description.strip()
         ):
             errors["gender_identity_description"] = (
-                "A gender identity description is only needed "
-                "when Other is selected."
+                "A gender identity description is only needed when Other is selected."
             )
 
-        if (
-            self.confidential_record
-            and not self.restricted_access_reason.strip()
-        ):
+        if self.confidential_record and not self.restricted_access_reason.strip():
             errors["restricted_access_reason"] = (
                 "Provide a reason for restricting access to this record."
             )
@@ -429,9 +458,7 @@ class Patient(UserTrackedModel):
         self.first_name = (self.first_name or "").strip()
         self.middle_name = (self.middle_name or "").strip()
         self.last_name = (self.last_name or "").strip()
-        self.previous_last_name = (
-            self.previous_last_name or ""
-        ).strip()
+        self.previous_last_name = (self.previous_last_name or "").strip()
         self.preferred_name = (self.preferred_name or "").strip()
         self.suffix = (self.suffix or "").strip()
 
@@ -665,11 +692,7 @@ class PatientAllergy(UserTrackedModel):
         ]
 
     def __str__(self):
-        return (
-            f"{self.patient.mrn} — "
-            f"{self.substance} "
-            f"({self.get_severity_display()})"
-        )
+        return f"{self.patient.mrn} — {self.substance} ({self.get_severity_display()})"
 
     @property
     def is_active(self):
@@ -680,9 +703,7 @@ class PatientAllergy(UserTrackedModel):
         self.reaction = (self.reaction or "").strip()
 
         if not self.substance:
-            raise ValidationError(
-                {"substance": "Enter the allergy substance."}
-            )
+            raise ValidationError({"substance": "Enter the allergy substance."})
 
     def save(self, *args, **kwargs):
         self.substance = (self.substance or "").strip()
@@ -1065,8 +1086,10 @@ class PatientFlag(UserTrackedModel):
     @property
     def currently_active(self):
         now = timezone.now()
-        return self.is_active and self.starts_at <= now and (
-            self.ends_at is None or self.ends_at >= now
+        return (
+            self.is_active
+            and self.starts_at <= now
+            and (self.ends_at is None or self.ends_at >= now)
         )
 
     def clean(self):
@@ -1148,16 +1171,12 @@ class PatientMergeRecord(UserTrackedModel):
         ]
 
     def __str__(self):
-        return (
-            f"Merge {self.duplicate_patient.mrn} into "
-            f"{self.surviving_patient.mrn}"
-        )
+        return f"Merge {self.duplicate_patient.mrn} into {self.surviving_patient.mrn}"
 
     def clean(self):
         if self.surviving_patient_id == self.duplicate_patient_id:
-            raise ValidationError(
-                "A patient record cannot be merged into itself."
-            )
+            raise ValidationError("A patient record cannot be merged into itself.")
+
 
 class PatientRelationship(UserTrackedModel):
     class RelationshipType(models.TextChoices):
@@ -1206,9 +1225,7 @@ class PatientRelationship(UserTrackedModel):
                 name="patient_relationship_unique",
             ),
             models.CheckConstraint(
-                condition=~models.Q(
-                    patient=models.F("related_patient")
-                ),
+                condition=~models.Q(patient=models.F("related_patient")),
                 name="patient_relationship_not_self",
             ),
         ]

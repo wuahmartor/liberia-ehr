@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from .models import (
     IntakeOutputRecord,
     NursingAssessment,
+    NursingFallRiskAssessment,
     NursingHandoff,
     NursingTask,
 )
@@ -28,8 +29,59 @@ class CompactModelForm(forms.ModelForm):
             )
 
 
+class NursingFallRiskAssessmentForm(CompactModelForm):
+    class Meta:
+        model = NursingFallRiskAssessment
+        fields = (
+            "shift",
+            "assessment_date",
+            "history_of_falling",
+            "secondary_diagnosis",
+            "ambulatory_aid",
+            "iv_or_heparin_lock",
+            "gait",
+            "mental_status",
+            "sedating_medication",
+            "dizziness_or_hypotension",
+            "toileting_assistance",
+            "interventions",
+        )
+        widgets = {
+            "assessment_date": forms.DateInput(attrs={"type": "date"}),
+            "interventions": forms.Textarea(attrs={"rows": 3}),
+        }
+        help_texts = {
+            "history_of_falling": (
+                "Fall during this admission or within the preceding three months."
+            ),
+            "secondary_diagnosis": "More than one active medical diagnosis.",
+            "mental_status": (
+                "Compare the patient's self-assessment with the ordered activity level."
+            ),
+            "interventions": (
+                "Document individualized prevention measures and escalation."
+            ),
+        }
+
+
 class NursingAssessmentForm(CompactModelForm):
     SYSTEM_FIELDS = {
+        "General Survey": (
+            "general_survey_status",
+            "general_appearance",
+            "apparent_distress",
+            "hygiene_grooming",
+        ),
+        "Head, Face, Neck, Eyes, Ears, Nose and Throat": (
+            "head_neck_status",
+            "facial_symmetry",
+            "head_scalp",
+            "eyes_vision",
+            "ears_hearing",
+            "nose_sinuses",
+            "mouth_throat",
+            "neck",
+        ),
         "Neurological": (
             "neurological_status",
             "consciousness",
@@ -106,6 +158,8 @@ class NursingAssessmentForm(CompactModelForm):
         ),
     }
     SYSTEM_STATUSES = {
+        "General Survey": "general_survey_status",
+        "Head, Face, Neck, Eyes, Ears, Nose and Throat": "head_neck_status",
         "Neurological": "neurological_status",
         "Respiratory": "respiratory_status",
         "Cardiovascular": "cardiovascular_status",
@@ -159,6 +213,8 @@ class NursingAssessmentForm(CompactModelForm):
             for name in fields:
                 self.fields[name].required = False
         choices = {
+            "general_survey_status": ("WNL", "Exception identified"),
+            "head_neck_status": ("WNL", "Exception identified"),
             "neurological_status": ("WNL", "Exception identified"),
             "respiratory_status": ("WNL", "Exception identified"),
             "cardiovascular_status": ("WNL", "Exception identified"),
@@ -173,6 +229,49 @@ class NursingAssessmentForm(CompactModelForm):
                 "Lethargic",
                 "Stuporous",
                 "Unresponsive",
+            ),
+            "general_appearance": (
+                "Well appearing",
+                "Ill appearing",
+                "Frail",
+                "Cachectic",
+            ),
+            "apparent_distress": ("None", "Mild", "Moderate", "Severe"),
+            "hygiene_grooming": ("Appropriate", "Needs assistance", "Poor"),
+            "facial_symmetry": ("Symmetric", "Asymmetry present"),
+            "head_scalp": ("No visible abnormality", "Lesion", "Tenderness", "Trauma"),
+            "eyes_vision": (
+                "No reported concern",
+                "Corrective lenses",
+                "Visual impairment",
+                "Drainage/redness",
+            ),
+            "ears_hearing": (
+                "No reported concern",
+                "Hearing aid",
+                "Hearing impairment",
+                "Pain/drainage",
+            ),
+            "nose_sinuses": (
+                "Patent/no concern",
+                "Congestion",
+                "Drainage",
+                "Tenderness",
+                "Epistaxis",
+            ),
+            "mouth_throat": (
+                "Moist/intact",
+                "Dry mucosa",
+                "Lesion",
+                "Dentition concern",
+                "Swallowing concern",
+            ),
+            "neck": (
+                "Supple/no concern",
+                "Limited motion",
+                "Tenderness",
+                "Swelling",
+                "Tracheal deviation",
             ),
             "orientation": (
                 "Oriented ×4",

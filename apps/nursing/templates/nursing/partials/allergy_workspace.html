@@ -1,0 +1,15 @@
+<section class="space-y-3" x-init="window.addEventListener('patientAllergySaved', () => $refs.allergyDialog.close())">
+    <header class="flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div><h2 class="text-xs font-bold text-red-950">Allergy intake and reconciliation</h2><p class="mt-0.5 text-[9px] text-red-700">Record new allergies or update reaction, severity, verification, and status. Changes update the longitudinal patient chart.</p></div>
+        <button type="button" hx-get="{% url 'patients:allergy_create' selected_patient.pk %}" hx-target="#patient-allergy-modal-content" hx-swap="innerHTML" @click="$refs.allergyDialog.showModal()" class="rounded-lg bg-red-700 px-3 py-2 text-[10px] font-bold text-white hover:bg-red-800">＋ Add Allergy</button>
+    </header>
+
+    <div class="rounded-lg border border-slate-200 bg-white p-3">
+        <div class="mb-2 flex items-center justify-between"><h3 class="text-xs font-semibold text-slate-900">Patient allergy record</h3><span class="text-[9px] text-slate-500">{{ allergies|length }} record{{ allergies|length|pluralize }}</span></div>
+        {% include "patients/partials/allergy_list.html" with patient=selected_patient %}
+    </div>
+
+    <dialog x-ref="allergyDialog" id="patient-allergy-modal" class="m-auto w-[min(94vw,42rem)] overflow-hidden rounded-xl border-0 bg-white p-0 shadow-2xl backdrop:bg-slate-950/50" @close="$refs.allergyContent.innerHTML = ''">
+        <div id="patient-allergy-modal-content" x-ref="allergyContent"><div class="p-6 text-center text-xs text-slate-500">Loading allergy form…</div></div>
+    </dialog>
+</section>

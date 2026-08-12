@@ -18,6 +18,7 @@ Liberia EHR is a modular, server-rendered electronic health record under active 
 - [Application catalog](#application-catalog)
 - [Permissions and access control](#permissions-and-access-control)
 - [State, audit, and record lifecycle](#state-audit-and-record-lifecycle)
+- [Clinical evidence register](#clinical-evidence-register)
 - [Navigation and application areas](#navigation-and-application-areas)
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -95,6 +96,9 @@ The repository contains both operational workflows and scaffold applications. �
 - Intake/output records and daily totals.
 - Handoff documentation with giving and receiving clinicians.
 - Fall-risk and pressure-injury-risk indicators.
+- Per-shift structured fall-risk assessment with the six Morse items, shift due/completed status, conservative risk classification, and individualized interventions.
+- Side-by-side Morse, logistic, and XGBoost-candidate comparison with explicit model/version provenance; development comparison models are labeled unvalidated.
+- Automatic high-fall-risk CDS alert plus three auditable `RiskAssessment` outputs when the per-shift screen is saved.
 
 ### Vital signs
 
@@ -622,6 +626,77 @@ Every production-grade audit event should capture:
 - Request/correlation identifier for related transactions.
 
 The installed `audit` application is currently a scaffold. Django model timestamps and user-tracking fields provide useful provenance but are not a substitute for an immutable access and change audit log.
+
+## Clinical evidence register
+
+This register identifies the source and governance status of clinical content currently represented in code. Every new evidence-based threshold, score, protocol, clinical dictionary, alert, or recommendation must add an entry here and store a source/version in the relevant configuration or CDS rule when the model supports it.
+
+### Evidence classifications
+
+| Classification | Meaning |
+| --- | --- |
+| External standard/guideline | Published by an authoritative professional, governmental, standards, or patient-safety organization |
+| Textbook framework | Used to organize assessment content; does not independently define a local escalation policy |
+| Local policy | A configurable operational choice that requires facility approval and is not presented as universally evidence-based |
+| Development model | Experimental or illustrative logic that requires local training, validation, monitoring, and approval before clinical reliance |
+| Terminology service | Provides normalized concepts/codes, not clinical judgment or medication safety conclusions |
+
+### Evidence and policy matrix
+
+| Clinical content in Liberia EHR | Implementation | Source/reference | Classification and limitations |
+| --- | --- | --- | --- |
+| Head-to-toe nursing physical assessment organization | `NursingAssessment`, assessment form, collapsible system sections | Carolyn Jarvis and Ann L. Eckhardt, *Physical Examination & Health Assessment*, 9th ed., Elsevier, 2024, ISBN 978-0-323-80984-9. [Elsevier title page](https://www.us.elsevierhealth.com/physical-examination-and-health-assessment-9780323809849.html) | Textbook framework. The application uses original field labels and structured categories; it does not reproduce proprietary textbook narrative, images, or tables. Facility educators must validate scope and competency expectations. |
+| General survey; mental status; skin; head/face/neck; eyes; ears; nose/mouth/throat; thorax/lungs; cardiovascular; peripheral vascular; abdomen; musculoskeletal; neurological; functional assessment | Nursing body-system components | Jarvis & Eckhardt, 9th ed., above | Textbook framework mapped to the most appropriate nursing components. Sensitive examinations and population-specific examinations require indication, consent, privacy, training, and local documentation policy. |
+| WNL versus exception disclosure | Nursing Alpine.js assessment UI and server form cleaning | Jarvis structured examination framework; local documentation design | Hybrid textbook framework/local policy. “WNL” must mean the organization’s approved expected findings and must never conceal an assessed exception. |
+| Morse Fall Scale six items and item weights | `apps/nursing/fall_risk.py::calculate_morse` | [VA National Center for Patient Safety Morse Fall Scale pocket card](https://www.patientsafety.va.gov/docs/fallsToolkit/morse_falls_pocket_card.pdf); [AHRQ fall-prevention resources](https://www.ahrq.gov/patient-safety/settings/hospital/fall-prevention/toolkit/index.html) | External assessment tool. Current low/moderate/high cut points must be approved against the facility’s adopted Morse policy before production. |
+| Per-shift fall-risk screening and individualized prevention | Nursing Assessment tab and fall-risk due indicator | [AHRQ Preventing Falls in Hospitals toolkit](https://www.ahrq.gov/patient-safety/settings/hospital/fall-prevention/toolkit/index.html); [CDC STEADI clinical resources](https://www.cdc.gov/steadi/hcp/clinical-resources/index.html) | External guidance plus local workflow. Exact shift frequency is local policy and should also trigger after transfer, fall, medication/condition change, or other locally defined events. |
+| Logistic fall-risk comparison | `logistic_probability()` | Local development equation, version `0.1-unvalidated`; comparative model rationale informed by published inpatient fall-prediction research such as [Jung et al., 2022](https://pubmed.ncbi.nlm.nih.gov/36128798/) | Development model. Coefficients were not trained on Liberia EHR data. Do not use for autonomous clinical decisions. |
+| XGBoost-labeled fall-risk comparison | `boosted_tree_probability()` | Local transparent boosted-tree comparator, version `0.1-unvalidated`; model-family rationale informed by [Ho et al., 2023](https://pubmed.ncbi.nlm.nih.gov/38076265/) | Development model. This is not a fitted XGBoost library artifact; the UI labels it as an unvalidated comparison. Replace with a governed, trained, calibrated, externally validated artifact before clinical reliance. |
+| Conservative fall-risk alert | Highest category among Morse and development comparators | Local safety policy | Local policy. Prevents a development comparator from silently lowering a nurse-observed risk; clinical action remains subject to nursing judgment and approved protocol. |
+| Blood pressure categories and severe threshold | `VitalObservation.abnormal_findings` | [American Heart Association blood pressure categories](https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings) | External guideline reference. The application’s low-pressure threshold is a local screening threshold and must be population-/context-validated. Alerts do not diagnose hypertension or shock. |
+| Oxygen saturation flags | `VitalObservation.abnormal_findings` | [British Thoracic Society guideline for oxygen use](https://thorax.bmj.com/content/72/Suppl_1/ii1); local escalation policy | External guideline plus local thresholds. Target saturation varies for conditions such as risk of hypercapnic respiratory failure; fixed flags require clinician interpretation. |
+| Temperature flags | `VitalObservation.abnormal_findings` | Local screening thresholds; clinical context informed by standard temperature assessment practice | Local policy. Measurement site, device, age, immune status, and clinical condition materially affect interpretation. |
+| Numeric pain score and moderate/severe display groups | Vitals and Nursing pain fields | [Defense and Veterans Pain Rating Scale](https://www.health.mil/Military-Health-Topics/Conditions-and-Treatments/Pain-Management/DVPRS) and local policy | External scale concept plus local display categories. Self-report, function, goals, and reassessment matter; a number alone is not a treatment order. |
+| High-alert medication designation | Pharmacy formulary safety flags and MAR badges | [ISMP List of High-Alert Medications in Acute Care Settings](https://www.ismp.org/recommendations/high-alert-medications-acute-list) | External patient-safety reference. Local formulary flags require pharmacy governance and version review. |
+| Look-alike/sound-alike medication designation | Pharmacy formulary and MAR badges | [ISMP confused drug names resources](https://www.ismp.org/recommendations/confused-drug-names-list) and local formulary review | External reference plus local policy. Display flags are not a complete interaction or dispensing safety system. |
+| Controlled medication designation | Pharmacy formulary fields | Applicable national/state controlled-substance law and local pharmacy policy | Regulatory/local policy. The deployment jurisdiction must maintain the authoritative schedule and audit requirements. |
+| RxNorm identifiers and US medication search/import | Pharmacy catalog and `RxNormClient` | [U.S. National Library of Medicine RxNorm](https://www.nlm.nih.gov/research/umls/rxnorm/) and [RxNav APIs](https://lhncbc.nlm.nih.gov/RxNav/APIs/) | Terminology service only. RxNorm normalization does not establish formulary approval, dose safety, interaction safety, or legal availability. |
+| MAR one-hour due display window | `MAR_DUE_WINDOW` | Local medication-administration policy | Local policy, not asserted as a universal standard. Must be configurable by medication, route, urgency, and organization policy. |
+| MAR three-hour early/late reason requirement | `MAR_REASON_WINDOW` | Local medication-administration policy | Local policy. Reason capture does not by itself make an early/late administration clinically safe. Time-critical medications require narrower governed windows. |
+| Medication frequency-to-interval mapping | `FREQUENCY_INTERVALS` | Order semantics and local scheduling policy | Local implementation. Calendar scheduling must respect the actual prescriber order, pharmacy verification, time-critical classification, and maximum dose/interval rules. |
+| Drug interaction screen disclaimer | Pharmacy medication-safety workspace | [ISMP medication-safety resources](https://www.ismp.org/resources) | The project currently displays local safety flags only and explicitly does not claim a comprehensive interaction knowledge base. |
+| Clinical alert acknowledgement/override lifecycle | `ClinicalRule`, `ClinicalAlert`, action form | Local CDS governance design informed by traceability and human-review principles | Local policy. Each production rule requires named clinical ownership, evidence, version, effective/review dates, validation, monitoring, and override review. |
+
+### Jarvis-aligned nursing component map
+
+| Nursing assessment component | Structured Liberia EHR fields |
+| --- | --- |
+| General survey | Overall WNL/exception, general appearance, apparent distress, hygiene/grooming, pain and functional cues |
+| Mental status and neurological | Consciousness, orientation, pupils, speech, motor strength, neurological narrative |
+| Skin/hair/nails | Color, temperature, moisture, integrity, wounds, pressure-injury stage/risk |
+| Head, face, and neck | Facial symmetry, head/scalp, neck findings |
+| Eyes | Vision concern, corrective lenses, visible redness/drainage |
+| Ears | Hearing concern, hearing aid, pain/drainage |
+| Nose, mouth, and throat | Nasal patency/sinuses, mucosa/dentition, lesions, swallowing concern |
+| Thorax and lungs | Pattern, effort, lobe-specific breath sounds, cough, oxygen support, respiratory narrative |
+| Heart and neck vessels | Rhythm, heart sounds, cardiovascular narrative |
+| Peripheral vascular | Pulses, laterality, capillary refill, edema grade/location |
+| Abdomen/GI | Abdomen, bowel sounds and exception quadrant, nausea/vomiting, bowel movement, diet tolerance |
+| Genitourinary | Urinary pattern, urine characteristics, urinary device |
+| Musculoskeletal and function | Strength, gait, assistive device, mobility, activity tolerance, baseline function |
+| Psychosocial/communication | Mood/affect, behavior, communication needs, handoff safety concerns |
+
+This mapping is intentionally a nursing documentation framework, not a verbatim reproduction of Jarvis. Genital, breast, rectal, detailed cranial nerve, and other focused examinations should be added only to an appropriate role- and indication-specific workflow with consent, chaperone, privacy, competency, and local-policy controls.
+
+### Evidence maintenance rules
+
+- Record title, publisher/organization, edition/version, publication year, URL/identifier, owner, review date, and affected code/configuration.
+- Prefer primary guidelines, official standards, validated instruments, regulators, and maintained terminology services over secondary summaries.
+- Do not encode textbook-derived content beyond licensed use; cite and paraphrase the framework.
+- Mark all locally chosen thresholds and workflows as local policy.
+- Mark all unfitted, unvalidated, or non-local models as development models in code and UI.
+- Review changed or withdrawn sources and revalidate affected alerts before release.
+- Clinical governance—not a software commit alone—approves production activation.
 
 ## Navigation and application areas
 

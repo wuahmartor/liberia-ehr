@@ -38,6 +38,8 @@ class NursingAssessment(EncounterNursingRecord):
         db_index=True,
     )
     neurological_status = models.CharField(max_length=20, blank=True)
+    general_survey_status = models.CharField(max_length=20, blank=True)
+    head_neck_status = models.CharField(max_length=20, blank=True)
     respiratory_status = models.CharField(max_length=20, blank=True)
     cardiovascular_status = models.CharField(max_length=20, blank=True)
     gastrointestinal_status = models.CharField(max_length=20, blank=True)
@@ -46,6 +48,16 @@ class NursingAssessment(EncounterNursingRecord):
     musculoskeletal_status = models.CharField(max_length=20, blank=True)
     psychosocial_status = models.CharField(max_length=20, blank=True)
     consciousness = models.CharField(max_length=100, blank=True)
+    general_appearance = models.CharField(max_length=150, blank=True)
+    apparent_distress = models.CharField(max_length=100, blank=True)
+    hygiene_grooming = models.CharField(max_length=100, blank=True)
+    facial_symmetry = models.CharField(max_length=100, blank=True)
+    head_scalp = models.CharField(max_length=150, blank=True)
+    eyes_vision = models.CharField(max_length=150, blank=True)
+    ears_hearing = models.CharField(max_length=150, blank=True)
+    nose_sinuses = models.CharField(max_length=150, blank=True)
+    mouth_throat = models.CharField(max_length=150, blank=True)
+    neck = models.CharField(max_length=150, blank=True)
     orientation = models.CharField(max_length=100, blank=True)
     pupils = models.CharField(max_length=100, blank=True)
     speech = models.CharField(max_length=100, blank=True)
@@ -175,3 +187,67 @@ class NursingHandoff(EncounterNursingRecord):
 
     class Meta:
         ordering = ("-recorded_at",)
+
+
+class NursingFallRiskAssessment(EncounterNursingRecord):
+    """Per-shift structured fall-risk screening with model provenance."""
+
+    class Shift(models.TextChoices):
+        DAY = "day", "Day shift"
+        EVENING = "evening", "Evening shift"
+        NIGHT = "night", "Night shift"
+
+    class AmbulatoryAid(models.TextChoices):
+        NONE = "none", "None, bed rest, wheelchair, or nurse assist"
+        CRUTCHES = "crutches", "Crutches, cane, or walker"
+        FURNITURE = "furniture", "Uses furniture"
+
+    class Gait(models.TextChoices):
+        NORMAL = "normal", "Normal, bed rest, or wheelchair"
+        WEAK = "weak", "Weak"
+        IMPAIRED = "impaired", "Impaired"
+
+    class MentalStatus(models.TextChoices):
+        ORIENTED = "oriented", "Oriented to own ability"
+        OVERCONFIDENT = "overconfident", "Overestimates or forgets limitations"
+
+    class RiskLevel(models.TextChoices):
+        LOW = "low", "Low"
+        MODERATE = "moderate", "Moderate"
+        HIGH = "high", "High"
+
+    shift = models.CharField(max_length=12, choices=Shift.choices, db_index=True)
+    assessment_date = models.DateField(db_index=True)
+    history_of_falling = models.BooleanField(default=False)
+    secondary_diagnosis = models.BooleanField(default=False)
+    ambulatory_aid = models.CharField(
+        max_length=20, choices=AmbulatoryAid.choices, default=AmbulatoryAid.NONE
+    )
+    iv_or_heparin_lock = models.BooleanField(default=False)
+    gait = models.CharField(max_length=20, choices=Gait.choices, default=Gait.NORMAL)
+    mental_status = models.CharField(
+        max_length=20, choices=MentalStatus.choices, default=MentalStatus.ORIENTED
+    )
+    sedating_medication = models.BooleanField(default=False)
+    dizziness_or_hypotension = models.BooleanField(default=False)
+    toileting_assistance = models.BooleanField(default=False)
+    morse_score = models.PositiveSmallIntegerField(default=0)
+    morse_level = models.CharField(max_length=12, choices=RiskLevel.choices)
+    logistic_probability = models.DecimalField(max_digits=5, decimal_places=4)
+    logistic_level = models.CharField(max_length=12, choices=RiskLevel.choices)
+    xgboost_probability = models.DecimalField(max_digits=5, decimal_places=4)
+    xgboost_level = models.CharField(max_length=12, choices=RiskLevel.choices)
+    overall_level = models.CharField(
+        max_length=12, choices=RiskLevel.choices, db_index=True
+    )
+    model_comparison = models.JSONField(default=dict)
+    interventions = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-assessment_date", "-recorded_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("encounter", "assessment_date", "shift"),
+                name="nursing_fall_risk_once_per_shift",
+            )
+        ]

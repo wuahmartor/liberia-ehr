@@ -120,7 +120,41 @@ templates/components/patient_demographics_modal.html
 
             <span>+ More</span>
         </button>
+
+        {% with allergy_summary=selected_patient.sidebar_allergy_summary %}
+            <div class="mt-2 border-t border-slate-100 pt-2 text-[10px]">
+                {% if allergy_summary.count %}
+                    <p class="flex flex-wrap items-center gap-1">
+                        <span class="font-semibold text-slate-700">Allergies:</span>
+                        {% for allergy in allergy_summary.items %}
+                            <span title="{% if allergy.reaction %}Reaction: {{ allergy.reaction }} · {% endif %}{{ allergy.get_severity_display }} · {{ allergy.get_verification_status_display }}" class="rounded-full px-2 py-0.5 font-bold {% if allergy.severity == 'life_threatening' or allergy.severity == 'severe' %}bg-red-100 text-red-800 ring-1 ring-red-200{% elif allergy.severity == 'moderate' %}bg-orange-100 text-orange-800 ring-1 ring-orange-200{% else %}bg-amber-100 text-amber-800 ring-1 ring-amber-200{% endif %}">
+                                {{ allergy.substance }}{% if allergy.reaction %}: {{ allergy.reaction|truncatechars:22 }}{% endif %}
+                            </span>
+                        {% endfor %}
+                        {% if allergy_summary.count > 3 %}<span class="font-semibold text-red-700">+{{ allergy_summary.count|add:"-3" }} more</span>{% endif %}
+                    </p>
+                {% else %}
+                    <p class="flex items-center gap-1 text-emerald-800">
+                        <span class="font-semibold text-slate-700">Allergies:</span>
+                        <span class="rounded-full bg-emerald-100 px-2 py-0.5 font-bold ring-1 ring-emerald-200">No known allergies recorded</span>
+                    </p>
+                {% endif %}
+            </div>
+        {% endwith %}
+
+        {% with fall_risk=selected_patient.latest_morse_fall_risk %}
+            {% if fall_risk %}
+                <p class="mt-2 flex flex-wrap items-center gap-1 text-[10px]">
+                    <span class="font-semibold text-slate-700">Fall risk:</span>
+                    <span class="rounded-full px-2 py-0.5 font-bold uppercase {% if fall_risk.morse_level == 'high' %}bg-red-100 text-red-800 ring-1 ring-red-200{% elif fall_risk.morse_level == 'moderate' %}bg-amber-100 text-amber-800 ring-1 ring-amber-200{% else %}bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200{% endif %}">
+                        {{ fall_risk.get_morse_level_display }}
+                    </span>
+                    <span class="text-[9px] text-slate-500">Morse {{ fall_risk.morse_score }} · {{ fall_risk.recorded_at|date:"M j, g:i A" }}</span>
+                </p>
+            {% endif %}
+        {% endwith %}
         </div>
     </div>
+    {% include "decision_support/partials/patient_sidebar_alerts.html" with alert_summary=selected_patient.sidebar_clinical_alert_summary %}
 </section>
 {% endif %}

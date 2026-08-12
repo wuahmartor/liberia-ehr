@@ -1,0 +1,79 @@
+{% if alert_summary.count %}
+<section class="mt-2" x-data="{ alertModalOpen: true }">
+    <button
+        type="button"
+        @click="alertModalOpen = true"
+        class="flex w-full items-center justify-between gap-2 rounded-lg border border-red-300 bg-red-50 px-2.5 py-2 text-left shadow-sm hover:bg-red-100"
+        aria-label="Open patient clinical alerts"
+    >
+        <span class="flex min-w-0 items-center gap-2">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-red-700 text-[11px] font-black text-white">!</span>
+            <span class="min-w-0">
+                <strong class="block truncate text-[10px] text-red-950">Clinical alerts</strong>
+                <span class="block text-[9px] text-red-700">{{ alert_summary.count }} open moderate-to-critical</span>
+            </span>
+        </span>
+        <span class="flex shrink-0 items-center gap-1">
+            {% if alert_summary.critical_count %}<b class="rounded bg-red-800 px-1.5 py-0.5 text-[8px] text-white">{{ alert_summary.critical_count }} critical</b>{% endif %}
+            {% if alert_summary.high_count %}<b class="rounded bg-orange-600 px-1.5 py-0.5 text-[8px] text-white">{{ alert_summary.high_count }} high</b>{% endif %}
+            {% if alert_summary.moderate_count %}<b class="rounded bg-amber-200 px-1.5 py-0.5 text-[8px] text-amber-950">{{ alert_summary.moderate_count }} mod</b>{% endif %}
+        </span>
+    </button>
+
+    <div
+        x-show="alertModalOpen"
+        x-cloak
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="patient-clinical-alert-title"
+        class="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-red-950/35 p-4 pt-[8vh] backdrop-blur-md"
+        style="z-index:100;background-color:rgba(69,10,10,.38);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)"
+    >
+        <article
+            @click.stop
+            class="w-full max-w-xl overflow-hidden rounded-2xl border border-red-200/70 bg-red-50/85 text-slate-950 shadow-2xl ring-1 ring-white/40 backdrop-blur-xl"
+            style="background-color:rgba(254,242,242,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)"
+        >
+            <header class="flex items-start justify-between gap-4 border-b border-red-200/70 bg-red-700/90 px-4 py-3 text-white">
+                <div class="flex min-w-0 items-start gap-3">
+                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/50 bg-white/20 text-lg font-black">!</span>
+                    <div>
+                        <h2 id="patient-clinical-alert-title" class="text-sm font-bold">Patient clinical alert</h2>
+                        <p class="mt-0.5 text-[10px] text-red-50">{{ alert_summary.count }} open moderate-to-critical alert{{ alert_summary.count|pluralize }}</p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    @click="alertModalOpen = false"
+                    class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/60 bg-white/15 text-xl font-bold leading-none text-white hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white"
+                    aria-label="Close clinical alert"
+                    title="Close clinical alert"
+                >×</button>
+            </header>
+
+            <div class="max-h-[65vh] overflow-y-auto p-3">
+                <p class="mb-3 rounded-lg border border-red-200 bg-white/60 px-3 py-2 text-[10px] leading-4 text-red-950">
+                    Review these alerts for the selected patient. This window can only be dismissed with the × button.
+                </p>
+                <div class="space-y-2">
+                    {% for alert in alert_summary.alerts %}
+                    <a href="{% url 'decision_support:alert-detail' alert.pk %}" class="block rounded-xl border border-red-200/80 bg-white/75 p-3 shadow-sm transition hover:border-red-400 hover:bg-white">
+                        <span class="flex items-start justify-between gap-3">
+                            <strong class="text-xs text-slate-950">{{ alert.title }}</strong>
+                            <b class="shrink-0 rounded-full px-2 py-1 text-[8px] uppercase {% if alert.rule.severity == 'critical' %}bg-red-800 text-white{% elif alert.rule.severity == 'high' %}bg-orange-600 text-white{% else %}bg-amber-200 text-amber-950{% endif %}">{{ alert.rule.get_severity_display }}</b>
+                        </span>
+                        <span class="mt-1 block text-[10px] leading-4 text-slate-700">{{ alert.message }}</span>
+                        <span class="mt-2 block text-[9px] font-medium text-slate-500">{{ alert.triggered_at|date:"M j, Y g:i A" }}{% if alert.encounter %} · {{ alert.encounter.encounter_number }}{% endif %}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <footer class="flex items-center justify-between gap-3 border-t border-red-200/70 bg-white/55 px-4 py-3">
+                <span class="text-[9px] font-medium text-red-900">Clinical review is required.</span>
+                <a href="{% url 'decision_support:alerts' %}?status=open" class="rounded-lg bg-red-700 px-3 py-2 text-[10px] font-bold text-white hover:bg-red-800">Open Alert Center</a>
+            </footer>
+        </article>
+    </div>
+</section>
+{% endif %}
