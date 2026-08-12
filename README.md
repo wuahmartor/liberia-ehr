@@ -9,10 +9,15 @@ Liberia EHR is a modular, server-rendered electronic health record under active 
 
 - [Project status](#project-status)
 - [Implemented workflows](#implemented-workflows)
+- [Clinical workflow diagrams](#clinical-workflow-diagrams)
 - [Architecture](#architecture)
 - [Technology stack](#technology-stack)
 - [Repository layout](#repository-layout)
 - [Domain model](#domain-model)
+- [Database relationships](#database-relationships)
+- [Application catalog](#application-catalog)
+- [Permissions and access control](#permissions-and-access-control)
+- [State, audit, and record lifecycle](#state-audit-and-record-lifecycle)
 - [Navigation and application areas](#navigation-and-application-areas)
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -32,7 +37,7 @@ Liberia EHR is a modular, server-rendered electronic health record under active 
 - **Default development database:** SQLite
 - **Recommended production database:** PostgreSQL
 - **Application timezone:** `America/Chicago` (Iowa local time)
-**UI model:** Django templates + HTMX + Alpine.js + Tailwind CSS
+- **UI model:** Django templates + HTMX + Alpine.js + Tailwind CSS
 
 The repository contains both operational workflows and scaffold applications. “Installed” in Django does not necessarily mean “clinically complete.” The table below describes the current implementation rather than the intended final product.
 
@@ -55,7 +60,8 @@ The repository contains both operational workflows and scaffold applications. �
 | Clinical dashboard | Live database statistics implemented |
 | Analytics dashboards | Implemented foundations; metric governance and validation remain ongoing |
 | Laboratory, imaging, documents, flowsheets | Application scaffolds/partial foundations; not complete workflows |
-| Decision support and AI assistant | Scaffolds only; not production clinical decision support |
+| Clinical decision support | Rules, alerts, acknowledgement/override, recommendations, and risk-score foundation implemented; not clinically validated |
+| AI assistant | Application shell only; no production model workflow or autonomous clinical decision-making |
 | Billing, patient portal, integrations | Placeholder or early foundation |
 
 ## Implemented workflows
@@ -145,6 +151,129 @@ The dashboard uses live database aggregates for the selected 24-hour, 48-hour, o
 - Pending pharmacy reviews and low-stock items.
 - Nursing assessments, risks, open tasks, and overdue tasks.
 - Signed and draft clinical notes.
+
+## Clinical workflow diagrams
+
+These diagrams describe the intended interaction between implemented modules. They are workflow documentation, not a claim of clinical certification.
+
+### End-to-end patient care workflow
+
+```mermaid
+flowchart LR
+    A["Patient search"] --> B{"Existing chart?"}
+    B -- No --> C["Register patient"]
+    B -- Yes --> D["Verify identity"]
+    C --> D
+    D --> E["Create appointment or encounter"]
+    E --> F["Arrival and registration"]
+    F --> G["Triage and vital signs"]
+    G --> H["Nursing assessment"]
+    H --> I["Provider evaluation"]
+    I --> J["Diagnoses and clinical notes"]
+    I --> K["Medication and other orders"]
+    K --> L["Pharmacy review and dispense"]
+    L --> M["MAR administration"]
+    J --> N["Ongoing reassessment"]
+    M --> N
+    N --> O{"Disposition"}
+    O -- Continue care --> H
+    O -- Transfer --> P["Transfer assessment and handoff"]
+    O -- Discharge --> Q["Discharge assessment"]
+    Q --> R["Encounter completed"]
+    P --> S["Receiving unit or facility"]
+```
+
+### Encounter lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Planned
+    Planned --> Scheduled
+    Planned --> Cancelled
+    Scheduled --> Arrived
+    Scheduled --> Cancelled
+    Arrived --> Triaged
+    Arrived --> InProgress
+    Triaged --> InProgress
+    InProgress --> OnHold
+    OnHold --> InProgress
+    InProgress --> Completed: discharge/completion
+    Planned --> EnteredInError
+    Scheduled --> EnteredInError
+    Arrived --> EnteredInError
+    InProgress --> EnteredInError
+    Cancelled --> [*]
+    Completed --> [*]
+    EnteredInError --> [*]
+```
+
+Encounter status is distinct from patient-chart status. Completing or discharging an encounter does not deactivate the longitudinal patient record.
+
+### Medication order-to-administration workflow
+
+```mermaid
+flowchart TD
+    A["Provider enters medication order"] --> B["Prescriber, method, type, indication, dose, route, frequency, timing"]
+    B --> C{"Pharmacy review"}
+    C -- Clarification required --> D["Return to ordering clinician"]
+    D --> B
+    C -- Rejected --> E["Rejected with reason"]
+    C -- Verified --> F["Dispensing"]
+    F --> G["Inventory transaction"]
+    G --> H["Active MAR order"]
+    H --> I{"Scheduled or PRN?"}
+    I -- Scheduled --> J["Calculate due window"]
+    I -- PRN --> K["Check interval and last dose"]
+    J --> L{"Administered in window?"}
+    K --> L
+    L -- Yes --> M["Record administration"]
+    L -- Early or late --> N["Require reason"]
+    N --> M
+    M --> O["Recalculate next due time"]
+    O --> H
+    H --> P{"Order state change"}
+    P -- Hold --> Q["Hidden from actionable MAR until unheld"]
+    P -- Discontinue order --> R["Removed from active MAR; retained in history"]
+```
+
+### Nursing workflow
+
+```mermaid
+flowchart LR
+    A["Open patient encounter"] --> B{"Assessment type"}
+    B --> C["Admission"]
+    B --> D["Shift"]
+    B --> E["Focused/change in condition"]
+    B --> F["Transfer"]
+    B --> G["Discharge"]
+    C --> H["Body-system assessment"]
+    D --> H
+    E --> H
+    H --> I{"System WNL?"}
+    I -- Yes --> J["Hide exception fields"]
+    I -- No --> K["Capture structured exceptions"]
+    J --> L["Risks, pain, narrative"]
+    K --> L
+    L --> M["Tasks and intake/output"]
+    M --> N["SBAR handoff: giver and receiver"]
+    F --> N
+    G --> O["Disposition and education"]
+    O --> P["Complete encounter"]
+```
+
+### Appointment workflow
+
+```mermaid
+flowchart LR
+    A["Create appointment"] --> B["Patient, provider, department, unit, room, date/time"]
+    B --> C["Requested or scheduled"]
+    C --> D["Confirmed"]
+    D --> E["Checked in"]
+    E --> F["In progress"]
+    F --> G["Completed"]
+    C --> H["Cancelled/no-show"]
+    D --> H
+```
 
 ## Architecture
 
@@ -264,6 +393,236 @@ Important distinctions:
 - `DispenseRecord` documents supply from pharmacy.
 - `MedicationAdministration` documents what occurred at the bedside.
 
+## Database relationships
+
+### Core clinical relationship diagram
+
+```mermaid
+erDiagram
+    AUTH_USER ||--o| USER_PROFILE : has
+    FACILITY ||--o{ DEPARTMENT : contains
+    FACILITY ||--o{ CLINICAL_UNIT : contains
+    DEPARTMENT ||--o{ CLINICAL_UNIT : organizes
+    FACILITY ||--o{ ROOM : contains
+    CLINICAL_UNIT ||--o{ ROOM : contains
+    ROOM ||--o{ BED : contains
+
+    PATIENT ||--o{ PATIENT_IDENTIFIER : has
+    PATIENT ||--o{ PATIENT_ALIAS : has
+    PATIENT ||--o{ PATIENT_ALLERGY : has
+    PATIENT ||--o{ PATIENT_ADDRESS : has
+    PATIENT ||--o{ PATIENT_CONTACT_POINT : has
+    PATIENT ||--o{ EMERGENCY_CONTACT : has
+    PATIENT ||--o{ INSURANCE_COVERAGE : has
+    PATIENT ||--o{ PATIENT_CONSENT : has
+    PATIENT ||--o{ PATIENT_FLAG : has
+
+    PATIENT ||--o{ APPOINTMENT : schedules
+    FACILITY ||--o{ APPOINTMENT : hosts
+    DEPARTMENT o|--o{ APPOINTMENT : assigns
+    CLINICAL_UNIT o|--o{ APPOINTMENT : assigns
+    ROOM o|--o{ APPOINTMENT : assigns
+    AUTH_USER o|--o{ APPOINTMENT : provides
+
+    PATIENT ||--o{ ENCOUNTER : receives
+    FACILITY ||--o{ ENCOUNTER : hosts
+    AUTH_USER o|--o{ ENCOUNTER : attends
+    ENCOUNTER ||--o{ VITAL_OBSERVATION : records
+    ENCOUNTER ||--o{ CLINICAL_NOTE : documents
+    ENCOUNTER ||--o{ PATIENT_DIAGNOSIS : diagnoses
+    ENCOUNTER ||--o{ NURSING_ASSESSMENT : assesses
+    ENCOUNTER ||--o{ NURSING_TASK : assigns
+    ENCOUNTER ||--o{ INTAKE_OUTPUT_RECORD : measures
+    ENCOUNTER ||--o{ NURSING_HANDOFF : communicates
+
+    MEDICATION ||--o{ MEDICATION_ORDER : ordered_as
+    PATIENT ||--o{ MEDICATION_ORDER : receives
+    ENCOUNTER o|--o{ MEDICATION_ORDER : authorizes
+    AUTH_USER ||--o{ MEDICATION_ORDER : prescribes
+    MEDICATION_ORDER ||--o{ PHARMACY_REVIEW : reviewed_by
+    MEDICATION_ORDER ||--o{ DISPENSE_RECORD : dispensed_as
+    MEDICATION_ORDER ||--o{ MEDICATION_ADMINISTRATION : administered_as
+    MEDICATION ||--o{ INVENTORY_TRANSACTION : moves
+    DISPENSE_RECORD o|--o{ INVENTORY_TRANSACTION : generates
+
+    CLINICAL_RULE ||--o{ CLINICAL_ALERT : triggers
+    PATIENT ||--o{ CLINICAL_ALERT : receives
+    ENCOUNTER o|--o{ CLINICAL_ALERT : contextualizes
+    PATIENT ||--o{ RISK_ASSESSMENT : scored
+```
+
+### Major model ownership
+
+| Domain | Primary models | Ownership and relationship notes |
+| --- | --- | --- |
+| Identity | `Patient`, identifiers, aliases, addresses, contacts, consents, insurance, allergies, flags | Patient is the longitudinal root; supporting identity records belong to one patient |
+| Organization | `Facility`, `Department`, `ClinicalUnit`, `Room`, `Bed`, `FacilityService`, `FacilityOperatingHour` | Hierarchical care-delivery locations; child records are facility-scoped |
+| Scheduling | `Appointment` | Connects patient, facility, optional department/unit/room, provider, timing, status, and priority |
+| Care episode | `Encounter` | Patient-specific episode of care and parent context for clinical documentation |
+| Observations | `VitalObservation` | Belongs to a patient and encounter; records observer and observation time |
+| Diagnoses | `PatientDiagnosis`, terminology/concept models, manifestations, procedure codes | Clinical terminology foundation and patient diagnosis history |
+| Notes | `ClinicalNote` | Patient note with optional encounter association and author/signature lifecycle |
+| Nursing | `NursingAssessment`, `NursingTask`, `IntakeOutputRecord`, `NursingHandoff` | All are protected patient/encounter records with recording clinician and timestamp |
+| Orders | `MedicationOrder` | Provider authorization and medication schedule/state source for MAR and pharmacy |
+| Pharmacy | `Medication`, `PharmacyReview`, `DispenseRecord`, `InventoryTransaction` | Separates formulary, clinical review, physical dispense, and stock ledger |
+| MAR | `MedicationAdministration` | Immutable-style administration event linked to order, patient, encounter, and administering user |
+| CDS | `ClinicalRule`, `ClinicalAlert`, `RiskAssessment` | Versioned deterministic rules and patient/encounter outputs |
+| Analytics | `SavedReport`, `MeasureDefinition`, `MeasureResult`, `AnalyticsSnapshot`, `DataExportJob` | Report definitions, governed measures, snapshots, and exports |
+| Administration | `SystemSetting`, `ClinicalDictionaryEntry`, `IntegrationConfiguration` | Operational configuration records |
+
+### Relationship and deletion rules
+
+- Clinical foreign keys generally use `PROTECT` so referenced patients, encounters, users, medications, and organizational records cannot be silently removed.
+- Longitudinal clinical data should be corrected through status, amendment, void, archive, discontinue, or entered-in-error workflows.
+- `created_by`, `updated_by`, `recorded_by`, `administered_by`, `reviewed_by`, and similar user links preserve accountability.
+- Optional encounter links support valid longitudinal records created outside a specific episode, where the model permits it.
+- The development database is SQLite. PostgreSQL is recommended for production concurrency, locking, operational resilience, and backup tooling.
+
+## Application catalog
+
+All entries below are present in `INSTALLED_APPS`. “Foundation” means useful models or screens exist but the domain is not yet complete end to end.
+
+| Django app | Responsibility | Notable features/routes | Maturity |
+| --- | --- | --- | --- |
+| `accounts` | Authentication and staff profile metadata | Login/logout, profile, access-denied handling, role helpers | Foundation |
+| `core` | Shared dashboards and application shell | Main, clinical, analytics, pharmacy, laboratory, radiology, billing, front-desk, audit dashboards | Mixed |
+| `facilities` | Organization and physical locations | Facilities, departments, units, rooms, beds, services, operating hours | Implemented foundation |
+| `patients` | Enterprise patient registry | Search, registration, overview, demographics, child records, archive/restore, merge review, flags | Implemented foundation |
+| `encounters` | Episodes of care | List, create, detail, update, complete, cancel, entered-in-error | Implemented foundation |
+| `vitals` | Vital observations | Entry, patient/encounter history, trends, update, entered-in-error | Implemented |
+| `nursing` | Encounter nursing workspace | Assessments, tasks, intake/output, handoff, discharge/transfer documentation | Implemented foundation |
+| `clinical_notes` | Clinical documentation | Create, list, detail, edit, sign | Implemented foundation |
+| `diagnoses` | Terminology and diagnoses | Concept sources/terms/relationships, patient diagnoses, manifestations, procedures | Model-rich foundation |
+| `orders` | Medication ordering | Patient/encounter orders, prescriber and order-method capture, hold/discontinue workflows | Implemented foundation |
+| `medications` | MAR and medication reconciliation | Patient medication list, reconciliation, scheduled/PRN MAR, history | Implemented foundation |
+| `pharmacy` | Formulary, verification, dispense, stock | Work queues, catalog, RxNorm import/search, review, dispensing, inventory | Implemented foundation |
+| `administration` | Administrative operations | Scheduling calendar, users, groups/permissions, facilities, dictionaries, integrations, settings | Implemented foundation |
+| `analytics` | Measures and reports | Dashboard families, saved reports, definitions/results, snapshots, exports | Foundation |
+| `decision_support` | Deterministic clinical decision support | Rules, alerts, action/override, recommendations, risk scores | Foundation; unvalidated |
+| `ai_assistant` | Future governed AI assistance | Installed shell; no autonomous or validated clinical workflow | Scaffold |
+| `audit` | Audit domain | Installed application shell | Scaffold |
+| `notifications` | Notification domain | Installed application shell | Scaffold |
+| `laboratories` | Laboratory domain | Installed model/app shell; dashboard entry exists | Scaffold |
+| `imaging` | Imaging/radiology domain | Installed model/app shell; dashboard entry exists | Scaffold |
+| `care_management` | Care coordination | Installed model/app shell | Scaffold |
+| `documents` | Clinical document management | Installed model/app shell | Scaffold |
+| `flowsheets` | Structured longitudinal charting | Installed model/app shell | Scaffold |
+
+### Route namespaces
+
+| URL prefix | Namespace | Purpose |
+| --- | --- | --- |
+| `/` | `core` | Dashboards and global entry points |
+| `/accounts/` | `accounts` and Django auth | Authentication, profile, password workflows |
+| `/patients/` | `patients` | Patient registry and chart |
+| `/encounters/` | `encounters` | Encounter lifecycle |
+| `/vitals/` | `vitals` | Vital observation workflows |
+| `/nursing/` | `nursing` | Patient/encounter nursing workspace |
+| `/clinical-notes/` | `clinical_notes` | Note workflows |
+| `/orders/` | `orders` | Medication-order entry and history |
+| `/medications/` | `medications` | Patient medications, reconciliation, MAR |
+| `/pharmacy/` | `pharmacy` | Pharmacy operations and formulary |
+| `/facilities/` | `facilities` | Organization hierarchy management |
+| `/administration/` | `administration` | Scheduling, user/role, and system administration |
+| `/analytics/` | `analytics` | Analytical dashboards |
+| `/ai-cds/` | `decision_support` | Rules, alerts, recommendations, risk scores |
+| `/admin/` | Django admin | Framework-level administration |
+
+## Permissions and access control
+
+### Current authorization model
+
+The project combines four mechanisms:
+
+1. Django authentication (`is_authenticated`).
+2. Django staff/superuser flags (`is_staff`, `is_superuser`).
+3. `UserProfile` attributes such as active-staff status and clinical role.
+4. Django groups and model permissions managed in the Administration role interface.
+
+The existence of a Django permission in a group does not guarantee every view currently enforces it. Authorization enforcement remains a documented hardening priority.
+
+### Current access matrix
+
+| Area/action | Current gate | Notes |
+| --- | --- | --- |
+| Login/profile | Authenticated user | Standard Django authentication lifecycle |
+| Patient, encounter, vitals, notes, nursing, medication views | Primarily authenticated user | Clinical/facility/object-level policy is not yet consistently enforced |
+| Administration workspace | Staff or superuser | Enforced by `AdministrationAccessMixin` |
+| User and role administration | Staff or superuser | Can create/edit users, toggle access, reset temporary passwords, and assign groups/permissions |
+| Formulary create/update/delete | Staff or superuser | Enforced by pharmacy catalog management mixin |
+| Pharmacy operational views | Authenticated user, with staff gates on selected mutations | Requires systematic role review before production |
+| CDS rules management | Staff user | Rule-management views use a staff predicate |
+| Superuser | Full bypass where decorators/mixins explicitly allow it | Reserve for emergency technical administration |
+| Django admin | Staff plus Django model permissions | Separate from the custom Administration workspace |
+
+### Available authorization helpers
+
+| Helper | Intended rule |
+| --- | --- |
+| `active_staff_required` | Superuser or active EHR staff profile |
+| `role_required(*roles)` | Superuser or active staff whose profile role is in the allowed set |
+| `clinical_staff_required` | Superuser or active clinical staff profile |
+| `AdministrationAccessMixin` | Authenticated staff or superuser |
+| `MedicationCatalogManagementMixin` | Authenticated staff or superuser |
+| `LoginRequiredMixin` / `login_required` | Any authenticated account |
+
+### Recommended production role matrix
+
+This is a target policy and must be implemented and tested before deployment.
+
+| Capability | Registrar | Nurse | Provider | Pharmacist | Analyst | Facility admin | System admin |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Search/register patients | ✓ | View | View | View | Limited | ✓ | ✓ |
+| Create/manage appointments | ✓ | View | View | — | — | ✓ | ✓ |
+| Create/manage encounters | ✓ | Update workflow | ✓ | View | — | ✓ | ✓ |
+| Record vitals and nursing care | — | ✓ | ✓ | — | — | — | ✓ |
+| Author/sign clinical notes | — | Role-scoped | ✓ | Role-scoped | — | — | ✓ |
+| Enter medication orders | — | Protocol-limited | ✓ | Clarification only | — | — | ✓ |
+| Administer medication/MAR | — | ✓ | Role-scoped | — | — | — | ✓ |
+| Verify/dispense medication | — | — | View | ✓ | — | — | ✓ |
+| Manage formulary/inventory | — | — | View | ✓ | — | Limited | ✓ |
+| View identified analytics | Limited | Limited | Limited | Limited | Approved | Approved | ✓ |
+| Manage facilities/users/roles | — | — | — | — | — | Facility-scoped | ✓ |
+| Configure CDS rules | — | — | Clinical owner | Pharmacy rules | — | — | Technical only |
+
+### Permission implementation requirements
+
+- Enforce permissions in views/services, not only by hiding navigation links.
+- Scope access by facility, department, role, patient relationship, and encounter where applicable.
+- Separate view, add, change, sign, verify, administer, discontinue, export, and delete/void permissions.
+- Require reason capture for overrides, early/late medication administration, order discontinuation, corrections, and emergency access.
+- Audit both successful and denied access to sensitive actions.
+- Test normal requests and HTMX partial requests for identical authorization behavior.
+- Never rely on client-side Alpine.js state as an authorization control.
+
+## State, audit, and record lifecycle
+
+### Clinical record principles
+
+- Patient identity persists across encounters.
+- Encounter completion closes an episode; it does not delete its documentation.
+- Signed notes should be amended or voided, not overwritten without trace.
+- Medication orders move through active, held, completed, or discontinued states.
+- Discontinued medication orders leave the active MAR but remain visible in audit/history views.
+- Medication administrations remain event records even when the parent order later changes state.
+- Incorrect observations should be marked entered in error through the supported workflow.
+- Pharmacy stock movements use ledger records; dispensing should be transactional and prevent negative inventory.
+
+### Minimum audit event content
+
+Every production-grade audit event should capture:
+
+- Actor user ID and effective role.
+- Patient and encounter context, when applicable.
+- Facility/workstation/session context.
+- Action and affected object type/ID.
+- Previous and new state for material changes.
+- UTC timestamp plus Iowa-local presentation.
+- Override, correction, cancellation, or discontinuation reason.
+- Request/correlation identifier for related transactions.
+
+The installed `audit` application is currently a scaffold. Django model timestamps and user-tracking fields provide useful provenance but are not a substitute for an immutable access and change audit log.
+
 ## Navigation and application areas
 
 ### Clinical
@@ -284,7 +643,7 @@ Scheduling, users, roles, facilities, departments, rooms, system settings, dicti
 
 ### Remaining navbar work
 
-Laboratory, imaging/radiology, billing, care management, documents, flowsheets, notifications, decision support, AI assistant, patient portal, and integrations require further implementation or validation. See [Roadmap](#roadmap).
+Laboratory, imaging/radiology, billing, care management, documents, flowsheets, notifications, AI assistant, patient portal, and interoperability require further implementation. Decision support has an operational foundation but requires clinical validation and governance. See [Roadmap](#roadmap).
 
 ## Installation
 
@@ -589,7 +948,7 @@ The repository currently does not include a complete production Docker image or 
 - Discharge currently completes an encounter from the nursing discharge assessment; formal discharge-order and disposition governance may require additional role/authorization rules.
 - Transfer captures a nursing assessment but does not yet implement bed/unit/facility movement orders.
 - Analytics are live operational counts but still require formal metric definitions, denominator governance, facility scoping, missing-data reporting, and validation.
-- Decision-support and AI applications are scaffolds, not validated clinical tools.
+- Decision support has rules/alerts/risk foundations but is not clinically validated; the AI assistant remains a scaffold and is not a clinical tool.
 - Background job processing, caching, interoperability APIs, and offline workflows are not implemented.
 - `docker-compose.yml` runs PostgreSQL only.
 - No `.env.example` is currently committed.
