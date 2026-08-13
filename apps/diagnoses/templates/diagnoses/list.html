@@ -1,17 +1,11 @@
 {% extends "layouts/app_shell.html" %}
-
-{% block title %}
-    diagnoses List | Liberia EHR
-{% endblock %}
-
+{% block title %}Diagnoses | Liberia EHR{% endblock %}
 {% block workspace %}
-<section>
-    <h1 class="text-2xl font-bold capitalize">
-        diagnoses List
-    </h1>
-
-    <div id="diagnoses-list" class="mt-5">
-        {% include "diagnoses/partials/list_content.html" %}
-    </div>
+<section class="mx-0 max-w-6xl p-3 text-xs">
+  <header class="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <div><h1 class="text-base font-bold text-slate-900">Diagnoses &amp; problem list</h1><p class="text-[10px] text-slate-500">ICD-10-CM coded clinical conditions{% if selected_patient %} for {{ selected_patient }}{% endif %}</p></div>
+    {% if selected_patient %}<div class="flex gap-2"><a href="{% url 'diagnoses:procedure-list' selected_patient.pk %}" class="rounded border border-slate-300 bg-white px-3 py-2 font-bold text-slate-700">Procedures</a><a href="{% url 'diagnoses:create' selected_patient.pk %}{% if active_encounter %}?encounter={{ active_encounter.pk }}{% endif %}" class="rounded bg-blue-700 px-3 py-2 font-bold text-white hover:bg-blue-800">+ Add diagnosis</a></div>{% endif %}
+  </header>
+  {% include "diagnoses/partials/list_content.html" %}
 </section>
 {% endblock %}

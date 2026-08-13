@@ -836,17 +836,19 @@ class PatientDiagnosis(TimeStampedModel):
         Populate immutable terminology snapshots when first recorded.
         """
 
+        self.populate_snapshots()
+
+        super().save(*args, **kwargs)
+
+    def populate_snapshots(self):
+        """Copy terminology values before validation or first persistence."""
         if self.concept_id:
             if not self.code_snapshot:
                 self.code_snapshot = self.concept.code
-
             if not self.display_snapshot:
                 self.display_snapshot = self.concept.title
-
             if not self.source_snapshot:
                 self.source_snapshot = self.concept.source.name
-
-        super().save(*args, **kwargs)
 
     def clean(self):
         """
@@ -1083,3 +1085,80 @@ class ProcedureCode(TimeStampedModel):
 
     def __str__(self):
         return f"{self.code} — {self.title}"
+
+
+class PatientProcedure(TimeStampedModel):
+    """A coded procedure planned or performed for a patient."""
+
+    class Status(models.TextChoices):
+        PLANNED = "PLANNED", "Planned"
+        IN_PROGRESS = "IN_PROGRESS", "In progress"
+        COMPLETED = "COMPLETED", "Completed"
+        NOT_PERFORMED = "NOT_PERFORMED", "Not performed"
+        ENTERED_IN_ERROR = "ENTERED_IN_ERROR", "Entered in error"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    patient = models.ForeignKey(
+        "patients.Patient", on_delete=models.PROTECT, related_name="procedures"
+    )
+    encounter = models.ForeignKey(
+        "encounters.Encounter",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="procedures",
+    )
+    procedure_code = models.ForeignKey(
+        ProcedureCode,
+        on_delete=models.PROTECT,
+        related_name="patient_procedures",
+    )
+    status = models.CharField(
+        max_length=30, choices=Status.choices, default=Status.PLANNED, db_index=True
+    )
+    performed_on = models.DateTimeField(null=True, blank=True, db_index=True)
+    performed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="performed_patient_procedures",
+    )
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="recorded_patient_procedures",
+    )
+    code_snapshot = models.CharField(max_length=30, blank=True)
+    display_snapshot = models.CharField(max_length=500, blank=True)
+    source_snapshot = models.CharField(max_length=150, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-performed_on", "-created_at"]
+        indexes = [
+            models.Index(fields=["patient", "status"], name="dx_proc_patient_status_idx"),
+            models.Index(fields=["encounter", "status"], name="dx_proc_enc_status_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.patient}: {self.display_snapshot or self.procedure_code}"
+
+    def save(self, *args, **kwargs):
+        if self.procedure_code_id:
+            if not self.code_snapshot:
+                self.code_snapshot = self.procedure_code.code
+            if not self.display_snapshot:
+                self.display_snapshot = self.procedure_code.title
+            if not self.source_snapshot:
+                self.source_snapshot = self.procedure_code.source.name
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        errors = {}
+        if self.encounter_id and self.encounter.patient_id != self.patient_id:
+            errors["encounter"] = "The selected encounter belongs to another patient."
+        if self.status == self.Status.COMPLETED and not self.performed_on:
+            errors["performed_on"] = "Completed procedures require a performed date and time."
+        if errors:
+            raise ValidationError(errors)

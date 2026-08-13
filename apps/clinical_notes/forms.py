@@ -15,10 +15,15 @@ Purpose:
 
 from django import forms
 
+from apps.diagnoses.models import (
+    ClinicalConcept,
+    PatientDiagnosis,
+    PatientProcedure,
+    ProcedureCode,
+)
 from apps.encounters.models import Encounter
 
 from .models import ClinicalNote
-
 
 # ============================================================
 # SHARED TAILWIND CLASSES
@@ -43,6 +48,17 @@ focus:ring-1 focus:ring-emerald-500
 """.strip()
 
 
+class DiagnosisChoiceField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, diagnosis):
+        code = diagnosis.code_snapshot or diagnosis.concept.code
+        return f"{code} — {diagnosis.display_snapshot}"
+
+
+class ProcedureChoiceField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, procedure):
+        return f"{procedure.code_snapshot} — {procedure.display_snapshot}"
+
+
 class ClinicalNoteForm(forms.ModelForm):
     """
     Clinical documentation form.
@@ -50,6 +66,45 @@ class ClinicalNoteForm(forms.ModelForm):
     System-managed fields such as author, created_by, signed_by,
     and timestamps are intentionally excluded.
     """
+
+    diagnoses = DiagnosisChoiceField(
+        queryset=PatientDiagnosis.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(),
+    )
+    procedures = ProcedureChoiceField(
+        queryset=PatientProcedure.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(),
+    )
+    new_diagnosis_concept = forms.ModelChoiceField(
+        queryset=ClinicalConcept.objects.none(),
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+    new_procedure_code = forms.ModelChoiceField(
+        queryset=ProcedureCode.objects.none(),
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+    procedure_performed_on = forms.DateTimeField(
+        required=False,
+        label="Procedure date and time",
+        widget=forms.DateTimeInput(
+            attrs={"type": "datetime-local", "class": INPUT_CLASS}
+        ),
+    )
+    procedure_notes = forms.CharField(
+        required=False,
+        label="Procedure note",
+        widget=forms.Textarea(
+            attrs={
+                "rows": 2,
+                "class": TEXTAREA_CLASS,
+                "placeholder": "Outcome, findings, complications, or relevant details",
+            }
+        ),
+    )
 
     class Meta:
         model = ClinicalNote
@@ -64,9 +119,13 @@ class ClinicalNoteForm(forms.ModelForm):
             "assessment",
             "plan",
             "content",
+            "diagnoses",
+            "procedures",
         ]
 
         widgets = {
+            "diagnoses": forms.CheckboxSelectMultiple(),
+            "procedures": forms.CheckboxSelectMultiple(),
             "note_type": forms.Select(
                 attrs={
                     "class": INPUT_CLASS,
@@ -191,8 +250,32 @@ class ClinicalNoteForm(forms.ModelForm):
                 .filter(patient=patient)
                 .order_by("-start_datetime")
             )
+            self.fields["diagnoses"].queryset = (
+                PatientDiagnosis.objects.filter(
+                    patient=patient,
+                    is_current_problem=True,
+                    clinical_status=PatientDiagnosis.DiagnosisStatus.ACTIVE,
+                )
+                .exclude(clinical_status=PatientDiagnosis.DiagnosisStatus.ENTERED_IN_ERROR)
+                .order_by("display_snapshot")
+            )
+            self.fields["procedures"].queryset = (
+                PatientProcedure.objects.filter(patient=patient)
+                .exclude(status=PatientProcedure.Status.ENTERED_IN_ERROR)
+                .order_by("-performed_on", "display_snapshot")
+            )
+            self.fields["new_diagnosis_concept"].queryset = (
+                ClinicalConcept.objects.filter(
+                    source__source_type="ICD_10", is_active=True
+                ).select_related("source")
+            )
+            self.fields["new_procedure_code"].queryset = ProcedureCode.objects.filter(
+                code_system=ProcedureCode.CodeSystem.CPT, is_active=True
+            )
         else:
             self.fields["encounter"].queryset = Encounter.objects.none()
+            self.fields["diagnoses"].queryset = PatientDiagnosis.objects.none()
+            self.fields["procedures"].queryset = PatientProcedure.objects.none()
 
         # ----------------------------------------------------
         # DEFAULT ACTIVE ENCOUNTER
@@ -218,6 +301,8 @@ class ClinicalNoteForm(forms.ModelForm):
         self.fields["assessment"].label = "Assessment"
         self.fields["plan"].label = "Plan"
         self.fields["content"].label = "Additional Documentation"
+        self.fields["diagnoses"].label = "Diagnoses addressed"
+        self.fields["procedures"].label = "Procedures addressed"
 
         self.fields["chief_complaint"].required = True
         self.fields["encounter"].required = False
@@ -256,6 +341,14 @@ class ClinicalNoteForm(forms.ModelForm):
         if not has_content:
             raise forms.ValidationError(
                 "Enter documentation in at least one clinical section."
+            )
+
+        if cleaned_data.get("new_procedure_code") and not cleaned_data.get(
+            "procedure_performed_on"
+        ):
+            self.add_error(
+                "procedure_performed_on",
+                "Enter when the selected procedure was performed.",
             )
 
         return cleaned_data

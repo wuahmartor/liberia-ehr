@@ -495,6 +495,13 @@ Purpose:
                             <div class="mt-1 whitespace-pre-line text-xs leading-5 text-slate-800">{{ note.assessment }}</div>
                         </section>
                     {% endif %}
+                    {% if note.diagnoses.exists or note.procedures.exists %}
+                        <section class="py-3">
+                            <h3 class="inline-block rounded bg-slate-800 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">Coded assessment</h3>
+                            {% if note.diagnoses.exists %}<div class="mt-2"><p class="text-[9px] font-bold uppercase text-slate-500">ICD-10-CM diagnoses</p><div class="mt-1 flex flex-wrap gap-1">{% for diagnosis in note.diagnoses.all %}<a href="{% url 'diagnoses:detail' diagnosis.pk %}" class="rounded border border-blue-200 bg-blue-50 px-2 py-1 font-semibold text-blue-900"><span class="font-mono">{{ diagnosis.code_snapshot }}</span> · {{ diagnosis.display_snapshot }}</a>{% endfor %}</div></div>{% endif %}
+                            {% if note.procedures.exists %}<div class="mt-2"><p class="text-[9px] font-bold uppercase text-slate-500">Coded procedures</p><div class="mt-1 flex flex-wrap gap-1">{% for procedure in note.procedures.all %}<span class="rounded border border-violet-200 bg-violet-50 px-2 py-1 font-semibold text-violet-900"><span class="font-mono">{{ procedure.code_snapshot }}</span> · {{ procedure.display_snapshot }}</span>{% endfor %}</div></div>{% endif %}
+                        </section>
+                    {% endif %}
                     {% if note.plan %}
                         <section class="py-3">
                             <h3 class="inline-block rounded bg-slate-200 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-slate-950">Plan</h3>

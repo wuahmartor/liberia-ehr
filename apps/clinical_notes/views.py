@@ -15,22 +15,24 @@ Purpose:
 ============================================================
 """
 
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils import timezone
 from django.views import View
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
+from apps.diagnoses.models import PatientDiagnosis, PatientProcedure
 from apps.encounters.models import Encounter
 from apps.patients.models import Patient
 
 from .forms import ClinicalNoteForm
 from .models import ClinicalNote
-
 
 # ============================================================
 # HTMX HELPERS
@@ -263,6 +265,7 @@ class ClinicalNoteDetailView(
             "amended_by",
             "voided_by",
         )
+        .prefetch_related("diagnoses", "procedures")
     )
 
     def get_template_names(self):
@@ -334,6 +337,7 @@ class ClinicalNoteCreateView(
         form.instance.status = ClinicalNote.Status.DRAFT
 
         response = super().form_valid(form)
+        self._save_inline_coding(form)
 
         if is_htmx(self.request):
             detail_url = reverse(
@@ -346,6 +350,51 @@ class ClinicalNoteCreateView(
             response["HX-Redirect"] = detail_url
 
         return response
+
+    def _save_inline_coding(self, form):
+        concept = form.cleaned_data.get("new_diagnosis_concept")
+        if concept:
+            diagnosis = (
+                PatientDiagnosis.objects.filter(
+                    patient=self.object.patient,
+                    concept=concept,
+                    clinical_status=PatientDiagnosis.DiagnosisStatus.ACTIVE,
+                )
+                .order_by("-diagnosed_on")
+                .first()
+            )
+            if diagnosis is None:
+                diagnosis = PatientDiagnosis(
+                    patient=self.object.patient,
+                    encounter=self.object.encounter,
+                    concept=concept,
+                    diagnosis_type=PatientDiagnosis.DiagnosisType.PRIMARY,
+                    clinical_status=PatientDiagnosis.DiagnosisStatus.ACTIVE,
+                    verification_status=PatientDiagnosis.VerificationStatus.CONFIRMED,
+                    recorded_by=self.request.user,
+                    confirmed_by=self.request.user,
+                    confirmed_at=timezone.now(),
+                    is_current_problem=True,
+                )
+                diagnosis.populate_snapshots()
+                diagnosis.full_clean()
+                diagnosis.save()
+            self.object.diagnoses.add(diagnosis)
+
+        procedure_code = form.cleaned_data.get("new_procedure_code")
+        if procedure_code:
+            procedure = PatientProcedure(
+                patient=self.object.patient,
+                encounter=self.object.encounter,
+                procedure_code=procedure_code,
+                status=PatientProcedure.Status.COMPLETED,
+                performed_on=form.cleaned_data["procedure_performed_on"],
+                performed_by=self.request.user,
+                recorded_by=self.request.user,
+                notes=form.cleaned_data.get("procedure_notes", ""),
+            )
+            procedure.save()
+            self.object.procedures.add(procedure)
 
     def get_success_url(self):
         return reverse(
@@ -437,6 +486,45 @@ class ClinicalNoteUpdateView(
 
         response = super().form_valid(form)
 
+        concept = form.cleaned_data.get("new_diagnosis_concept")
+        if concept:
+            diagnosis = (
+                PatientDiagnosis.objects.filter(
+                    patient=self.object.patient,
+                    concept=concept,
+                    clinical_status=PatientDiagnosis.DiagnosisStatus.ACTIVE,
+                )
+                .order_by("-diagnosed_on")
+                .first()
+            )
+            if diagnosis is None:
+                diagnosis = PatientDiagnosis(
+                    patient=self.object.patient,
+                    encounter=self.object.encounter,
+                    concept=concept,
+                    recorded_by=self.request.user,
+                    confirmed_by=self.request.user,
+                    confirmed_at=timezone.now(),
+                )
+                diagnosis.populate_snapshots()
+                diagnosis.full_clean()
+                diagnosis.save()
+            self.object.diagnoses.add(diagnosis)
+
+        procedure_code = form.cleaned_data.get("new_procedure_code")
+        if procedure_code:
+            procedure = PatientProcedure.objects.create(
+                patient=self.object.patient,
+                encounter=self.object.encounter,
+                procedure_code=procedure_code,
+                status=PatientProcedure.Status.COMPLETED,
+                performed_on=form.cleaned_data["procedure_performed_on"],
+                performed_by=self.request.user,
+                recorded_by=self.request.user,
+                notes=form.cleaned_data.get("procedure_notes", ""),
+            )
+            self.object.procedures.add(procedure)
+
         if is_htmx(self.request):
             response["HX-Redirect"] = self.get_success_url()
 
@@ -474,6 +562,16 @@ class ClinicalNoteSignView(
             raise PermissionDenied(
                 "This note is already finalized."
             )
+
+        if (
+            note.note_type == ClinicalNote.NoteType.PHYSICIAN
+            and not note.diagnoses.exists()
+        ):
+            messages.error(
+                request,
+                "Link at least one active ICD-10-CM diagnosis before signing a physician note.",
+            )
+            return redirect("clinical_notes:update", pk=note.pk)
 
         note.sign(request.user)
 

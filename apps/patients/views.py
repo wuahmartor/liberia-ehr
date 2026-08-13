@@ -483,6 +483,11 @@ def patient_detail(
     active_diagnosis_count = patient.diagnoses.filter(
         clinical_status=PatientDiagnosis.DiagnosisStatus.ACTIVE
     ).count()
+    procedures = list(
+        patient.procedures.exclude(status="ENTERED_IN_ERROR")
+        .select_related("procedure_code", "encounter", "performed_by")
+        .order_by("-performed_on", "-created_at")[:6]
+    )
     current_vitals = (
         patient.vital_observations.active().order_by("-recorded_at").first()
     )
@@ -522,11 +527,12 @@ def patient_detail(
             status=MedicationOrder.Status.ACTIVE
         ).count(),
         "structured_labs_available": False,
-        "structured_procedures_available": False,
+        "structured_procedures_available": True,
         "physicians": [],
         "diagnoses": diagnoses,
         "medications": active_medications,
-        "surgeries": [],
+        "procedures": procedures,
+        "surgeries": procedures,
         "clinical_records": [],
     }
 

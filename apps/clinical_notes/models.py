@@ -100,6 +100,20 @@ class ClinicalNote(models.Model):
         db_index=True,
     )
 
+    diagnoses = models.ManyToManyField(
+        "diagnoses.PatientDiagnosis",
+        blank=True,
+        related_name="clinical_notes",
+        help_text="ICD-10-CM diagnoses addressed in this note.",
+    )
+
+    procedures = models.ManyToManyField(
+        "diagnoses.PatientProcedure",
+        blank=True,
+        related_name="clinical_notes",
+        help_text="Coded procedures addressed or documented in this note.",
+    )
+
     # ========================================================
     # CLASSIFICATION
     # ========================================================

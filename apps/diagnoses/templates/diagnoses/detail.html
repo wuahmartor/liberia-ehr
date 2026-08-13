@@ -1,17 +1,8 @@
 {% extends "layouts/app_shell.html" %}
-
-{% block title %}
-    diagnoses Details | Liberia EHR
-{% endblock %}
-
-{% block workspace %}
-<section>
-    <h1 class="text-2xl font-bold capitalize">
-        diagnoses Details
-    </h1>
-
-    <div id="diagnoses-detail" class="mt-5">
-        {% include "diagnoses/partials/detail_content.html" %}
-    </div>
-</section>
-{% endblock %}
+{% block title %}Diagnosis details | Liberia EHR{% endblock %}
+{% block workspace %}<section class="mx-0 max-w-3xl p-3 text-xs">
+  <header class="mb-3 flex items-start justify-between gap-2"><div><p class="font-mono text-sm font-bold text-blue-800">{{ diagnosis.code_snapshot }}</p><h1 class="text-base font-bold text-slate-900">{{ diagnosis.display_snapshot }}</h1><p class="text-[10px] text-slate-500">{{ diagnosis.patient }} · MRN {{ diagnosis.patient.mrn }}</p></div><a href="{% url 'diagnoses:update' diagnosis.pk %}" class="rounded bg-blue-700 px-3 py-2 font-bold text-white">Edit</a></header>
+  <article class="rounded border border-slate-200 bg-white shadow-sm"><dl class="grid gap-px bg-slate-200 sm:grid-cols-2">{% for label,value in detail_rows %}{% endfor %}<div class="bg-white p-3"><dt class="text-[9px] font-bold uppercase text-slate-500">Clinical status</dt><dd class="font-semibold">{{ diagnosis.get_clinical_status_display }}</dd></div><div class="bg-white p-3"><dt class="text-[9px] font-bold uppercase text-slate-500">Verification</dt><dd>{{ diagnosis.get_verification_status_display }}</dd></div><div class="bg-white p-3"><dt class="text-[9px] font-bold uppercase text-slate-500">Diagnosis type</dt><dd>{{ diagnosis.get_diagnosis_type_display }}</dd></div><div class="bg-white p-3"><dt class="text-[9px] font-bold uppercase text-slate-500">Severity</dt><dd>{{ diagnosis.get_severity_display }}</dd></div><div class="bg-white p-3"><dt class="text-[9px] font-bold uppercase text-slate-500">Diagnosed / onset</dt><dd>{{ diagnosis.diagnosed_on|date:"M j, Y" }}{% if diagnosis.onset_date %} · onset {{ diagnosis.onset_date|date:"M j, Y" }}{% endif %}</dd></div><div class="bg-white p-3"><dt class="text-[9px] font-bold uppercase text-slate-500">Encounter</dt><dd>{% if diagnosis.encounter %}<a class="text-blue-700" href="{% url 'encounters:detail' diagnosis.encounter.pk %}">{{ diagnosis.encounter.encounter_number }}</a>{% else %}Longitudinal problem list{% endif %}</dd></div><div class="bg-white p-3"><dt class="text-[9px] font-bold uppercase text-slate-500">Recorded by</dt><dd>{% firstof diagnosis.recorded_by.get_full_name diagnosis.recorded_by.username %} · {{ diagnosis.created_at|date:"M j, Y g:i A" }}</dd></div><div class="bg-white p-3"><dt class="text-[9px] font-bold uppercase text-slate-500">Terminology release</dt><dd>{{ diagnosis.concept.source }}</dd></div></dl>{% if diagnosis.notes %}<div class="border-t p-3"><h2 class="font-bold text-slate-800">Clinical notes</h2><p class="mt-1 whitespace-pre-line text-slate-700">{{ diagnosis.notes }}</p></div>{% endif %}</article>
+  {% if diagnosis.clinical_status != 'ENTERED_IN_ERROR' %}<details class="mt-3 rounded border border-red-200 bg-red-50 p-3"><summary class="cursor-pointer font-bold text-red-800">Mark entered in error</summary><form method="post" action="{% url 'diagnoses:entered-in-error' diagnosis.pk %}" class="mt-3">{% csrf_token %}{{ error_form.reason }}<button class="mt-2 rounded bg-red-700 px-3 py-2 font-bold text-white">Confirm entered in error</button></form></details>{% endif %}
+  <a href="{% url 'diagnoses:patient-list' diagnosis.patient.pk %}" class="mt-3 inline-block font-semibold text-blue-700">← Back to problem list</a>
+</section>{% endblock %}

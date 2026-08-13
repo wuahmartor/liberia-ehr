@@ -1,26 +1,15 @@
 {% extends "layouts/app_shell.html" %}
-
-{% block title %}
-    diagnoses Form | Liberia EHR
-{% endblock %}
-
+{% block title %}{{ page_title }} | Liberia EHR{% endblock %}
 {% block workspace %}
-<section class="max-w-3xl">
-    <h1 class="text-2xl font-bold capitalize">
-        diagnoses Form
-    </h1>
-
-    <form method="post" class="mt-6 space-y-4">
-        {% csrf_token %}
-
-        {% include "diagnoses/partials/form_fields.html" %}
-
-        <button
-            type="submit"
-            class="rounded-lg bg-ehr-800 px-4 py-2 font-semibold text-white"
-        >
-            Save
-        </button>
-    </form>
+<section class="mx-0 max-w-3xl p-3 text-xs" x-data="{selectedLabel: '{{ form.concept_query.value|default:''|escapejs }}'}">
+  <header class="mb-3"><h1 class="text-base font-bold text-slate-900">{{ page_title }}</h1><p class="text-[10px] text-slate-500">{{ selected_patient }} · MRN {{ selected_patient.mrn }}</p></header>
+  <form method="post" class="space-y-3 rounded border border-slate-200 bg-white p-4 shadow-sm">{% csrf_token %}
+    {% if form.non_field_errors %}<div class="rounded bg-red-50 p-2 text-red-700">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="relative"><label class="mb-1 block font-bold text-slate-800">{{ form.concept_query.label }}</label><input type="text" name="concept_query" value="{{ form.concept_query.value|default:'' }}" hx-get="{% url 'diagnoses:icd10-search' %}" hx-trigger="keyup changed delay:300ms" hx-target="#icd10-results" hx-include="this" class="w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs" placeholder="Search ICD-10-CM code or diagnosis" autocomplete="off"><div id="icd10-results"></div>{{ form.concept }}{% for error in form.concept.errors %}<p class="mt-1 text-red-600">{{ error }}</p>{% endfor %}<p class="mt-1 text-[9px] text-slate-500">Select the most specific applicable code. Coding support does not replace clinical judgment.</p></div>
+    <div class="grid gap-3 sm:grid-cols-2">{% for field in form %}{% if field.name != 'concept' and field.name != 'concept_query' and field.name != 'notes' and field.name != 'is_current_problem' and field.name != 'is_sensitive' %}<label><span class="mb-1 block font-semibold text-slate-700">{{ field.label }}</span>{{ field }}{% for error in field.errors %}<span class="mt-1 block text-red-600">{{ error }}</span>{% endfor %}</label>{% endif %}{% endfor %}</div>
+    <label><span class="mb-1 block font-semibold text-slate-700">Notes</span>{{ form.notes }}{% for error in form.notes.errors %}<span class="text-red-600">{{ error }}</span>{% endfor %}</label>
+    <div class="flex flex-wrap gap-5"><label class="flex items-center gap-2">{{ form.is_current_problem }} <span>Current problem</span></label><label class="flex items-center gap-2">{{ form.is_sensitive }} <span>Sensitive diagnosis</span></label></div>
+    <div class="flex gap-2 border-t pt-3"><button class="rounded bg-blue-700 px-4 py-2 font-bold text-white">Save diagnosis</button><a href="{% url 'diagnoses:patient-list' selected_patient.pk %}" class="rounded border border-slate-300 px-4 py-2 font-semibold text-slate-700">Cancel</a></div>
+  </form>
 </section>
 {% endblock %}

@@ -1029,6 +1029,45 @@ The repository currently does not include a complete production Docker image or 
 - No `.env.example` is currently committed.
 - Legacy duplicate/reference files remain outside installed apps and should be cleaned up deliberately.
 
+## Diagnoses and ICD-10-CM
+
+The diagnoses application provides a patient problem list and encounter-linked diagnosis workflow at `/diagnoses/`. Clinicians can search the locally indexed ICD-10-CM release, record diagnosis type, clinical and verification status, severity, onset/resolution dates, current-problem and sensitive flags, and supporting notes. Recorded terminology is copied into snapshot fields so later code-set updates do not rewrite historical clinical records. Incorrect records are retained for audit and marked **Entered in error** with a required reason rather than deleted.
+
+The development database is loaded with the official April 1, 2026 FY2026 ICD-10-CM code-description release, appropriate for encounters from April 1 through September 30, 2026. Administrators can refresh the index from an official NCHS order file:
+
+```bash
+python manage.py import_icd10cm /path/to/icd10cm_order_2026.txt \
+  --release "FY2026 April 1, 2026" \
+  --format order \
+  --deactivate-missing
+```
+
+Delimited CSV/TSV imports are also supported; run `python manage.py help import_icd10cm` for column options. Use only the release applicable to the encounter date and follow the official coding guidelines. The local search assists code selection but does not replace clinician documentation, qualified coding review, or payer-specific validation.
+
+Authoritative references:
+
+- [CDC/NCHS ICD-10-CM overview and browser](https://www.cdc.gov/nchs/icd/icd-10-cm/index.html)
+- [CDC/NCHS ICD-10-CM release files](https://www.cdc.gov/nchs/icd/icd-10-cm/files.html)
+- [CMS ICD-10 files and effective dates](https://www.cms.gov/medicare/coding-billing/icd-10-codes)
+- [FY2026 ICD-10-CM Official Guidelines for Coding and Reporting](https://www.cms.gov/files/document/fy-2026-icd-10-cm-coding-guidelines.pdf)
+
+Physician, nurse-practitioner, admission, consultation, progress, SOAP, procedure, and discharge notes can reference the patient's active ICD-10-CM diagnosis records and coded procedures. These are relational links to the problem list—not duplicated free text—so the patient dashboard, diagnosis workspace, encounter, and signed note share the same active-diagnosis source of truth.
+
+### CPT procedure terminology
+
+The diagnoses module also provides patient/encounter procedure records, CPT search, procedure status and performed-date tracking, provider attribution, immutable terminology snapshots, physician-note linkage, and patient-dashboard display. CPT descriptions are not bundled because CPT content is copyrighted by the American Medical Association and requires an appropriate license for electronic use. After obtaining an authorized CPT data file, an administrator may load it with:
+
+```bash
+python manage.py import_cpt /path/to/licensed-cpt.csv \
+  --release "2026" \
+  --acknowledge-license
+```
+
+The default columns are `code`, `description`, and `category`; run `python manage.py help import_cpt` for alternate column and delimiter options. The acknowledgement confirms authorization but does not itself grant a license.
+
+- [AMA CPT licensing FAQ](https://www.ama-assn.org/practice-management/cpt/cpt-licensing-frequently-asked-questions-faqs)
+- [CMS overview of HCPCS Level I CPT and Level II](https://www.cms.gov/medicare/coding-billing/healthcare-common-procedure-system)
+
 ## Roadmap
 
 The next work should complete navbar areas in dependency order rather than adding disconnected screens.
