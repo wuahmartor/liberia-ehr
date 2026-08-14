@@ -105,11 +105,54 @@ Expected context:
     }
 
     #workspace-content {
-        width: 100%;
+        width: min(100%, 72rem);
         min-width: 0;
         min-height: 100%;
+        margin-left: 0;
+        margin-right: auto;
         padding: 0.5rem;
         box-sizing: border-box;
+    }
+
+    /*
+    Apply a readable measure to every data-entry/filter form, including
+    forms rendered later through HTMX partials. Button-only action forms
+    are excluded so compact row actions keep their natural width.
+    */
+    #workspace-content form:has(input:not([type="hidden"]), select, textarea) {
+        width: min(100%, 48rem);
+        max-width: 48rem;
+        margin-left: 0;
+        margin-right: auto;
+    }
+
+    #workspace-content form[data-workspace-width="wide"] {
+        width: min(100%, 64rem);
+        max-width: 64rem;
+    }
+
+    /* Keep data-entry pages readable and aligned to the workspace edge. */
+    .ehr-form-workspace {
+        width: 100%;
+        max-width: 64rem;
+        margin-left: 0;
+        margin-right: auto;
+    }
+
+    .ehr-form-workspace-compact {
+        max-width: 48rem;
+    }
+
+    .ehr-form-workspace-medium {
+        max-width: 56rem;
+    }
+
+    .ehr-form-workspace-narrow {
+        max-width: 40rem;
+    }
+
+    .ehr-form-workspace-small {
+        max-width: 32rem;
     }
 
     /*
@@ -124,7 +167,22 @@ Expected context:
         }
 
         #workspace-content {
+            width: 100%;
             padding: 0.5rem;
+        }
+
+        #workspace-content form:has(input:not([type="hidden"]), select, textarea),
+        #workspace-content form[data-workspace-width="wide"] {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .ehr-form-workspace,
+        .ehr-form-workspace-compact,
+        .ehr-form-workspace-medium,
+        .ehr-form-workspace-narrow,
+        .ehr-form-workspace-small {
+            max-width: 100%;
         }
     }
 </style>
