@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1350" height="700" viewBox="0 0 1350 700" role="img" aria-labelledby="title desc">
+  <title id="title">Secure staff messaging workflow</title><desc id="desc">Compose, audience resolution, transactional creation, participant-restricted delivery, polling, read receipts, and replies.</desc>
+  <defs><style>.bg{fill:#f8fafc}.title{font:700 28px Arial;fill:#0f172a}.h{font:700 14px Arial;fill:#fff}.t{font:14px Arial;fill:#0f172a}.s{font:12px Arial;fill:#475569}.g{fill:#166534}.b{fill:#1d4ed8}.p{fill:#6d28d9}.a{fill:#b45309}.box{fill:#fff;stroke:#cbd5e1;stroke-width:2}.line{stroke:#64748b;stroke-width:3;fill:none}.dash{stroke:#64748b;stroke-width:2;stroke-dasharray:7 6;fill:none}</style><marker id="m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#64748b"/></marker></defs>
+  <rect class="bg" width="1350" height="700"/><text class="title" x="45" y="52">Secure staff messaging — compose, deliver, notify, read, reply</text>
+  <rect class="g" x="45" y="115" width="170" height="65" rx="13"/><text class="h" x="130" y="143" text-anchor="middle">Authenticated</text><text class="h" x="130" y="164" text-anchor="middle">eligible staff</text>
+  <rect class="b" x="275" y="100" width="210" height="95" rx="13"/><text class="h" x="380" y="128" text-anchor="middle">Compose</text><text class="h" x="380" y="150" text-anchor="middle">context → subject</text><text class="h" x="380" y="172" text-anchor="middle">recipients/patients → body</text>
+  <path class="line" marker-end="url(#m)" d="M215 147H275"/>
+  <polygon class="p" points="630,85 760,147 630,209 500,147"/><text class="h" x="630" y="132" text-anchor="middle">Audience</text><text class="h" x="630" y="153" text-anchor="middle">specific, care team,</text><text class="h" x="630" y="174" text-anchor="middle">or all eligible staff</text>
+  <path class="line" marker-end="url(#m)" d="M485 147H500"/>
+  <rect class="a" x="825" y="100" width="210" height="95" rx="13"/><text class="h" x="930" y="128" text-anchor="middle">Validate and resolve</text><text class="h" x="930" y="150" text-anchor="middle">eligible recipients</text><text class="h" x="930" y="172" text-anchor="middle">reject empty audience</text>
+  <path class="line" marker-end="url(#m)" d="M760 147H825"/>
+  <rect class="g" x="1095" y="100" width="210" height="95" rx="13"/><text class="h" x="1200" y="128" text-anchor="middle">Atomic create</text><text class="h" x="1200" y="150" text-anchor="middle">conversation + participants</text><text class="h" x="1200" y="172" text-anchor="middle">patients + first message</text>
+  <path class="line" marker-end="url(#m)" d="M1035 147H1095"/>
+
+  <rect class="box" x="165" y="300" width="300" height="130" rx="14"/><text class="t" x="315" y="332" text-anchor="middle">Authorization boundary</text><text class="s" x="315" y="363" text-anchor="middle">Conversation.participants controls access</text><text class="s" x="315" y="387" text-anchor="middle">Patient context does not grant access</text><text class="s" x="315" y="411" text-anchor="middle">Guessed UUIDs must not bypass scope</text>
+  <rect class="b" x="535" y="300" width="250" height="130" rx="14"/><text class="h" x="660" y="336" text-anchor="middle">Recipient inbox</text><text class="h" x="660" y="363" text-anchor="middle">incoming message unread</text><text class="h" x="660" y="390" text-anchor="middle">sender + recipients + context</text>
+  <rect class="p" x="855" y="300" width="250" height="130" rx="14"/><text class="h" x="980" y="336" text-anchor="middle">Navigation notification</text><text class="h" x="980" y="363" text-anchor="middle">unread-count JSON poll</text><text class="h" x="980" y="390" text-anchor="middle">visible badge + motion-aware alert</text>
+  <path class="line" marker-end="url(#m)" d="M1200 195V250Q1200 275 660 300"/><path class="line" marker-end="url(#m)" d="M785 365H855"/><path class="dash" d="M465 365H535"/>
+
+  <rect class="g" x="535" y="510" width="250" height="95" rx="14"/><text class="h" x="660" y="542" text-anchor="middle">Open thread</text><text class="h" x="660" y="566" text-anchor="middle">verify participant</text><text class="h" x="660" y="590" text-anchor="middle">mark received message read</text>
+  <rect class="b" x="855" y="510" width="250" height="95" rx="14"/><text class="h" x="980" y="542" text-anchor="middle">Reply and refresh</text><text class="h" x="980" y="566" text-anchor="middle">thread fragment polls</text><text class="h" x="980" y="590" text-anchor="middle">sender sees read state</text>
+  <path class="line" marker-end="url(#m)" d="M660 430V510M785 557H855"/><path class="line" marker-end="url(#m)" d="M980 510V470Q980 450 660 450V510"/>
+  <text class="s" x="45" y="660">Current delivery uses authenticated HTTP/HTMX/JSON polling. It is not end-to-end encryption and does not currently require WebSockets, Redis, or Django Channels.</text>
+</svg>

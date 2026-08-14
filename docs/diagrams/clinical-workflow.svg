@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="500" viewBox="0 0 1400 500" role="img" aria-labelledby="title desc">
+  <title id="title">End-to-end clinical workflow</title><desc id="desc">Flow from authentication and patient registration through encounter, assessment, evaluation, orders, medication workflow, communication, and disposition.</desc>
+  <defs><style>.bg{fill:#f8fafc}.title{font:700 28px Arial;fill:#0f172a}.h{font:700 15px Arial;fill:#fff}.t{font:13px Arial;fill:#475569}.g{fill:#166534;stroke:#14532d;stroke-width:2}.b{fill:#1d4ed8;stroke:#1e40af;stroke-width:2}.p{fill:#6d28d9;stroke:#5b21b6;stroke-width:2}.a{fill:#b45309;stroke:#92400e;stroke-width:2}.line{stroke:#64748b;stroke-width:3;fill:none}</style><marker id="m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#64748b"/></marker></defs>
+  <rect class="bg" width="1400" height="500"/><text class="title" x="45" y="52">Clinical workflow — patient arrival to disposition</text>
+  <g><rect class="g" x="45" y="115" width="150" height="70" rx="14"/><text class="h" x="120" y="145" text-anchor="middle">Authenticate</text><text class="h" x="120" y="167" text-anchor="middle">and authorize</text></g>
+  <g><rect class="g" x="245" y="115" width="150" height="70" rx="14"/><text class="h" x="320" y="145" text-anchor="middle">Find or register</text><text class="h" x="320" y="167" text-anchor="middle">patient</text></g>
+  <g><rect class="g" x="445" y="115" width="150" height="70" rx="14"/><text class="h" x="520" y="145" text-anchor="middle">Create or open</text><text class="h" x="520" y="167" text-anchor="middle">encounter</text></g>
+  <g><rect class="b" x="645" y="115" width="160" height="70" rx="14"/><text class="h" x="725" y="145" text-anchor="middle">Triage, vitals</text><text class="h" x="725" y="167" text-anchor="middle">and assessment</text></g>
+  <g><rect class="b" x="855" y="115" width="170" height="70" rx="14"/><text class="h" x="940" y="145" text-anchor="middle">Provider evaluation</text><text class="h" x="940" y="167" text-anchor="middle">diagnosis and note</text></g>
+  <path class="line" marker-end="url(#m)" d="M195 150H245M395 150H445M595 150H645M805 150H855"/>
+  <g><rect class="p" x="1090" y="85" width="185" height="70" rx="14"/><text class="h" x="1182" y="115" text-anchor="middle">Medication order</text><text class="h" x="1182" y="137" text-anchor="middle">and pharmacy</text></g>
+  <g><rect class="p" x="1090" y="205" width="185" height="70" rx="14"/><text class="h" x="1182" y="235" text-anchor="middle">Secure care-team</text><text class="h" x="1182" y="257" text-anchor="middle">communication</text></g>
+  <path class="line" marker-end="url(#m)" d="M1025 140H1060Q1075 140 1090 120"/><path class="line" marker-end="url(#m)" d="M1025 160H1060Q1075 160 1090 240"/>
+  <g><rect class="p" x="855" y="330" width="170" height="70" rx="14"/><text class="h" x="940" y="360" text-anchor="middle">Dispense and</text><text class="h" x="940" y="382" text-anchor="middle">administer (MAR)</text></g>
+  <path class="line" marker-end="url(#m)" d="M1182 155V310Q1182 365 1025 365"/>
+  <g><rect class="a" x="1090" y="330" width="185" height="70" rx="14"/><text class="h" x="1182" y="360" text-anchor="middle">Reassess, transfer</text><text class="h" x="1182" y="382" text-anchor="middle">or discharge</text></g>
+  <path class="line" marker-end="url(#m)" d="M1025 365H1090M1182 275V330"/>
+  <path class="line" marker-end="url(#m)" d="M1090 385H805Q725 385 725 185"/><text class="t" x="785" y="420">Continue-care loop returns to assessment and evaluation</text>
+</svg>

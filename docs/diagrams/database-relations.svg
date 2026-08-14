@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760" role="img" aria-labelledby="title desc">
+  <title id="title">Liberia EHR database relationships</title><desc id="desc">Patient, encounter, documentation, medication, pharmacy, messaging, user, and facility relationships.</desc>
+  <defs><style>.bg{fill:#f8fafc}.title{font:700 28px Arial;fill:#0f172a}.section{font:700 17px Arial;fill:#334155}.h{font:700 14px Arial;fill:#fff}.s{font:12px Arial;fill:#475569}.g{fill:#166534}.b{fill:#1d4ed8}.p{fill:#6d28d9}.a{fill:#b45309}.t{fill:#0f766e}.line{stroke:#94a3b8;stroke-width:2;fill:none}.dash{stroke:#94a3b8;stroke-width:2;stroke-dasharray:6 5;fill:none}</style><marker id="m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#94a3b8"/></marker></defs>
+  <rect class="bg" width="1400" height="760"/><text class="title" x="45" y="52">Database relationships — clinical record, medication chain, and messaging</text>
+  <text class="section" x="45" y="105">Longitudinal clinical record</text>
+  <rect class="g" x="55" y="135" width="180" height="60" rx="12"/><text class="h" x="145" y="171" text-anchor="middle">PATIENT</text>
+  <rect class="b" x="330" y="135" width="180" height="60" rx="12"/><text class="h" x="420" y="171" text-anchor="middle">ENCOUNTER</text>
+  <path class="line" marker-end="url(#m)" d="M235 165H330"/><text class="s" x="282" y="150" text-anchor="middle">0..many</text>
+  <g class="t"><rect x="600" y="90" width="180" height="50" rx="10"/><rect x="600" y="155" width="180" height="50" rx="10"/><rect x="600" y="220" width="180" height="50" rx="10"/><rect x="600" y="285" width="180" height="50" rx="10"/></g>
+  <g class="h" text-anchor="middle"><text x="690" y="121">VITAL OBSERVATION</text><text x="690" y="186">NURSING RECORDS</text><text x="690" y="251">DIAGNOSIS / PROCEDURE</text><text x="690" y="316">CLINICAL NOTE</text></g>
+  <path class="line" d="M510 165H555V115H600M555 165H600M555 165V245H600M555 165V310H600"/>
+  <rect class="a" x="900" y="90" width="200" height="55" rx="11"/><text class="h" x="1000" y="123" text-anchor="middle">AUTH USER / PROVIDER</text>
+  <rect class="a" x="900" y="175" width="200" height="55" rx="11"/><text class="h" x="1000" y="208" text-anchor="middle">FACILITY / LOCATION</text>
+  <path class="dash" marker-end="url(#m)" d="M900 117H820Q800 117 780 140M900 202H820Q800 202 780 180"/>
+
+  <text class="section" x="45" y="420">Medication evidence chain</text>
+  <g class="p"><rect x="55" y="450" width="175" height="58" rx="11"/><rect x="300" y="450" width="190" height="58" rx="11"/><rect x="560" y="405" width="180" height="58" rx="11"/><rect x="560" y="500" width="180" height="58" rx="11"/><rect x="815" y="405" width="190" height="58" rx="11"/><rect x="815" y="500" width="190" height="58" rx="11"/></g>
+  <g class="h" text-anchor="middle"><text x="142" y="485">MEDICATION</text><text x="395" y="485">MEDICATION ORDER</text><text x="650" y="440">PHARMACY REVIEW</text><text x="650" y="535">MAR ADMINISTRATION</text><text x="910" y="440">DISPENSE RECORD</text><text x="910" y="535">INVENTORY TXN</text></g>
+  <path class="line" marker-end="url(#m)" d="M230 479H300M490 465L560 434M490 493L560 529M740 434H815M740 529H815"/>
+
+  <text class="section" x="1090" y="420">Messaging</text>
+  <rect class="g" x="1090" y="450" width="240" height="58" rx="11"/><text class="h" x="1210" y="485" text-anchor="middle">CONVERSATION</text>
+  <rect class="t" x="1090" y="555" width="240" height="58" rx="11"/><text class="h" x="1210" y="590" text-anchor="middle">MESSAGE + READ RECEIPTS</text>
+  <path class="line" marker-end="url(#m)" d="M1210 508V555"/><path class="dash" d="M1100 145Q1210 230 1210 450M235 180Q900 300 1090 470"/>
+  <text class="s" x="45" y="680">Solid links show record chains. Dashed links show context, attribution, location, or many-to-many participation.</text>
+  <text class="s" x="45" y="708">Relationship integrity does not grant authorization: every query still applies patient, facility, care-team, role, or conversation-participant scope.</text>
+</svg>
