@@ -983,7 +983,7 @@ class UserAccountListView(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        users = User.objects.select_related("profile")
+        users = User.objects.select_related("profile").prefetch_related("groups")
         query = self.request.GET.get("q", "").strip()
         if query:
             users = users.filter(
@@ -1101,8 +1101,8 @@ class RolePermissionListView(
 ):
     active_admin_module = "roles"
 
-    page_title = "Roles and Permissions"
-    page_description = "Manage authorization groups and permission assignments."
+    page_title = "Groups and Permissions"
+    page_description = "Create access groups and assign the permissions their members receive."
 
     full_template_name = "administration/roles.html"
     partial_template_name = "administration/partials/roles_content.html"
@@ -1110,9 +1110,9 @@ class RolePermissionListView(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["role_groups"] = Group.objects.prefetch_related("permissions").order_by(
-            "name"
-        )
+        context["role_groups"] = Group.objects.prefetch_related(
+            "permissions", "user_set"
+        ).order_by("name")
 
         context["role_count"] = Group.objects.count()
 
@@ -1124,16 +1124,23 @@ class RolePermissionFormView(
 ):
     active_admin_module = "roles"
 
+    def form_context(self, group, form):
+        return {
+            **self.get_context_data(),
+            "page_title": "Edit Group" if group else "Add Group",
+            "page_description": (
+                "Choose the permissions inherited by every member of this group."
+            ),
+            "form": form,
+            "role_group": group,
+        }
+
     def get(self, request, group_id=None):
         group = get_object_or_404(Group, pk=group_id) if group_id else None
         return render(
             request,
             "administration/role_form.html",
-            {
-                **self.get_context_data(),
-                "form": RoleGroupForm(instance=group),
-                "role_group": group,
-            },
+            self.form_context(group, RoleGroupForm(instance=group)),
         )
 
     def post(self, request, group_id=None):
@@ -1144,7 +1151,7 @@ class RolePermissionFormView(
             messages.success(
                 request,
                 (
-                    f"Role {saved.name} saved with "
+                    f"Group {saved.name} saved with "
                     f"{saved.permissions.count()} permissions."
                 ),
             )
@@ -1152,7 +1159,7 @@ class RolePermissionFormView(
         return render(
             request,
             "administration/role_form.html",
-            {**self.get_context_data(), "form": form, "role_group": group},
+            self.form_context(group, form),
         )
 
 

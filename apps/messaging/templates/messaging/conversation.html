@@ -1,0 +1,39 @@
+{% extends "layouts/app_shell.html" %}
+
+{% block title %}Secure Conversation | Liberia EHR{% endblock %}
+
+{% block workspace %}
+<section class="mx-auto flex max-w-4xl flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+    <header class="border-b border-slate-200 bg-white px-3 py-2.5">
+        <div class="flex items-center justify-between gap-3">
+            <a href="{% url 'messaging:inbox' %}" class="text-[10px] font-bold text-ehr-700 hover:underline">← Messages</a>
+            <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-emerald-700">Secure</span>
+        </div>
+        <h1 class="mt-1 truncate text-sm font-semibold text-slate-950">{{ conversation.subject }}</h1>
+        <p class="mt-1 text-[10px] text-slate-600">
+            <span class="font-semibold text-slate-800">{{ message_sender.get_full_name|default:message_sender.username }}</span>
+            <span class="px-1 text-slate-400">→</span>
+            {% for recipient in message_recipients %}<span class="font-semibold text-slate-800">{{ recipient.get_full_name|default:recipient.username }}</span>{% if not forloop.last %}, {% endif %}{% endfor %}
+            {% if conversation.is_broadcast %}<span class="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-bold text-slate-600">{{ conversation.get_audience_display }}</span>{% endif %}
+        </p>
+        {% if conversation.patients.count %}
+            <p class="mt-1 flex flex-wrap items-center gap-1 text-[9px] text-slate-500">
+                <span class="font-bold text-slate-600">Patient:</span>
+                {% for patient in conversation.patients.all %}<a href="{% url 'patients:detail' patient.pk %}" class="rounded bg-amber-50 px-1.5 py-0.5 font-semibold text-amber-800 hover:underline">{{ patient.display_name }} · MRN {{ patient.mrn }}</a>{% endfor %}
+            </p>
+        {% endif %}
+    </header>
+
+    {% include "messaging/partials/message_thread.html" %}
+
+    <form method="post" class="border-t border-slate-200 bg-slate-50 p-3">
+        {% csrf_token %}
+        {{ form.body }}
+        {% for error in form.body.errors %}<p class="mt-1 text-[10px] text-red-600">{{ error }}</p>{% endfor %}
+        <div class="mt-2 flex items-center justify-between gap-2">
+            <p class="text-[9px] text-slate-500">Do not share your password. Access is audited by user identity.</p>
+            <button class="rounded-md bg-ehr-700 px-3 py-1.5 text-[10px] font-bold text-white">Send</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

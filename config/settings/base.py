@@ -52,6 +52,7 @@ LOCAL_APPS = [
     "apps.decision_support",
     "apps.ai_assistant",
     "apps.audit",
+    "apps.messaging.apps.MessagingConfig",
     "apps.notifications",
     "apps.pharmacy",
     'apps.administration',

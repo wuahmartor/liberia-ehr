@@ -46,6 +46,11 @@ def populate_appointment_assignments(apps, schema_editor):
         user_model_name,
     )
 
+    # A fresh database has no appointments to populate and may not have
+    # staff accounts yet. Avoid requiring a fallback provider unnecessarily.
+    if not Appointment.objects.exists():
+        return
+
     # ========================================================
     # FIND A DEFAULT PROVIDER
     # ========================================================

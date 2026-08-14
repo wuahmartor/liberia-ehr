@@ -1,1 +1,26 @@
-<section id="roles-permissions-content" class="space-y-3">{% include "administration/partials/workspace_header.html" %}<div class="flex justify-end"><a href="{% url 'administration:role_create' %}" class="rounded bg-ehr-700 px-3 py-2 text-xs font-bold text-white">＋ Create role</a></div><div class="divide-y rounded-lg border bg-white">{% for group in role_groups %}<a href="{% url 'administration:role_update' group.pk %}" class="grid grid-cols-[1fr_auto] px-3 py-2 text-xs hover:bg-slate-50"><span class="font-bold">{{ group.name }}</span><span>{{ group.permissions.count }} permissions</span></a>{% empty %}<p class="p-5 text-center text-xs text-slate-500">No Django groups configured.</p>{% endfor %}</div></section>
+<section id="roles-permissions-content" class="space-y-4">
+    {% include "administration/partials/workspace_header.html" %}
+    <div class="flex items-center justify-between gap-3">
+        <p class="text-xs text-slate-500">{{ role_count }} group{{ role_count|pluralize }} configured</p>
+        <a href="{% url 'administration:role_create' %}" class="rounded-lg bg-ehr-700 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-ehr-800">＋ Add group</a>
+    </div>
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            <span>Group</span><span>Members</span><span>Permissions</span>
+        </div>
+        <div class="divide-y divide-slate-200">
+            {% for group in role_groups %}
+                <a href="{% url 'administration:role_update' group.pk %}" class="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 px-4 py-3 text-xs hover:bg-slate-50">
+                    <span class="font-semibold text-slate-900">{{ group.name }}</span>
+                    <span class="min-w-14 text-right text-slate-600">{{ group.user_set.count }}</span>
+                    <span class="min-w-20 text-right text-slate-600">{{ group.permissions.count }}</span>
+                </a>
+            {% empty %}
+                <div class="p-8 text-center">
+                    <p class="text-sm font-semibold text-slate-800">No access groups yet</p>
+                    <p class="mt-1 text-xs text-slate-500">Add a group to assign a reusable set of permissions to users.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>

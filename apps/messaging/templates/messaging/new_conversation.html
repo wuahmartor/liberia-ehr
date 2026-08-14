@@ -1,0 +1,107 @@
+{% extends "layouts/app_shell.html" %}
+
+{% block title %}New Secure Message | Liberia EHR{% endblock %}
+
+{% block workspace %}
+<section
+    class="mx-auto max-w-3xl space-y-3"
+    x-data="{
+        contextType: '{{ form.context_type.value|default:'general' }}',
+        audience: '{{ form.audience.value|default:'specific' }}',
+        staffQuery: '', patientQuery: '', selectedStaff: [], selectedPatients: [],
+        init() {
+            this.selectedStaff = this.selectedFrom(this.$refs.recipientSelect);
+            this.selectedPatients = this.selectedFrom(this.$refs.patientSelect);
+        },
+        selectedFrom(select) {
+            return Array.from(select.options).filter(option => option.selected).map(option => ({ value: option.value, label: option.text }));
+        },
+        matches(select, query) {
+            const term = query.trim().toLowerCase();
+            if (!term) return [];
+            return Array.from(select.options).filter(option => option.value && !option.selected && option.text.toLowerCase().includes(term)).slice(0, 8);
+        },
+        add(select, collection, option) {
+            option.selected = true;
+            this[collection] = this.selectedFrom(select);
+            if (collection === 'selectedStaff') this.staffQuery = '';
+            if (collection === 'selectedPatients') this.patientQuery = '';
+        },
+        remove(select, collection, value) {
+            const option = Array.from(select.options).find(item => item.value === value);
+            if (option) option.selected = false;
+            this[collection] = this.selectedFrom(select);
+        }
+    }"
+>
+    <header class="rounded-lg border border-slate-200 bg-white px-3 py-3 shadow-sm">
+        <p class="text-[9px] font-bold uppercase tracking-wider text-ehr-700">Secure Staff Messaging</p>
+        <h1 class="mt-0.5 text-sm font-semibold text-slate-950">Compose message or broadcast</h1>
+        <p class="mt-0.5 text-[10px] text-slate-500">Select specific staff, patient care teams, or all authorized staff.</p>
+    </header>
+    <form method="post" class="space-y-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="rounded bg-red-50 p-2 text-[10px] text-red-700">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="grid gap-3 sm:grid-cols-2">
+            <label class="block">
+                <span class="mb-1 block text-[10px] font-bold text-slate-700">{{ form.context_type.label }}</span>
+                <select name="context_type" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs" x-model="contextType">{% for value, label in form.context_type.field.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+            </label>
+            <label class="block">
+                <span class="mb-1 block text-[10px] font-bold text-slate-700">Audience</span>
+                <select name="audience" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs" x-model="audience">{% for value, label in form.audience.field.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+            </label>
+        </div>
+
+        <div class="grid gap-3" :class="contextType === 'patient' ? 'sm:grid-cols-2' : 'grid-cols-1'">
+            <label class="block" x-show="contextType === 'patient'" x-cloak>
+                <span class="mb-1 block text-[10px] font-bold text-slate-700">Patient subject category</span>
+                {{ form.subject_category }}
+                <span class="mt-1 block text-[9px] text-slate-500">Includes change of condition, diagnostic results, new orders, medication updates, care plans, safety concerns, and other topics.</span>
+                {% for error in form.subject_category.errors %}<span class="mt-1 block text-[10px] text-red-600">{{ error }}</span>{% endfor %}
+            </label>
+            <label class="block">
+                <span class="mb-1 block text-[10px] font-bold text-slate-700" x-text="contextType === 'patient' ? 'Additional subject details (optional)' : 'Subject'"></span>
+                {{ form.subject }}
+                {% for error in form.subject.errors %}<span class="mt-1 block text-[10px] text-red-600">{{ error }}</span>{% endfor %}
+            </label>
+        </div>
+
+        <section class="rounded-lg border border-slate-200 bg-slate-50 p-3" x-show="contextType === 'patient' || audience === 'care_team'" x-cloak>
+            <div class="flex items-center justify-between gap-2"><div><h2 class="text-[11px] font-bold text-slate-800">Concerned patients</h2><p class="text-[9px] text-slate-500">Search by patient name or MRN, then add one or more patients.</p></div><span class="rounded-full bg-ehr-100 px-2 py-0.5 text-[9px] font-bold text-ehr-800" x-text="`${selectedPatients.length} selected`"></span></div>
+            {{ form.patients }}
+            <div class="relative mt-2">
+                <input type="search" x-model="patientQuery" placeholder="Search patients by name or MRN…" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-ehr-500 focus:ring-2 focus:ring-ehr-100">
+                <div x-show="matches($refs.patientSelect, patientQuery).length" class="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+                    <template x-for="option in matches($refs.patientSelect, patientQuery)" :key="option.value"><button type="button" @click="add($refs.patientSelect, 'selectedPatients', option)" class="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[10px] hover:bg-ehr-50"><span x-text="option.text"></span><span class="font-bold text-ehr-700">＋ Add</span></button></template>
+                </div>
+            </div>
+            <div class="mt-2 min-h-10 rounded-lg border border-dashed border-slate-300 bg-white p-2">
+                <p x-show="!selectedPatients.length" class="text-[9px] text-slate-400">No concerned patients added.</p>
+                <div class="flex flex-wrap gap-1.5"><template x-for="item in selectedPatients" :key="item.value"><span class="inline-flex items-center gap-1 rounded-md bg-ehr-50 px-2 py-1 text-[9px] font-semibold text-ehr-800"><span x-text="item.label"></span><button type="button" @click="remove($refs.patientSelect, 'selectedPatients', item.value)" class="text-red-600" aria-label="Remove patient">×</button></span></template></div>
+            </div>
+            {% for error in form.patients.errors %}<span class="mt-1 block text-[10px] text-red-600">{{ error }}</span>{% endfor %}
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-slate-50 p-3" x-show="audience === 'specific'" x-cloak>
+            <div class="flex items-center justify-between gap-2"><div><h2 class="text-[11px] font-bold text-slate-800">Recipients</h2><p class="text-[9px] text-slate-500">Search by staff name or title and add one or multiple recipients.</p></div><span class="rounded-full bg-ehr-100 px-2 py-0.5 text-[9px] font-bold text-ehr-800" x-text="`${selectedStaff.length} selected`"></span></div>
+            {{ form.recipients }}
+            <div class="relative mt-2">
+                <input type="search" x-model="staffQuery" placeholder="Search staff by name or title…" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-ehr-500 focus:ring-2 focus:ring-ehr-100">
+                <div x-show="matches($refs.recipientSelect, staffQuery).length" class="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+                    <template x-for="option in matches($refs.recipientSelect, staffQuery)" :key="option.value"><button type="button" @click="add($refs.recipientSelect, 'selectedStaff', option)" class="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[10px] hover:bg-ehr-50"><span x-text="option.text"></span><span class="font-bold text-ehr-700">＋ Add</span></button></template>
+                </div>
+            </div>
+            <div class="mt-2 min-h-10 rounded-lg border border-dashed border-slate-300 bg-white p-2">
+                <p x-show="!selectedStaff.length" class="text-[9px] text-slate-400">No recipients added.</p>
+                <div class="flex flex-wrap gap-1.5"><template x-for="item in selectedStaff" :key="item.value"><span class="inline-flex items-center gap-1 rounded-md bg-ehr-50 px-2 py-1 text-[9px] font-semibold text-ehr-800"><span x-text="item.label"></span><button type="button" @click="remove($refs.recipientSelect, 'selectedStaff', item.value)" class="text-red-600" aria-label="Remove recipient">×</button></span></template></div>
+            </div>
+            {% for error in form.recipients.errors %}<span class="mt-1 block text-[10px] text-red-600">{{ error }}</span>{% endfor %}
+        </section>
+
+        <label class="block"><span class="mb-1 block text-[10px] font-bold text-slate-700">Message</span>{{ form.body }}{% for error in form.body.errors %}<span class="mt-1 block text-[10px] text-red-600">{{ error }}</span>{% endfor %}</label>
+        <div x-show="audience === 'all_staff'" x-cloak class="rounded-lg border border-amber-200 bg-amber-50 p-2 text-[10px] text-amber-800">This broadcast will be delivered to every active authorized staff account.</div>
+        <div class="flex justify-end gap-2 border-t border-slate-100 pt-3"><a href="{% url 'messaging:inbox' %}" class="rounded-md border border-slate-300 px-2.5 py-1.5 text-[10px] font-bold text-slate-700">Cancel</a><button class="rounded-md bg-ehr-700 px-2.5 py-1.5 text-[10px] font-bold text-white">Send securely</button></div>
+    </form>
+</section>
+{% endblock %}

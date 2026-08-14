@@ -1,0 +1,22 @@
+<div
+    id="secure-message-thread"
+    class="space-y-2 overflow-y-auto bg-slate-50/40 p-3"
+    style="max-height: 52vh;"
+    hx-get="{% url 'messaging:conversation_messages' conversation.pk %}"
+    hx-trigger="every 8s"
+    hx-swap="outerHTML"
+>
+    {% for message in conversation_messages %}
+        <article data-message-direction="{% if message.sender_id == request.user.pk %}sent{% else %}received{% endif %}" class="flex {% if message.sender_id == request.user.pk %}justify-end{% else %}justify-start{% endif %}">
+            <div class="max-w-[78%] rounded-lg px-3 py-2 shadow-sm {% if message.sender_id == request.user.pk %}bg-ehr-800 text-white ring-1 ring-ehr-900{% else %}border border-blue-200 border-l-4 border-l-blue-500 bg-blue-50 text-slate-900{% endif %}">
+                {% if message.sender_id == request.user.pk %}<p class="mb-1 text-[8px] font-bold uppercase tracking-wide text-amber-200">Sent by you</p>{% endif %}
+                <p class="whitespace-pre-wrap break-words text-[11px] leading-4">{{ message.body }}</p>
+                <p class="mt-1 text-[8px] {% if message.sender_id == request.user.pk %}text-white/70{% else %}text-blue-600{% endif %}">
+                    {{ message.created_at|date:"M j, g:i A" }}{% if message.sender_id == request.user.pk and message.read_by.count > 1 %} · Read{% endif %}
+                </p>
+            </div>
+        </article>
+    {% empty %}
+        <p class="py-8 text-center text-[10px] text-slate-500">No messages in this conversation.</p>
+    {% endfor %}
+</div>

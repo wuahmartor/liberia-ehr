@@ -1,1 +1,44 @@
-{% extends "administration/base.html" %}{% block administration_content %}<form method="post" class="space-y-3 rounded-lg border bg-white p-3">{% csrf_token %}{% for field in form %}<label class="block"><span class="mb-1 block text-[10px] font-bold">{{ field.label }}</span>{{ field }}{% for error in field.errors %}<span class="text-red-600">{{ error }}</span>{% endfor %}</label>{% endfor %}<p class="text-[9px] text-amber-700">Permissions take effect immediately. Assign the minimum access required.</p><button class="rounded bg-ehr-700 px-3 py-2 text-xs font-bold text-white">Save role permissions</button></form>{% endblock %}
+{% extends "administration/base.html" %}
+
+{% block administration_content %}
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <label for="{{ form.name.id_for_label }}" class="block text-xs font-bold text-slate-800">Group name</label>
+        <p class="mb-2 mt-0.5 text-xs text-slate-500">Use a recognizable job or responsibility name, such as Nurses or Billing.</p>
+        {{ form.name }}
+        {% for error in form.name.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+    </section>
+
+    <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-200 px-4 py-3">
+            <h2 class="text-sm font-semibold text-slate-900">Assigned permissions</h2>
+            <p class="mt-0.5 text-xs text-slate-500">Members of this group receive every selected permission.</p>
+        </div>
+        <div class="grid gap-3 p-4 lg:grid-cols-2">
+            {% for app_label, permission_items in form.permission_groups %}
+                <fieldset class="rounded-lg border border-slate-200 p-3">
+                    <legend class="px-1 text-xs font-bold uppercase tracking-wide text-ehr-700">{{ app_label|title }}</legend>
+                    <div class="mt-1 space-y-2">
+                        {% for item in permission_items %}
+                            <label class="flex items-start gap-2 text-xs text-slate-700">
+                                <input type="checkbox" name="permissions" value="{{ item.permission.pk }}" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-ehr-700" {% if item.selected %}checked{% endif %}>
+                                <span><span class="block font-medium">{{ item.permission.name }}</span><span class="text-[10px] text-slate-400">{{ item.permission.codename }}</span></span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+            {% endfor %}
+        </div>
+        {% for error in form.permissions.errors %}<p class="px-4 pb-3 text-xs text-red-600">{{ error }}</p>{% endfor %}
+    </section>
+
+    <div class="flex items-center justify-between gap-3">
+        <p class="text-[10px] text-amber-700">Changes take effect immediately. Assign only the access required.</p>
+        <div class="flex gap-2">
+            <a href="{% url 'administration:roles' %}" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700">Cancel</a>
+            <button class="rounded-lg bg-ehr-700 px-3 py-2 text-xs font-bold text-white">Save group</button>
+        </div>
+    </div>
+</form>
+{% endblock %}

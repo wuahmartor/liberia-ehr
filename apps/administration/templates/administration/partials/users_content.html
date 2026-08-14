@@ -9,13 +9,13 @@ USER ACCOUNTS WORKSPACE
 
 <section
     id="user-management-content"
-    class="space-y-4"
+    class="space-y-3"
 >
     <header
         class="
             flex flex-col gap-3
-            rounded-xl border border-slate-200
-            bg-white px-4 py-4 shadow-sm
+            rounded-lg border border-slate-200
+            bg-white px-3 py-3 shadow-sm
             sm:flex-row sm:items-center sm:justify-between
         "
     >
@@ -30,35 +30,26 @@ USER ACCOUNTS WORKSPACE
                 Access and Security
             </p>
 
-            <h1 class="mt-1 text-lg font-semibold text-slate-950">
+            <h1 class="mt-0.5 text-sm font-semibold text-slate-950">
                 {{ page_title }}
             </h1>
 
-            <p class="mt-1 text-xs text-slate-500">
+            <p class="mt-0.5 text-[10px] leading-4 text-slate-500">
                 {{ page_description }}
             </p>
         </div>
 
-        <a
-            href="{% url 'administration:user_create' %}"
-            class="
-                inline-flex items-center justify-center
-                rounded-lg bg-ehr-700
-                px-3 py-2
-                text-xs font-semibold text-white
-                shadow-sm transition
-                hover:bg-ehr-800
-            "
-        >
-            Add User
-        </a>
+        <div class="flex gap-2">
+            <a href="{% url 'administration:roles' %}" class="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Manage groups</a>
+            <a href="{% url 'administration:user_create' %}" class="inline-flex items-center justify-center rounded-md bg-ehr-700 px-2.5 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-ehr-800">Add User</a>
+        </div>
     </header>
 
 
     <section
         class="
             overflow-hidden
-            rounded-xl border border-slate-200
+            rounded-lg border border-slate-200
             bg-white shadow-sm
         "
     >
@@ -66,17 +57,17 @@ USER ACCOUNTS WORKSPACE
             class="
                 flex flex-col gap-3
                 border-b border-slate-200
-                px-4 py-3
+                px-3 py-2
                 sm:flex-row sm:items-center
                 sm:justify-between
             "
         >
             <div>
-                <h2 class="text-sm font-semibold text-slate-900">
+                <h2 class="text-xs font-semibold text-slate-900">
                     User Directory
                 </h2>
 
-                <p class="mt-0.5 text-xs text-slate-500">
+                <p class="mt-0.5 text-[10px] text-slate-500">
                     Review active and inactive system accounts.
                 </p>
             </div>
@@ -102,8 +93,8 @@ USER ACCOUNTS WORKSPACE
                     class="
                         w-full rounded-lg
                         border border-slate-300
-                        bg-white px-3 py-2
-                        text-sm text-slate-900
+                        bg-white px-2.5 py-1.5
+                        text-xs text-slate-900
                         outline-none
                         transition
                         placeholder:text-slate-400
@@ -121,30 +112,31 @@ USER ACCOUNTS WORKSPACE
                         <article
                             class="
                                 flex items-center justify-between
-                                gap-3 px-4 py-3
+                                gap-2 px-3 py-2
                             "
                         >
                             <div>
-                                <p class="text-sm font-medium text-slate-900">
+                                <p class="text-xs font-medium text-slate-900">
                                     {{ user_record.get_full_name|default:user_record.username }}
                                 </p>
 
-                                <p class="text-xs text-slate-500">
+                                <p class="text-[10px] text-slate-500">
                                     {{ user_record.email|default:"No email recorded" }}
                                 </p>
-                                <p class="text-[10px] text-slate-500">{% if user_record.profile %}{{ user_record.profile.get_role_display }}{% else %}No profile{% endif %}{% if user_record.is_staff %} · Staff{% endif %}</p>
+                                <p class="text-[9px] text-slate-500">{% if user_record.profile %}{{ user_record.profile.get_role_display }}{% else %}No profile{% endif %}{% if user_record.is_staff %} · Staff{% endif %}</p>
+                                {% if user_record.groups.all %}<div class="mt-0.5 flex flex-wrap gap-1">{% for group in user_record.groups.all %}<span class="rounded bg-ehr-50 px-1 py-0.5 text-[8px] font-semibold text-ehr-700">{{ group.name }}</span>{% endfor %}</div>{% endif %}
                             </div>
-                            <div class="flex items-center gap-1"><span class="rounded-full px-2 py-1 text-[10px] font-semibold {% if user_record.is_active %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-600{% endif %}">{% if user_record.is_active %}Active{% else %}Inactive{% endif %}</span><a href="{% url 'administration:user_update' user_record.pk %}" class="rounded border px-2 py-1 text-[10px] font-bold">Edit</a><a href="{% url 'administration:user_password' user_record.pk %}" class="rounded border px-2 py-1 text-[10px] font-bold">Password</a><form method="post" action="{% url 'administration:user_toggle' user_record.pk %}">{% csrf_token %}<button class="rounded border px-2 py-1 text-[10px] font-bold">{% if user_record.is_active %}Deactivate{% else %}Activate{% endif %}</button></form></div>
+                            <div class="flex items-center gap-1"><span class="rounded-full px-1.5 py-0.5 text-[9px] font-semibold {% if user_record.is_active %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-600{% endif %}">{% if user_record.is_active %}Active{% else %}Inactive{% endif %}</span><a href="{% url 'administration:user_update' user_record.pk %}" class="rounded border px-1.5 py-0.5 text-[9px] font-bold">Edit</a><a href="{% url 'administration:user_password' user_record.pk %}" class="rounded border px-1.5 py-0.5 text-[9px] font-bold">Password</a><form method="post" action="{% url 'administration:user_toggle' user_record.pk %}">{% csrf_token %}<button class="rounded border px-1.5 py-0.5 text-[9px] font-bold">{% if user_record.is_active %}Deactivate{% else %}Activate{% endif %}</button></form></div>
                         </article>
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="px-4 py-12 text-center">
-                    <h3 class="text-sm font-semibold text-slate-800">
+                <div class="px-3 py-8 text-center">
+                    <h3 class="text-xs font-semibold text-slate-800">
                         No users available
                     </h3>
 
-                    <p class="mt-1 text-xs text-slate-500">
+                    <p class="mt-1 text-[10px] text-slate-500">
                         User records will appear here after they are created.
                     </p>
                 </div>

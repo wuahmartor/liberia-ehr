@@ -71,6 +71,98 @@ NoReverseMatch while rendering this shared sidebar.
 
 {% url 'admin:index' as django_admin_url %}
 
+<style>
+    .administration-sidebar-compact > header {
+        padding: 0.65rem 0.75rem;
+    }
+    .administration-sidebar-compact > header > div {
+        gap: 0.5rem;
+    }
+    .administration-sidebar-compact > header > div > div:first-child {
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 0.375rem;
+    }
+    .administration-sidebar-compact > header svg {
+        width: 0.875rem;
+        height: 0.875rem;
+    }
+    .administration-sidebar-compact > header h2 {
+        font-size: 0.75rem;
+        line-height: 1rem;
+    }
+    .administration-sidebar-compact > header p {
+        margin-top: 0.125rem;
+        font-size: 0.625rem;
+        line-height: 0.875rem;
+    }
+    .administration-sidebar-scroll {
+        padding: 0.5rem;
+    }
+    .administration-sidebar-compact nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .administration-sidebar-compact nav > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+    .administration-sidebar-compact nav > section {
+        border-radius: 0.375rem;
+    }
+    .administration-sidebar-compact nav > section > button {
+        gap: 0.5rem;
+        padding: 0.45rem 0.625rem;
+    }
+    .administration-sidebar-compact nav > section > button > span {
+        font-size: 0.5625rem;
+        line-height: 0.75rem;
+    }
+    .administration-sidebar-compact nav > section > button > svg {
+        width: 0.75rem;
+        height: 0.75rem;
+    }
+    .administration-sidebar-compact nav section a,
+    .administration-sidebar-compact nav section [aria-disabled="true"] {
+        gap: 0.5rem;
+        padding: 0.4rem 0.5rem;
+        font-size: 0.6875rem;
+        line-height: 0.875rem;
+    }
+    .administration-sidebar-compact nav section a > span[aria-hidden="true"],
+    .administration-sidebar-compact nav section [aria-disabled="true"] > span[aria-hidden="true"] {
+        width: 1.375rem;
+        height: 1.375rem;
+        border-radius: 0.25rem;
+        font-size: 0.625rem;
+    }
+    .administration-sidebar-compact .admin-advanced-tools {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+    }
+    .administration-sidebar-compact .admin-advanced-tools > p {
+        margin-bottom: 0.375rem;
+        font-size: 0.5625rem;
+    }
+    .administration-sidebar-compact .admin-advanced-tools > a {
+        gap: 0.5rem;
+        padding: 0.4rem 0.5rem;
+        font-size: 0.6875rem;
+    }
+    .administration-sidebar-compact .admin-advanced-tools > a > span:first-child {
+        width: 1.375rem;
+        height: 1.375rem;
+    }
+    .administration-sidebar-compact > footer {
+        padding: 0.5rem 0.75rem;
+    }
+    .administration-sidebar-compact > footer p {
+        font-size: 0.625rem;
+        line-height: 0.875rem;
+    }
+</style>
+
 
 <aside
     x-data="{
@@ -146,7 +238,7 @@ NoReverseMatch while rendering this shared sidebar.
         flex h-full min-h-0 w-full flex-col
         overflow-hidden
         border-r border-slate-200
-        bg-white
+        bg-white administration-sidebar-compact
     "
     aria-label="Administration sidebar"
 >
@@ -222,7 +314,7 @@ NoReverseMatch while rendering this shared sidebar.
         class="
             min-h-0 flex-1
             overflow-x-hidden overflow-y-auto
-            px-3 py-3
+            px-3 py-3 administration-sidebar-scroll
         "
     >
         <nav
@@ -559,7 +651,7 @@ NoReverseMatch while rendering this shared sidebar.
                         {% endif %}
 
 
-                        <!-- Roles and permissions -->
+                        <!-- Groups and permissions -->
                         {% if administration_roles_url %}
                             <a
                                 href="{{ administration_roles_url }}"
@@ -601,7 +693,7 @@ NoReverseMatch while rendering this shared sidebar.
                                 </span>
 
                                 <span class="min-w-0 flex-1 truncate">
-                                    Roles and Permissions
+                                    Groups and Permissions
                                 </span>
                             </a>
                         {% endif %}
@@ -1386,7 +1478,7 @@ NoReverseMatch while rendering this shared sidebar.
             <section
                 class="
                     mt-4 border-t
-                    border-slate-200 pt-4
+                    border-slate-200 pt-4 admin-advanced-tools
                 "
                 aria-label="Advanced administration"
             >

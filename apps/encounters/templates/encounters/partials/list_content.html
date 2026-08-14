@@ -39,12 +39,7 @@ Purpose:
         </div>
 
         <a
-            href="
-                {% url 'encounters:create' %}
-                {% if selected_patient %}
-                    ?patient={{ selected_patient.pk }}
-                {% endif %}
-            "
+            href="{% url 'encounters:create' %}{% if selected_patient %}?patient={{ selected_patient.pk }}{% endif %}"
             hx-boost="false"
             class="
                 inline-flex min-h-10 items-center justify-center

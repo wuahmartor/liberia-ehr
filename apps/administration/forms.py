@@ -160,14 +160,7 @@ class RoleGroupForm(forms.ModelForm):
             "content_type__app_label", "codename"
         ),
         required=False,
-        widget=forms.SelectMultiple(
-            attrs={
-                "class": (
-                    "min-h-72 w-full rounded-md border border-slate-300 "
-                    "px-2 py-2 text-xs"
-                )
-            }
-        ),
+        widget=forms.CheckboxSelectMultiple(),
     )
 
     class Meta:
@@ -182,6 +175,23 @@ class RoleGroupForm(forms.ModelForm):
                 }
             )
         }
+
+    def permission_groups(self):
+        """Return permissions grouped by application for the assignment UI."""
+        selected = {
+            str(permission_id)
+            for permission_id in self["permissions"].value() or []
+        }
+        grouped = {}
+        for permission in self.fields["permissions"].queryset:
+            app_label = permission.content_type.app_label
+            grouped.setdefault(app_label, []).append(
+                {
+                    "permission": permission,
+                    "selected": str(permission.pk) in selected,
+                }
+            )
+        return grouped.items()
 
 
 class CompactAdminModelForm(forms.ModelForm):

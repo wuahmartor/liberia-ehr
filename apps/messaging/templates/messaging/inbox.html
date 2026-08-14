@@ -1,0 +1,46 @@
+{% extends "layouts/app_shell.html" %}
+
+{% block title %}Secure Staff Chat | Liberia EHR{% endblock %}
+
+{% block workspace %}
+<section class="mx-auto max-w-5xl space-y-3">
+    <header class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 shadow-sm">
+        <div>
+            <p class="text-[9px] font-bold uppercase tracking-wider text-ehr-700">Private staff communication</p>
+            <h1 class="mt-0.5 text-sm font-semibold text-slate-950">Secure Staff Chat</h1>
+            <p class="mt-0.5 text-[10px] text-slate-500">Messages are visible only to conversation participants.</p>
+        </div>
+        <a href="{% url 'messaging:new' %}" class="rounded-md bg-ehr-700 px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-ehr-800">New message</a>
+    </header>
+
+    <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2">
+            <h2 class="text-xs font-semibold text-slate-900">Conversations</h2>
+            {% if unread_count %}<span class="rounded-full bg-red-100 px-2 py-0.5 text-[9px] font-bold text-red-700">{{ unread_count }} unread</span>{% endif %}
+        </div>
+        <div class="divide-y divide-slate-200">
+            {% for conversation in conversations %}
+                <a href="{% url 'messaging:conversation' conversation.pk %}" class="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 hover:bg-slate-50">
+                    <span class="grid h-8 w-8 place-items-center rounded-full bg-ehr-100 text-[10px] font-bold text-ehr-800">
+                        {% if conversation.is_group_message %}📣{% elif conversation.chat_partner.first_name %}{{ conversation.chat_partner.first_name|first }}{{ conversation.chat_partner.last_name|first }}{% else %}{{ conversation.chat_partner.username|first }}{% endif %}
+                    </span>
+                    <span class="min-w-0">
+                        <span class="block truncate text-xs font-semibold text-slate-900">{{ conversation.subject }}</span>
+                        <span class="block truncate text-[9px] font-medium text-ehr-700">{% if conversation.is_group_message %}{{ conversation.get_audience_display }}{% else %}{{ conversation.chat_partner.get_full_name|default:conversation.chat_partner.username }}{% endif %}{% if conversation.patients.count %} · {{ conversation.patients.count }} patient{{ conversation.patients.count|pluralize }}{% endif %}</span>
+                        <span class="block truncate text-[10px] text-slate-500">{% if conversation.last_message %}{{ conversation.last_message.body|truncatechars:90 }}{% else %}No messages{% endif %}</span>
+                    </span>
+                    <span class="text-right">
+                        {% if conversation.last_message %}<span class="block text-[9px] text-slate-400">{{ conversation.last_message.created_at|timesince }} ago</span>{% endif %}
+                        {% if conversation.unread_count %}<span class="mt-0.5 inline-grid min-h-4 min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[8px] font-bold text-white">{{ conversation.unread_count }}</span>{% endif %}
+                    </span>
+                </a>
+            {% empty %}
+                <div class="px-3 py-10 text-center">
+                    <p class="text-xs font-semibold text-slate-800">No conversations yet</p>
+                    <p class="mt-1 text-[10px] text-slate-500">Start a secure conversation with another staff member.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

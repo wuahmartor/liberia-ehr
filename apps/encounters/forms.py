@@ -26,13 +26,45 @@ Important:
 
 from django import forms
 from django.contrib.auth import get_user_model
+from django.forms.models import ModelChoiceIterator
 
+from apps.accounts.models import UserProfile
 from apps.patients.models import Patient
 
 from .models import Encounter
 
 
 User = get_user_model()
+
+
+class ProviderChoiceIterator(ModelChoiceIterator):
+    """Include an explicit not-applicable choice alongside real providers."""
+
+    def __iter__(self):
+        yield ("", "Select a provider or N/A")
+        yield (ProviderModelChoiceField.NOT_APPLICABLE_VALUE, "N/A — Not applicable")
+        yield from super().__iter__()
+
+
+class ProviderModelChoiceField(forms.ModelChoiceField):
+    NOT_APPLICABLE_VALUE = "__not_applicable__"
+    iterator = ProviderChoiceIterator
+
+    def label_from_instance(self, user):
+        full_name = user.get_full_name().strip() or user.username
+        try:
+            profile = user.profile
+        except UserProfile.DoesNotExist:
+            profile = None
+        title = ""
+        if profile:
+            title = profile.job_title.strip() or profile.get_role_display()
+        return f"{full_name} — {title or 'Staff'}"
+
+    def clean(self, value):
+        if value == self.NOT_APPLICABLE_VALUE:
+            return None
+        return super().clean(value)
 
 
 class EncounterForm(forms.ModelForm):
@@ -45,6 +77,17 @@ class EncounterForm(forms.ModelForm):
 
         encounter.save(actor=request.user)
     """
+
+    attending_provider = ProviderModelChoiceField(
+        queryset=User.objects.none(),
+        required=True,
+        empty_label=None,
+        label="Attending provider",
+        help_text=(
+            "Select the responsible provider, or choose N/A when a provider "
+            "does not apply."
+        ),
+    )
 
     class Meta:
         model = Encounter
@@ -207,7 +250,7 @@ class EncounterForm(forms.ModelForm):
         # ATTENDING PROVIDER QUERYSET
         # =============================================================
 
-        active_users = User.objects.filter(
+        active_users = User.objects.select_related("profile").filter(
             is_active=True,
         ).order_by(
             "first_name",
@@ -216,10 +259,7 @@ class EncounterForm(forms.ModelForm):
         )
 
         self.fields["attending_provider"].queryset = active_users
-        self.fields["attending_provider"].required = False
-        self.fields["attending_provider"].empty_label = (
-            "Select attending provider"
-        )
+        self.fields["attending_provider"].required = True
 
         # =============================================================
         # STATUS CHOICES
@@ -313,10 +353,10 @@ class EncounterForm(forms.ModelForm):
         self.fields["status"].required = True
         self.fields["priority"].required = True
 
-        self.fields["reason_for_visit"].required = False
+        self.fields["reason_for_visit"].required = True
         self.fields["registration_completed"].required = False
         self.fields["identity_verified"].required = False
-        self.fields["attending_provider"].required = False
+        self.fields["attending_provider"].required = True
         self.fields["notes"].required = False
 
         # =============================================================
@@ -462,6 +502,11 @@ class EncounterForm(forms.ModelForm):
             "attending_provider"
         )
 
+        provider_not_applicable = (
+            self.data.get(self.add_prefix("attending_provider"))
+            == ProviderModelChoiceField.NOT_APPLICABLE_VALUE
+        )
+
         # =============================================================
         # IDENTITY VERIFICATION
         # =============================================================
@@ -527,6 +572,7 @@ class EncounterForm(forms.ModelForm):
             status in provider_required_statuses
             and encounter_type in provider_required_types
             and not attending_provider
+            and not provider_not_applicable
         ):
             self.add_error(
                 "attending_provider",
