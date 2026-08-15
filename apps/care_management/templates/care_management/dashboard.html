@@ -1,0 +1,156 @@
+{% extends "layouts/app_shell.html" %}
+
+{% block title %}Care Assignments | Liberia EHR{% endblock %}
+
+{% block workspace %}
+<style>
+    .care-management-page { width: min(100%, 52rem); margin: 0 auto 0 0; }
+    .care-assignment-grid { display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: .5rem; }
+    .care-patient-column { grid-row: 1 / span 2; }
+    @media (max-width: 760px) {
+        .care-assignment-grid { grid-template-columns: minmax(0, 1fr); }
+        .care-patient-column { grid-row: auto; }
+    }
+</style>
+<section class="care-management-page space-y-2" x-data="careAssignmentBoard()">
+    <header class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+        <div class="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+        <div>
+            <p class="text-[9px] font-bold uppercase tracking-wider text-ehr-700">Care management</p>
+            <h1 class="text-base font-bold text-slate-950">Patient assignments</h1>
+            <p class="mt-0.5 text-[10px] text-slate-500">Manage the care team and current patient load.</p>
+        </div>
+        <form method="get" class="grid gap-2 sm:grid-cols-3" data-workspace-width="wide">
+            <label class="block"><span class="mb-1 block text-[9px] font-bold uppercase text-slate-500">Shift</span><select name="shift" class="w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-[11px]" onchange="this.form.submit()">{% for shift in shifts %}<option value="{{ shift.pk }}" {% if selected_shift.pk == shift.pk %}selected{% endif %}>{{ shift.name }} · {{ shift.starts_at|date:"M j g:i A" }}</option>{% empty %}<option>No shifts created</option>{% endfor %}</select></label>
+            <label class="block"><span class="mb-1 block text-[9px] font-bold uppercase text-slate-500">Patients</span><select name="patients" class="w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-[11px]" onchange="this.form.submit()"><option value="all" {% if patient_filter == 'all' %}selected{% endif %}>All assignable</option><option value="active" {% if patient_filter == 'active' %}selected{% endif %}>Active</option><option value="discharged" {% if patient_filter == 'discharged' %}selected{% endif %}>Discharged</option><option value="mine" {% if patient_filter == 'mine' %}selected{% endif %}>My patients</option><option value="nurse" {% if patient_filter == 'nurse' %}selected{% endif %}>By nurse</option></select></label>
+            <label class="block"><span class="mb-1 block text-[9px] font-bold uppercase text-slate-500">Nurse</span><select name="nurse" class="w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-[11px]" onchange="this.form.patients.value='nurse'; this.form.submit()"><option value="">Any nurse</option>{% for nurse in nurses %}<option value="{{ nurse.pk }}" {% if selected_nurse == nurse.pk|stringformat:'s' %}selected{% endif %}>{{ nurse.get_full_name|default:nurse.username }}</option>{% endfor %}</select></label>
+        </form>
+        </div>
+    </header>
+
+    {% if can_manage_staffing %}
+    <details class="rounded-md border border-slate-200 bg-white px-3 py-2">
+        <summary class="cursor-pointer text-[10px] font-bold text-ehr-800">＋ New shift</summary>
+        <form method="post" action="{% url 'care_management:shift-create' %}" class="mt-3 grid gap-3 md:grid-cols-2" data-workspace-width="wide">
+            {% csrf_token %}
+            {% for field in shift_form %}<label class="block {% if field.name == 'notes' %}md:col-span-2{% endif %}"><span class="mb-1 block text-[10px] font-bold text-slate-700">{{ field.label }}</span>{{ field }}{% for error in field.errors %}<span class="block text-[10px] text-red-600">{{ error }}</span>{% endfor %}</label>{% endfor %}
+            <div class="md:col-span-2"><button class="rounded-md bg-ehr-700 px-4 py-2 text-xs font-bold text-white">Create shift</button></div>
+        </form>
+    </details>
+    {% endif %}
+
+    {% if selected_shift %}
+        <section class="flex flex-wrap items-center gap-x-5 gap-y-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-[10px]">
+            <span class="font-bold text-ehr-800">{{ selected_shift.phase|title }}</span>
+            <span class="text-slate-500">Ends {{ selected_shift.ends_at|date:"M j, g:i A" }}</span>
+            <span><strong class="text-slate-900">{{ ratios.patients }}</strong> patients</span>
+            <span><strong class="text-slate-900">{{ ratios.nurses }}</strong> nurses</span>
+            <span><strong class="text-slate-900">{{ ratios.aides }}</strong> aides</span>
+            <span><strong class="text-slate-900">{{ ratios.patients_per_nurse|default:"—" }}</strong> Patients per nurse</span>
+        </section>
+
+        <div id="care-assignment-board">
+            {% include "care_management/partials/assignment_board.html" %}
+        </div>
+
+        <details class="rounded-md border border-slate-200 bg-white px-3 py-2">
+            <summary title="Assign using dropdown and list selection" class="cursor-pointer text-[10px] font-bold text-slate-700">List assignment</summary>
+            <form method="post" action="{% url 'care_management:assign' %}" class="mt-3 grid gap-3 md:grid-cols-2" data-workspace-width="wide">
+                {% csrf_token %}
+                <input type="hidden" name="shift" value="{{ selected_shift.pk }}">
+                {% if can_manage_staffing %}
+                <label class="block"><span class="mb-1 block text-[10px] font-bold">Nurse or patient care aide</span>{{ assignment_form.staff }}</label>
+                {% else %}
+                <div class="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900"><strong>Self-assignment:</strong> Patients will be assigned to {{ request.user.get_full_name|default:request.user.username }}.</div>
+                {% endif %}
+                <label class="block md:col-span-2"><span class="mb-1 block text-[10px] font-bold">Patients — use Ctrl/Cmd or Shift to select several</span>{{ assignment_form.patients }}</label>
+                <div class="md:col-span-2"><button class="rounded-md bg-ehr-700 px-4 py-2 text-xs font-bold text-white">Assign selected patients</button></div>
+            </form>
+        </details>
+    {% else %}
+        <div class="rounded-lg border border-dashed bg-white p-10 text-center text-sm text-slate-500">Create a shift before assigning patients.</div>
+    {% endif %}
+</section>
+
+<script>
+function careAssignmentBoard() {
+    return {
+        draggingPatient: null,
+        draggingStaff: null,
+        focusedStaff: null,
+        busy: false,
+        startDrag(event, patientId) {
+            this.draggingPatient = patientId;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('application/x-care-patient', patientId);
+        },
+        startStaffDrag(event, staffId) {
+            this.draggingStaff = staffId;
+            event.dataTransfer.effectAllowed = 'copy';
+            event.dataTransfer.setData('application/x-care-staff', staffId);
+        },
+        dropStaff(event) {
+            event.preventDefault();
+            const staffId = event.dataTransfer.getData('application/x-care-staff') || this.draggingStaff;
+            if (!staffId) return;
+            this.focusedStaff = staffId;
+            this.draggingStaff = null;
+        },
+        async dropToTeam(event, staffUrl, patientUrl) {
+            event.preventDefault();
+            if (this.busy) return;
+            const staffId = event.dataTransfer.getData('application/x-care-staff') || this.draggingStaff;
+            const patientId = event.dataTransfer.getData('application/x-care-patient') || this.draggingPatient;
+            if (!staffId && !patientId) return;
+            this.busy = true;
+            const payload = new FormData();
+            payload.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            const url = staffId ? staffUrl : patientUrl;
+            payload.append(staffId ? 'staff' : 'patient', staffId || patientId);
+            try {
+                const response = await fetch(url, {method: 'POST', headers: {'Accept': 'application/json'}, body: payload});
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Care-team update failed.');
+                window.location.reload();
+            } catch (error) {
+                window.alert(error.message);
+            } finally {
+                this.busy = false;
+                this.draggingStaff = null;
+                this.draggingPatient = null;
+            }
+        },
+        dropOnStaff(event, staffId, allowed) {
+            if (event.dataTransfer.getData('application/x-care-staff')) {
+                this.dropStaff(event);
+                return;
+            }
+            this.dropPatient(event, staffId, allowed);
+        },
+        async dropPatient(event, staffId, allowed) {
+            event.preventDefault();
+            if (!allowed || this.busy) return;
+            const patientId = event.dataTransfer.getData('application/x-care-patient') || this.draggingPatient;
+            if (!patientId) return;
+            this.busy = true;
+            const payload = new FormData();
+            payload.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            payload.append('shift', '{{ selected_shift.pk|default:"" }}');
+            payload.append('staff', staffId);
+            payload.append('patients', patientId);
+            try {
+                const response = await fetch('{% url "care_management:assign" %}', {method: 'POST', headers: {'Accept': 'application/json'}, body: payload});
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Assignment failed.');
+                window.location.reload();
+            } catch (error) {
+                window.alert(error.message);
+            } finally {
+                this.busy = false;
+                this.draggingPatient = null;
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

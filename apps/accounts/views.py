@@ -36,6 +36,9 @@ def get_role_redirect_url(user):
         UserProfile.Role.NURSE: (
             "core:clinical_dashboard"
         ),
+        UserProfile.Role.PATIENT_CARE_AIDE: (
+            "core:clinical_dashboard"
+        ),
         UserProfile.Role.NURSE_PRACTITIONER: (
             "core:clinical_dashboard"
         ),
@@ -163,6 +166,11 @@ def login_view(request):
 
 @require_POST
 def logout_view(request):
+    # Care assignments complete only when the shift has ended and this
+    # explicit staff logout condition has also been recorded.
+    from apps.care_management.services import record_staff_logout
+
+    record_staff_logout(request.user)
     logout(request)
 
     messages.success(

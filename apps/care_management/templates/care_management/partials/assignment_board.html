@@ -1,0 +1,40 @@
+{% load static %}
+<section class="care-assignment-grid min-h-[24rem]" aria-label="Patient assignment board">
+      <section class="care-patient-column rounded-lg border border-slate-200 bg-white">
+        <header class="border-b border-slate-200 bg-slate-50 px-2.5 py-2"><h2 class="text-[11px] font-bold">Patients</h2><p class="text-[9px] text-slate-500">Drag a patient onto assigned staff.</p></header>
+        <div class="max-h-[24rem] space-y-1 overflow-y-auto p-1.5">
+            {% for patient in available_patients %}
+            <article draggable="true" @dragstart="startDrag($event, '{{ patient.pk }}')" class="cursor-grab rounded border border-slate-200 bg-white px-2 py-1.5 hover:border-blue-300 hover:bg-blue-50 active:cursor-grabbing" tabindex="0">
+                <p class="truncate text-[10px] font-bold text-slate-900">{{ patient.display_name }}</p>
+                <p class="text-[8px] text-slate-500">{{ patient.mrn }} · {{ patient.age }}y</p>
+            </article>
+            {% empty %}<p class="p-4 text-center text-[10px] text-slate-500">No active patients are available.</p>{% endfor %}
+        </div>
+      </section>
+
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div class="relative h-20 overflow-hidden bg-slate-100">
+          <img src="{% static 'src/images/care_management/clinical-team.png' %}" alt="Clinical care staff team" class="h-full w-full object-cover object-center">
+          <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/80 to-transparent px-2.5 pb-1.5 pt-5"><h2 class="text-[11px] font-bold text-white">Clinical Staff</h2><p class="text-[8px] text-slate-200">Drag a staff member into Care Team.</p></div>
+        </div>
+        <div class="grid max-h-[10rem] grid-cols-2 gap-1 overflow-y-auto p-1.5">
+          {% for load in staff_loads %}
+            <article draggable="true" @dragstart="startStaffDrag($event, '{{ load.staff.pk }}')" class="flex cursor-grab items-center justify-between gap-2 rounded border border-slate-200 bg-white px-2 py-1.5 hover:border-emerald-300 hover:bg-emerald-50 active:cursor-grabbing" tabindex="0">
+              <div class="min-w-0"><p class="truncate text-[10px] font-bold text-slate-900">{{ load.staff.get_full_name|default:load.staff.username }}</p><p class="truncate text-[8px] text-slate-500">{{ load.staff.profile.get_role_display }}</p></div>
+              <span class="rounded-full bg-slate-100 px-1.5 py-0.5 text-[8px] font-bold text-slate-600">{{ load.count }}</span>
+            </article>
+          {% empty %}<p class="p-3 text-center text-[9px] text-slate-500">No clinical staff available.</p>{% endfor %}
+        </div>
+      </section>
+    <div class="rounded-lg border border-slate-200 bg-white"><header class="flex flex-wrap items-end justify-between gap-2 border-b border-slate-200 bg-slate-50 px-2.5 py-2"><div><h2 class="text-[11px] font-bold">Care Teams</h2><p class="text-[9px] text-slate-500">Create multiple teams; each patient belongs to one.</p></div>{% if can_manage_staffing %}<form method="post" action="{% url 'care_management:team-create' %}" class="flex items-center gap-1">{% csrf_token %}<input type="hidden" name="shift" value="{{ selected_shift.pk }}"><input name="name" required maxlength="120" placeholder="New team name" aria-label="New care-team name" class="w-32 rounded border border-slate-300 bg-white px-2 py-1 text-[9px]"><button class="rounded bg-emerald-700 px-2 py-1 text-[9px] font-bold text-white">Add team</button></form>{% endif %}</header><div class="grid content-start gap-2 p-2">
+        {% for team in care_teams %}
+        <article class="rounded-md border border-emerald-200 bg-white" @dragover.prevent @drop.stop="dropToTeam($event, '{% url 'care_management:team-add-staff' team.pk %}', '{% url 'care_management:team-add-patient' team.pk %}')">
+            <header class="flex items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50 px-2.5 py-2"><div><p class="text-xs font-bold text-emerald-950">{{ team.name }}</p><p class="text-[9px] text-emerald-700">Drop clinical staff or patients here</p></div><span class="rounded-full bg-white px-2 py-1 text-[9px] font-bold text-emerald-800">{{ team.patient_assignments.all|length }} patients</span></header>
+            <div class="grid gap-2 p-2 sm:grid-cols-2">
+                <section><p class="mb-1 text-[8px] font-bold uppercase tracking-wider text-slate-400">Staff</p>{% for member in team.memberships.all %}<div class="mb-1 rounded bg-slate-50 px-2 py-1 text-[9px]"><strong>{{ member.staff.get_full_name|default:member.staff.username }}</strong> · {{ member.staff.profile.get_role_display }}</div>{% empty %}<div class="rounded border border-dashed p-2 text-center text-[9px] text-slate-400">Drop staff</div>{% endfor %}</section>
+                <section><p class="mb-1 text-[8px] font-bold uppercase tracking-wider text-slate-400">Patients</p>{% for assignment in team.patient_assignments.all %}{% if assignment.status == 'active' %}<a href="{% url 'patients:detail' assignment.patient.pk %}" class="mb-1 block rounded bg-blue-50 px-2 py-1 text-[9px] font-semibold text-blue-900">{{ assignment.patient.display_name }} <span class="font-normal text-blue-600">· {{ assignment.patient.mrn }}</span></a>{% endif %}{% empty %}<div class="rounded border border-dashed p-2 text-center text-[9px] text-slate-400">Drop patients</div>{% endfor %}</section>
+            </div>
+        </article>
+        {% empty %}<div class="rounded border border-dashed p-6 text-center text-[10px] text-slate-500">No care team is configured for this shift.</div>{% endfor %}
+    </div></div>
+</section>

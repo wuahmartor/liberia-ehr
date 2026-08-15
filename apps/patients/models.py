@@ -91,6 +91,24 @@ class PatientQuerySet(models.QuerySet):
 
 class Patient(UserTrackedModel):
     @property
+    def active_care_team(self):
+        """Clinical staff whose patient assignment is currently effective."""
+        from apps.care_management.models import PatientCareTeamAssignment
+
+        assignment = (
+            PatientCareTeamAssignment.objects.filter(
+                patient=self, status=PatientCareTeamAssignment.Status.ACTIVE
+            )
+            .select_related("care_team__shift")
+            .first()
+        )
+        if assignment is None:
+            return []
+        return assignment.care_team.memberships.select_related(
+            "staff", "staff__profile", "care_team__shift"
+        ).order_by("staff__last_name", "staff__first_name")
+
+    @property
     def sidebar_allergy_summary(self):
         """Active allergy summary for the patient identity card."""
         allergies = self.allergies.filter(status=PatientAllergy.Status.ACTIVE).order_by(

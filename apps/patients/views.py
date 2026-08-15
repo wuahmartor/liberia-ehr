@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
@@ -35,12 +36,15 @@ from django.shortcuts import (
     render,
 )
 from django.urls import reverse
+from django.utils import timezone
 from django.views import View
 from django.views.generic import CreateView, UpdateView
 
 from apps.core.htmx import is_htmx
 from apps.diagnoses.models import PatientDiagnosis
 from apps.encounters.models import Encounter
+from apps.accounts.models import UserProfile
+from apps.care_management.models import PatientStaffAssignment
 from apps.orders.models import MedicationOrder
 
 from .forms import (
@@ -269,6 +273,8 @@ def patient_list(
     query = request.GET.get("q", "").strip()
     status = request.GET.get("status", "all").strip()
     facility_id = request.GET.get("facility", "").strip()
+    care_status = request.GET.get("care_status", "all").strip()
+    assigned_nurse_id = request.GET.get("nurse", "").strip()
 
     open_statuses = (
         Encounter.EncounterStatus.PLANNED,
@@ -333,6 +339,33 @@ def patient_list(
             registration_facility_id=facility_id,
         )
 
+    now = timezone.now()
+    effective_assignment = Q(
+        staff_assignments__status=PatientStaffAssignment.Status.ASSIGNED
+    ) & (
+        Q(staff_assignments__shift__ends_at__gt=now)
+        | Q(staff_assignments__staff_logged_out_at__isnull=True)
+    )
+    if care_status == "active":
+        patients = patients.filter(has_open_encounter=True)
+    elif care_status == "discharged":
+        patients = patients.filter(
+            has_open_encounter=False, has_completed_encounter=True
+        )
+    elif care_status == "mine":
+        patients = patients.filter(effective_assignment, staff_assignments__staff=request.user)
+    elif care_status != "all":
+        care_status = "all"
+
+    if assigned_nurse_id:
+        patients = patients.filter(
+            effective_assignment,
+            staff_assignments__staff_id=assigned_nurse_id,
+            staff_assignments__assignment_role=PatientStaffAssignment.AssignmentRole.NURSE,
+        )
+
+    patients = patients.distinct()
+
     patients = patients.order_by(
         "last_name",
         "first_name",
@@ -355,6 +388,14 @@ def patient_list(
         "query": query,
         "status": status,
         "selected_facility": facility_id,
+        "care_status": care_status,
+        "selected_nurse": assigned_nurse_id,
+        "assignment_nurses": get_user_model().objects.filter(
+            is_active=True,
+            profile__is_active_staff=True,
+            profile__is_clinical_staff=True,
+            profile__role=UserProfile.Role.NURSE,
+        ).order_by("last_name", "first_name", "username"),
     }
 
     template_name = (

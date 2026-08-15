@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.urls import include, path
 
-
 urlpatterns = [
+    path("care-management/", include("apps.care_management.urls")),
     path("secure-chat/", include("apps.messaging.urls")),
     path("diagnoses/", include("apps.diagnoses.urls")),
     path("ai-cds/", include("apps.decision_support.urls")),

@@ -35,10 +35,10 @@
             </p>
         </div>
 
-        <!-- Status filter only; patient search remains in secondary navbar -->
+        <!-- Patient search remains in the secondary navbar. -->
         <form
             method="get"
-            class="flex items-center gap-2"
+            class="flex flex-wrap items-end gap-2"
         >
             {% if query %}
                 <input
@@ -48,12 +48,28 @@
                 >
             {% endif %}
 
-            <label
-                for="patient-status-filter"
-                class="text-xs font-medium text-slate-600"
-            >
-                Record status
+            <label class="block">
+                <span class="mb-1 block text-[9px] font-bold uppercase text-slate-500">Care view</span>
+                <select name="care_status" class="min-w-40 rounded-md border border-slate-300 bg-white py-1.5 pl-2.5 pr-8 text-xs" onchange="this.form.submit()">
+                    <option value="all" {% if care_status == "all" %}selected{% endif %}>All patients</option>
+                    <option value="active" {% if care_status == "active" %}selected{% endif %}>Active patients</option>
+                    <option value="discharged" {% if care_status == "discharged" %}selected{% endif %}>Discharged patients</option>
+                    <option value="mine" {% if care_status == "mine" %}selected{% endif %}>My assigned patients</option>
+                </select>
             </label>
+
+            <label class="block">
+                <span class="mb-1 block text-[9px] font-bold uppercase text-slate-500">Assigned nurse</span>
+                <select name="nurse" class="min-w-44 rounded-md border border-slate-300 bg-white py-1.5 pl-2.5 pr-8 text-xs" onchange="this.form.submit()">
+                    <option value="">Any nurse</option>
+                    {% for nurse in assignment_nurses %}
+                        <option value="{{ nurse.pk }}" {% if selected_nurse == nurse.pk|stringformat:"s" %}selected{% endif %}>{{ nurse.get_full_name|default:nurse.username }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label class="block">
+            <span class="mb-1 block text-[9px] font-bold uppercase text-slate-500">Record status</span>
 
             <select
                 id="patient-status-filter"
@@ -109,6 +125,7 @@
                     Entered in error
                 </option>
             </select>
+            </label>
         </form>
     </div>
 

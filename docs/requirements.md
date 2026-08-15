@@ -73,6 +73,10 @@ flowchart LR
 | VIT-02 | Show history, abnormal values, corrections, and trends | `vitals` | Foundation |
 | NUR-01 | Record admission, shift, focused, transfer, discharge, post-procedure, and change assessments | `nursing` | Foundation |
 | NUR-02 | Manage tasks, I/O, handoff, and risk assessments | `nursing` | Foundation |
+| CARE-01 | Create time-bounded shifts and assign patients to nurses or patient care aides | `care_management` | Implemented foundation |
+| CARE-02 | Allow nurses and patient care aides to self-assign patients for a selected shift | `care_management` | Implemented foundation |
+| CARE-03 | Show patient-to-nurse and aide-to-nurse ratios plus per-staff workload | `care_management` | Implemented foundation; staffing governance required |
+| CARE-04 | Complete an assignment only after shift expiry and recorded staff logout | `care_management`, `accounts` | Implemented |
 | DX-01 | Associate coded diagnoses/procedures with patient and encounter | `diagnoses` | Partial |
 | NOTE-01 | Create, edit, sign, amend, void, list, and view notes | `clinical_notes` | Foundation |
 | CDS-01 | Generate and acknowledge rules, alerts, recommendations, and risk scores | `decision_support` | Validation required |

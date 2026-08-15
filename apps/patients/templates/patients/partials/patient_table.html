@@ -594,8 +594,8 @@ PAGINATION
         >
             {% if page_obj.has_previous %}
                 <a
-                    href="?q={{ query|urlencode }}&status={{ status|urlencode }}&facility={{ selected_facility|urlencode }}&page={{ page_obj.previous_page_number }}"
-                    hx-get="?q={{ query|urlencode }}&status={{ status|urlencode }}&facility={{ selected_facility|urlencode }}&page={{ page_obj.previous_page_number }}"
+                    href="?q={{ query|urlencode }}&status={{ status|urlencode }}&facility={{ selected_facility|urlencode }}&care_status={{ care_status|urlencode }}&nurse={{ selected_nurse|urlencode }}&page={{ page_obj.previous_page_number }}"
+                    hx-get="?q={{ query|urlencode }}&status={{ status|urlencode }}&facility={{ selected_facility|urlencode }}&care_status={{ care_status|urlencode }}&nurse={{ selected_nurse|urlencode }}&page={{ page_obj.previous_page_number }}"
                     hx-target="#patient-table-container"
                     hx-swap="outerHTML"
                     class="
@@ -638,8 +638,8 @@ PAGINATION
 
             {% if page_obj.has_next %}
                 <a
-                    href="?q={{ query|urlencode }}&status={{ status|urlencode }}&facility={{ selected_facility|urlencode }}&page={{ page_obj.next_page_number }}"
-                    hx-get="?q={{ query|urlencode }}&status={{ status|urlencode }}&facility={{ selected_facility|urlencode }}&page={{ page_obj.next_page_number }}"
+                    href="?q={{ query|urlencode }}&status={{ status|urlencode }}&facility={{ selected_facility|urlencode }}&care_status={{ care_status|urlencode }}&nurse={{ selected_nurse|urlencode }}&page={{ page_obj.next_page_number }}"
+                    hx-get="?q={{ query|urlencode }}&status={{ status|urlencode }}&facility={{ selected_facility|urlencode }}&care_status={{ care_status|urlencode }}&nurse={{ selected_nurse|urlencode }}&page={{ page_obj.next_page_number }}"
                     hx-target="#patient-table-container"
                     hx-swap="outerHTML"
                     class="

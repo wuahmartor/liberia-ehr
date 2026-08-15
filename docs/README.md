@@ -61,6 +61,7 @@ The repository contains both operational workflows and scaffold applications. �
 | MAR | Implemented scheduled/PRN administration and administration history |
 | Pharmacy | Implemented review, clarification, verification, dispensing, formulary, and stock ledger foundation |
 | Scheduling | Implemented appointment management foundation |
+| Care assignments | Implemented time-bounded shifts, nurse/aide patient assignments, self-assignment, workload ratios, and logout-aware completion |
 | Secure staff messaging | Implemented direct messaging, broadcasts, patient context, read receipts, and unread polling |
 | Clinical dashboard | Live database statistics implemented |
 | Analytics dashboards | Implemented foundations; metric governance and validation remain ongoing |
@@ -664,7 +665,7 @@ All entries below are present in `INSTALLED_APPS`. “Foundation” means useful
 | `notifications` | Notification domain | Installed application shell | Scaffold |
 | `laboratories` | Laboratory domain | Installed model/app shell; dashboard entry exists | Scaffold |
 | `imaging` | Imaging/radiology domain | Installed model/app shell; dashboard entry exists | Scaffold |
-| `care_management` | Care coordination | Installed model/app shell | Scaffold |
+| `care_management` | Shift-based care staffing | Shift creation, nurse/aide patient assignment, self-assignment, drag/drop board, ratios, two-condition completion | Implemented foundation |
 | `documents` | Clinical document management | Installed model/app shell | Scaffold |
 | `flowsheets` | Structured longitudinal charting | Installed model/app shell | Scaffold |
 
@@ -678,6 +679,7 @@ All entries below are present in `INSTALLED_APPS`. “Foundation” means useful
 | `/encounters/` | `encounters` | Encounter lifecycle |
 | `/vitals/` | `vitals` | Vital observation workflows |
 | `/nursing/` | `nursing` | Patient/encounter nursing workspace |
+| `/care-management/` | `care_management` | Care shifts, patient assignments, staff loads, and ratios |
 | `/clinical-notes/` | `clinical_notes` | Note workflows |
 | `/orders/` | `orders` | Medication-order entry and history |
 | `/medications/` | `medications` | Patient medications, reconciliation, MAR |

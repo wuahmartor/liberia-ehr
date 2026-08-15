@@ -32,6 +32,7 @@ flowchart TD
     Clinical --> Admission["Register / admission /patients/new/"]
     Clinical --> Encounters["Encounters /encounters/"]
     Clinical --> Pharmacy["Pharmacy /pharmacy/"]
+    Clinical --> CareAssignments["Care assignments /care-management/"]
 
     Patients --> PatientChart["Patient chart /patients/{patient}/"]
     PatientChart --> PatientOverview["Overview"]
@@ -198,6 +199,7 @@ The unread-count and message-fragment endpoints are support routes. They must no
 | `/medications/` | `medications` | patient medication view, reconciliation, MAR |
 | `/pharmacy/` | `pharmacy` | review, dispensing, inventory, formulary, terminology APIs |
 | `/secure-chat/` | `messaging` | staff messaging and polling |
+| `/care-management/` | `care_management` | shifts, patient-to-staff assignments, workload ratios |
 | `/analytics/` | `analytics` plus a legacy `core` entry | analytics workspaces |
 | `/ai-cds/` | `decision_support` | alerts, recommendations, risk, rules |
 | `/facilities/` | `facilities` | facility hierarchy and dependent options |

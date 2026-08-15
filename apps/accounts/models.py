@@ -8,6 +8,7 @@ class UserProfile(models.Model):
         FACILITY_ADMIN = "facility_admin", "Facility Administrator"
         PHYSICIAN = "physician", "Physician"
         NURSE = "nurse", "Nurse"
+        PATIENT_CARE_AIDE = "patient_care_aide", "Patient Care Aide"
         NURSE_PRACTITIONER = "nurse_practitioner", "Nurse Practitioner"
         PHARMACIST = "pharmacist", "Pharmacist"
         LAB_TECHNICIAN = "lab_technician", "Laboratory Technician"
@@ -127,6 +128,7 @@ class UserProfile(models.Model):
         clinical_roles = {
             self.Role.PHYSICIAN,
             self.Role.NURSE,
+            self.Role.PATIENT_CARE_AIDE,
             self.Role.NURSE_PRACTITIONER,
             self.Role.PHARMACIST,
             self.Role.LAB_TECHNICIAN,

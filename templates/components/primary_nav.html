@@ -433,17 +433,15 @@ Important navigation behavior:
                                 </span>
                             </a>
 
-                            <!-- =================================
-                                CARE MANAGEMENT
-                                Disabled until app route exists.
-                            ================================== -->
-                            <span
+                            <a
+                                href="{% url 'care_management:dashboard' %}"
+                                hx-boost="false"
                                 class="
                                     primary-dropdown-link
-                                    cursor-not-allowed
-                                    opacity-50
                                 "
-                                aria-disabled="true"
+                                role="menuitem"
+                                {% if active_clinical_module == "care-management" %}aria-current="page"{% endif %}
+                                @click="openMenu = null"
                             >
                                 <span class="primary-dropdown-icon">
                                     ⇄
@@ -452,7 +450,7 @@ Important navigation behavior:
                                 <span class="primary-dropdown-label">
                                     Care Management
                                 </span>
-                            </span>
+                            </a>
 
                         </div>
                     </div>
@@ -1726,17 +1724,14 @@ Important navigation behavior:
                             Pharmacy
                         </a>
 
-                        <!-- Care management -->
-                        <span
-                            class="
-                                mobile-primary-nav-link
-                                cursor-not-allowed
-                                opacity-50
-                            "
-                            aria-disabled="true"
+                        <a
+                            href="{% url 'care_management:dashboard' %}"
+                            hx-boost="false"
+                            class="mobile-primary-nav-link {% if active_clinical_module == 'care-management' %}mobile-primary-nav-link-active{% endif %}"
+                            @click="mobileMenuOpen = false"
                         >
                             Care Management
-                        </span>
+                        </a>
 
                     </div>
                 </div>

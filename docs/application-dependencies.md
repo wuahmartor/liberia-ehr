@@ -21,6 +21,7 @@ flowchart LR
     medications --> orders & encounters & patients
     pharmacy --> orders
     messaging --> accounts & patients
+    care_management --> accounts & patients & facilities
     administration --> accounts & facilities & patients
     analytics --> encounters & patients
     core --> accounts & patients & encounters & diagnoses & clinical_notes
@@ -43,6 +44,7 @@ flowchart LR
 | `pharmacy` | Catalog, review, dispense, inventory | medication orders | Implemented foundation |
 | `medications` | Medication administration record | order, patient, encounter, administering user | Implemented |
 | `messaging` | Direct/broadcast chat and read state | user/profile, optional patients, care team | Implemented foundation |
+| `care_management` | Time-bounded shifts, nurse/aide assignments, workload ratios | accounts, patients, facilities, logout lifecycle | Implemented foundation |
 | `decision_support` | Rules, alerts, recommendations, risk output | nursing and patient/encounter context | Unvalidated foundation |
 | `administration` | Scheduling and configuration workspaces | accounts, facilities, patients | Mixed foundation |
 | `analytics` | Clinical/operational read models | patients, encounters, other selectors | Foundation |

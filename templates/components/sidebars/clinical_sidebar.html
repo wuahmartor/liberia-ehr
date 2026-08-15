@@ -99,6 +99,21 @@ Recommended active_clinical_section:
 
         {% include "components/patient_identity.html" %}
 
+        <details class="mt-2 rounded-md border border-emerald-200 bg-emerald-50/50">
+            <summary class="cursor-pointer px-2.5 py-2 text-[10px] font-bold uppercase tracking-wider text-emerald-800">Care Team</summary>
+            <div class="space-y-1 border-t border-emerald-100 p-2">
+                {% for assignment in selected_patient.active_care_team %}
+                    <div class="rounded bg-white px-2 py-1.5 ring-1 ring-inset ring-slate-200">
+                        <p class="truncate text-[10px] font-semibold text-slate-800">{{ assignment.staff.get_full_name|default:assignment.staff.username }}</p>
+                        <p class="text-[9px] text-slate-500">{{ assignment.staff.profile.get_role_display }} · {{ assignment.care_team.name }}</p>
+                    </div>
+                {% empty %}
+                    <p class="text-[9px] leading-4 text-slate-500">No active care-team assignment.</p>
+                {% endfor %}
+                <a href="{% url 'care_management:dashboard' %}" hx-boost="false" class="block pt-1 text-[9px] font-bold text-emerald-700">Open Care Assignments →</a>
+            </div>
+        </details>
+
 
         <!-- =================================================
              PATIENT RECORD
@@ -914,6 +929,8 @@ Recommended active_clinical_section:
 
             </a>
 
+            <a href="{% url 'care_management:dashboard' %}" hx-boost="false" class="flex h-8 items-center gap-2 rounded-md border-l-2 px-2 text-[10px] {% if active_clinical_module == 'care-management' %}border-emerald-600 bg-emerald-50 font-semibold text-emerald-900{% else %}border-transparent font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-800{% endif %}"><span class="flex h-5 w-5 items-center justify-center">⇄</span><span>Care Assignments</span></a>
+
         </section>
 
 
@@ -1023,6 +1040,12 @@ Recommended active_clinical_section:
                         <span>Patients</span>
                     </a>
 
+                    <div class="ml-7 space-y-0.5 border-l border-slate-200 pl-2">
+                        <a href="{% url 'patients:list' %}?care_status=active" hx-boost="false" class="block rounded px-2 py-1 text-[9px] font-medium text-slate-500 hover:bg-emerald-50 hover:text-emerald-800">Active patients</a>
+                        <a href="{% url 'patients:list' %}?care_status=discharged" hx-boost="false" class="block rounded px-2 py-1 text-[9px] font-medium text-slate-500 hover:bg-emerald-50 hover:text-emerald-800">Discharged</a>
+                        <a href="{% url 'patients:list' %}?care_status=mine" hx-boost="false" class="block rounded px-2 py-1 text-[9px] font-medium text-slate-500 hover:bg-emerald-50 hover:text-emerald-800">My assigned patients</a>
+                    </div>
+
 
                     <a
                         href="{% url 'pharmacy:dashboard' %}"
@@ -1062,6 +1085,8 @@ Recommended active_clinical_section:
                         <span>Pharmacy</span>
 
                     </a>
+
+                    <a href="{% url 'care_management:dashboard' %}" hx-boost="false" class="flex h-8 items-center gap-2 rounded-md px-2 text-[10px] {% if active_clinical_module == 'care-management' %}bg-emerald-50 font-semibold text-emerald-900{% else %}font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-800{% endif %}"><span class="flex h-5 w-5 items-center justify-center">⇄</span><span>Care Assignments</span></a>
 
                 </nav>
 
