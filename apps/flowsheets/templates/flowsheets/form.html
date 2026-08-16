@@ -1,26 +1,48 @@
 {% extends "layouts/app_shell.html" %}
 
-{% block title %}
-    flowsheets Form | Liberia EHR
-{% endblock %}
+{% block title %}Chart {{ definition.name }} | Liberia EHR{% endblock %}
 
 {% block workspace %}
-<section class="max-w-3xl">
-    <h1 class="text-2xl font-bold capitalize">
-        flowsheets Form
-    </h1>
-
-    <form method="post" class="mt-6 space-y-4">
+<section id="inline-flow-form" class="w-full max-w-5xl space-y-3 py-2 pr-3">
+    <div class="flex items-start justify-between gap-3">
+        <div><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">{{ patient.full_name }} · MRN {{ patient.mrn }}</p><h1 class="text-lg font-bold text-slate-900">{% if corrected_from %}Correct{% else %}Chart{% endif %} {{ definition.name }}</h1><p class="text-[10px] text-slate-500">{% if corrected_from %}The original entry will remain in the audit trail. {% endif %}{% if active_encounter %}Linked to encounter {{ active_encounter.pk }}{% else %}Longitudinal patient record{% endif %}</p></div>
+        <a href="{% url 'flowsheets:patient-definition' patient.pk definition.slug %}{% if active_encounter %}?encounter={{ active_encounter.pk }}{% endif %}" {% if inline %}hx-get="{% url 'flowsheets:patient-definition' patient.pk definition.slug %}{% if active_encounter %}?encounter={{ active_encounter.pk }}{% endif %}" hx-target="#flowsheet-tabs-workspace" hx-select="#flowsheet-tabs-workspace" hx-swap="outerHTML"{% endif %} class="rounded-md border border-slate-300 px-3 py-1.5 text-[10px] font-semibold text-slate-700">Cancel</a>
+    </div>
+    <form method="post" {% if inline %}hx-post="{{ request.get_full_path }}" hx-target="#flowsheet-panel" hx-select="#inline-flow-form" hx-swap="innerHTML"{% endif %} x-data="{ values: {} }" x-init="$nextTick(() => document.querySelectorAll('[data-flow-key]').forEach((element) => values[element.dataset.flowKey] = element.value))" class="space-y-3">
         {% csrf_token %}
-
-        {% include "flowsheets/partials/form_fields.html" %}
-
-        <button
-            type="submit"
-            class="rounded-lg bg-ehr-800 px-4 py-2 font-semibold text-white"
-        >
-            Save
-        </button>
+        {% if active_encounter %}<input type="hidden" name="encounter" value="{{ active_encounter.pk }}">{% endif %}
+        {% if form.non_field_errors %}<div class="mb-3 rounded bg-red-50 p-2 text-[10px] text-red-700">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+            <div class="grid gap-3 sm:grid-cols-3">
+                <label class="block"><span class="mb-1 block text-[10px] font-semibold text-slate-700">Assessment purpose</span>{{ form.assessment_type }}{% for error in form.assessment_type.errors %}<span class="text-[9px] text-red-600">{{ error }}</span>{% endfor %}</label>
+                <label class="block"><span class="mb-1 block text-[10px] font-semibold text-slate-700">Recorded at</span>{{ form.recorded_at }}{% for error in form.recorded_at.errors %}<span class="text-[9px] text-red-600">{{ error }}</span>{% endfor %}</label>
+                {% if form.correction_reason %}<label class="block"><span class="mb-1 block text-[10px] font-semibold text-slate-700">Correction reason</span>{{ form.correction_reason }}{% for error in form.correction_reason.errors %}<span class="text-[9px] text-red-600">{{ error }}</span>{% endfor %}</label>{% endif %}
+            </div>
+        </div>
+        <div class="space-y-2">
+            {% for section in organized_sections %}
+                <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                    <header class="border-b border-slate-200 bg-slate-50 px-3 py-2"><h2 class="text-xs font-bold text-slate-800">{{ forloop.counter }}. {{ section.name }}</h2></header>
+                    <div class="space-y-3 p-3">
+                        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            {% for item in section.primary %}
+                                <label class="block"><span class="mb-1 flex gap-1 text-[10px] font-semibold text-slate-700">{{ item.bound.label }}{% if item.bound.field.required %}<span class="text-red-600">*</span>{% endif %}</span>{{ item.bound }}{% if item.bound.help_text %}<span class="mt-1 block text-[9px] text-slate-400">{{ item.bound.help_text }}</span>{% endif %}{% for error in item.bound.errors %}<span class="text-[9px] text-red-600">{{ error }}</span>{% endfor %}</label>
+                            {% endfor %}
+                        </div>
+                        {% for subsection in section.subsections %}
+                            <div x-cloak {% if subsection.show_when_field_key %}x-show="values['{{ subsection.show_when_field_key }}'] === '{{ subsection.show_when_value|escapejs }}'" x-transition.opacity{% endif %} class="rounded-md border-l-4 border-amber-400 bg-amber-50/40 p-3">
+                                <h3 class="mb-2 text-[10px] font-bold uppercase tracking-wide text-amber-900">{{ subsection.name }}</h3>
+                                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    {% for item in subsection.fields %}<label class="block"><span class="mb-1 flex gap-1 text-[10px] font-semibold text-slate-700">{{ item.bound.label }}{% if item.definition.is_required %}<span class="text-red-600">*</span>{% endif %}</span>{{ item.bound }}{% if item.definition.data_type == 'multi_choice' %}<span class="mt-1 block text-[9px] text-slate-400">Hold Ctrl/Command to select multiple findings.</span>{% endif %}{% if item.bound.help_text %}<span class="mt-1 block text-[9px] text-slate-400">{{ item.bound.help_text }}</span>{% endif %}{% for error in item.bound.errors %}<span class="text-[9px] text-red-600">{{ error }}</span>{% endfor %}</label>{% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endfor %}
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-3"><label class="block"><span class="mb-1 block text-[10px] font-semibold text-slate-700">Overall clinical note</span>{{ form.notes }}{% for error in form.notes.errors %}<span class="text-[9px] text-red-600">{{ error }}</span>{% endfor %}</label></div>
+        <div class="sticky bottom-0 flex justify-end border-t border-slate-200 bg-slate-50/95 px-3 py-3 backdrop-blur"><button type="submit" class="rounded-md bg-emerald-700 px-4 py-2 text-[10px] font-bold text-white hover:bg-emerald-800">{% if corrected_from %}Sign correction{% else %}Sign flowsheet entry{% endif %}</button></div>
     </form>
 </section>
 {% endblock %}

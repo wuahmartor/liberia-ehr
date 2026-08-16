@@ -58,14 +58,15 @@ The repository contains both operational workflows and scaffold applications. �
 | Diagnoses | Data model and patient integration implemented; dedicated UI remains incomplete |
 | Clinical notes | Implemented create, edit, detail, list, and signing workflow |
 | Medication orders | Implemented provider order entry and order status workflow |
-| MAR | Implemented scheduled/PRN administration and administration history |
+| MAR | Implemented patient and shift-wide MARs, time-column scheduling, recurrence expansion, shift/custom-range filtering, administration, and history |
 | Pharmacy | Implemented review, clarification, verification, dispensing, formulary, and stock ledger foundation |
 | Scheduling | Implemented appointment management foundation |
-| Care assignments | Implemented time-bounded shifts, nurse/aide patient assignments, self-assignment, workload ratios, and logout-aware completion |
+| Care assignments | Implemented time-bounded shifts, implicit multi-patient care teams, drag/drop editing, staff/patient filters, ratios, and logout-aware completion |
 | Secure staff messaging | Implemented direct messaging, broadcasts, patient context, read receipts, and unread polling |
 | Clinical dashboard | Live database statistics implemented |
 | Analytics dashboards | Implemented foundations; metric governance and validation remain ongoing |
-| Laboratory, imaging, documents, flowsheets | Application scaffolds/partial foundations; not complete workflows |
+| Flowsheets | Implemented reusable definitions, vertical body-system assessments, conditional abnormal subsections, patient/encounter linkage, longitudinal grid, threshold flags, and entered-in-error audit workflow |
+| Laboratory, imaging, documents | Application scaffolds/partial foundations; not complete workflows |
 | Clinical decision support | Rules, alerts, acknowledgement/override, recommendations, and risk-score foundation implemented; not clinically validated |
 | AI assistant | Application shell only; no production model workflow or autonomous clinical decision-making |
 | Billing, patient portal, integrations | Placeholder or early foundation |
@@ -255,6 +256,22 @@ These screens manage assignment. They do not automatically add missing authoriza
 - Due, overdue, early/not-due, held, refused, omitted, not-given, and administered handling.
 - Out-of-window reason capture and next-dose recalculation.
 - Grouped administration history to reduce repeated medication names.
+- Cross-patient **Shift MAR** with one row per patient, hourly columns, compact medication labels, fixed headings, and hover/focus detail panels.
+- Patient MAR with scheduled administration times as column headings rather than repeated row values.
+- Care-shift and custom start/end filtering that limits both medication rows and generated time columns.
+- Recurrence expansion across the selected window; for example, an every-six-hours order produces every applicable due-time column.
+- Per-occurrence Scheduled, Due, Overdue, Held, and PRN labels.
+
+### Care assignments
+
+- Compact viewport-based assignment workspace with separate patient, clinical-staff, temporary-staging, and confirmed-assignment areas.
+- Temporary drag/drop staging allows staff and patients to be reviewed before confirmation.
+- One implicit care team can contain multiple patients and eligible clinical staff; each patient can have only one active care team.
+- Multiple care teams can coexist during one shift. Teams are created automatically from confirmed batches rather than manually named.
+- Existing teams accept additional staff or unassigned patients through drag/drop editing followed by explicit save.
+- Assigned/unassigned patient and staff badges, with care-team counts for staff assigned to multiple teams.
+- Filters for active, discharged, current-user, and selected-nurse patients.
+- Atomic creation/edit services and patient release preserve assignment integrity.
 
 ### Pharmacy
 
@@ -654,7 +671,7 @@ All entries below are present in `INSTALLED_APPS`. “Foundation” means useful
 | `clinical_notes` | Clinical documentation | Create, list, detail, edit, sign | Implemented foundation |
 | `diagnoses` | Terminology and diagnoses | Concept sources/terms/relationships, patient diagnoses, manifestations, procedures | Model-rich foundation |
 | `orders` | Medication ordering | Patient/encounter orders, prescriber and order-method capture, hold/discontinue workflows | Implemented foundation |
-| `medications` | MAR and medication reconciliation | Patient medication list, reconciliation, scheduled/PRN MAR, history | Implemented foundation |
+| `medications` | MAR and medication reconciliation | Patient MAR, Shift MAR, time-column views, recurrence expansion, shift/range filters, scheduled/PRN history | Implemented foundation |
 | `messaging` | Secure staff communication | Direct messages, specific-recipient broadcasts, care-team/all-staff broadcasts, patient context, read receipts, unread polling | Implemented foundation |
 | `pharmacy` | Formulary, verification, dispense, stock | Work queues, catalog, RxNorm import/search, review, dispensing, inventory | Implemented foundation |
 | `administration` | Administrative operations | Scheduling calendar, users, groups/permissions, facilities, dictionaries, integrations, settings | Implemented foundation |
@@ -665,9 +682,9 @@ All entries below are present in `INSTALLED_APPS`. “Foundation” means useful
 | `notifications` | Notification domain | Installed application shell | Scaffold |
 | `laboratories` | Laboratory domain | Installed model/app shell; dashboard entry exists | Scaffold |
 | `imaging` | Imaging/radiology domain | Installed model/app shell; dashboard entry exists | Scaffold |
-| `care_management` | Shift-based care staffing | Shift creation, nurse/aide patient assignment, self-assignment, drag/drop board, ratios, two-condition completion | Implemented foundation |
+| `care_management` | Shift-based care staffing | Implicit care teams, staged drag/drop creation/editing, patient/staff filters, ratios, release, two-condition completion | Implemented foundation |
 | `documents` | Clinical document management | Installed model/app shell | Scaffold |
-| `flowsheets` | Structured longitudinal charting | Installed model/app shell | Scaffold |
+| `flowsheets` | Structured longitudinal charting | Definition administration, dynamic entry, patient/encounter grid, details, threshold flags, entered-in-error lifecycle | Implemented foundation |
 
 ### Route namespaces
 
@@ -679,10 +696,10 @@ All entries below are present in `INSTALLED_APPS`. “Foundation” means useful
 | `/encounters/` | `encounters` | Encounter lifecycle |
 | `/vitals/` | `vitals` | Vital observation workflows |
 | `/nursing/` | `nursing` | Patient/encounter nursing workspace |
-| `/care-management/` | `care_management` | Care shifts, patient assignments, staff loads, and ratios |
+| `/care-management/` | `care_management` | Care shifts, implicit care teams, drag/drop patient/staff assignment, editing, loads, and ratios |
 | `/clinical-notes/` | `clinical_notes` | Note workflows |
 | `/orders/` | `orders` | Medication-order entry and history |
-| `/medications/` | `medications` | Patient medications, reconciliation, MAR |
+| `/medications/` | `medications` | Patient medications, reconciliation, patient MAR, and cross-patient Shift MAR |
 | `/secure-chat/` | `messaging` | Secure staff inbox, compose, conversation, message polling, unread count |
 | `/pharmacy/` | `pharmacy` | Pharmacy operations and formulary |
 | `/facilities/` | `facilities` | Organization hierarchy management |
@@ -893,7 +910,7 @@ The primary green navigation bar contains a persistent amber **Messages** contro
 
 ### Remaining navbar work
 
-Laboratory, imaging/radiology, billing, care management, documents, flowsheets, system notifications, AI assistant, patient portal, and interoperability require further implementation. Secure staff messaging is implemented separately from the scaffold `notifications` domain. Decision support has an operational foundation but requires clinical validation and governance. See [Roadmap](#roadmap).
+Laboratory, imaging/radiology, billing, documents, system notifications, AI assistant, patient portal, and interoperability require further implementation. Flowsheets now provide an operational structured-charting foundation, but production use still requires permissions, terminology, threshold, and clinical-content validation. Care management now has an operational assignment foundation but still requires production staffing-policy validation. Secure staff messaging is implemented separately from the scaffold `notifications` domain. Decision support has an operational foundation but requires clinical validation and governance. See [Roadmap](#roadmap).
 
 ## Installation
 
@@ -1025,6 +1042,8 @@ Open:
 - Application: <http://127.0.0.1:8000/>
 - Django Admin: <http://127.0.0.1:8000/admin/>
 - Patient registry: <http://127.0.0.1:8000/patients/>
+- Care assignments: <http://127.0.0.1:8000/care-management/>
+- Shift MAR: <http://127.0.0.1:8000/medications/mar/shift/>
 - Secure staff messaging: <http://127.0.0.1:8000/secure-chat/>
 - Pharmacy: <http://127.0.0.1:8000/pharmacy/>
 
@@ -1118,6 +1137,16 @@ python manage.py test
 python manage.py test apps.pharmacy
 ```
 
+### Complete development test data
+
+Populate a local development database with a broad, repeatable synthetic clinical dataset:
+
+```bash
+python manage.py seed_complete_test_data
+```
+
+The idempotent command creates 50 patients plus MD/NP providers, nurses, patient care aides, pharmacists, facilities, departments, rooms, beds, encounters, diagnoses, procedures, clinical documentation, medication orders, and MAR-supporting records. Seeded accounts use the development-only password `TestPass123!`. Never run this command against production or substitute real patient information.
+
 ### Clean test-database behavior
 
 `apps/administration/migrations/0002_populate_appointment_assignments.py` now exits safely when a fresh database contains no appointments. It still requires a valid provider fallback when existing appointment rows actually need provider population. This permits deterministic clean test-database creation without weakening migration behavior for populated databases.
@@ -1137,6 +1166,8 @@ Coverage includes staff/patient access gates, participant-only conversation acce
 - Vital validation and correction.
 - Medication-order discontinuation and hold/unhold.
 - MAR time-window enforcement and next-dose calculation.
+- Shift/custom-range MAR filtering, recurring-dose expansion, time-column placement, and per-occurrence status labels.
+- Care-team batch creation/editing, clinical-staff eligibility, drag/drop staging, patient uniqueness, and release.
 - Pharmacy verification, stock locking, dispensing, and ledger creation.
 - Clinical-note signing and amendment.
 - Facility/patient access control and audit events.

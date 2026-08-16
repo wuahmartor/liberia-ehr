@@ -28,9 +28,17 @@ erDiagram
     ENCOUNTER o|--o{ PATIENT_DIAGNOSIS : contextualizes
     PATIENT ||--o{ CLINICAL_NOTE : has
     ENCOUNTER o|--o{ CLINICAL_NOTE : contextualizes
+    PATIENT ||--o{ FLOWSHEET_ENTRY : has
+    ENCOUNTER o|--o{ FLOWSHEET_ENTRY : contextualizes
+    FLOWSHEET_DEFINITION ||--|{ FLOWSHEET_FIELD_DEFINITION : defines
+    FLOWSHEET_DEFINITION ||--o{ FLOWSHEET_ENTRY : structures
+    FLOWSHEET_ENTRY ||--|{ FLOWSHEET_VALUE : contains
+    FLOWSHEET_FIELD_DEFINITION ||--o{ FLOWSHEET_VALUE : identifies
 ```
 
 The patient is longitudinal. An encounter is one care episode and may be optional for records that can be documented outside a visit, where the model permits it.
+
+Flowsheet definitions are reusable configuration records. Each signed entry captures a patient, optional validated encounter, recording user and time, with typed child values tied to ordered field definitions. Numeric fields can classify values as normal, warning, or critical using configured limits. Entries marked entered in error remain retained with the responsible user, timestamp, and reason.
 
 ## Medication chain
 
@@ -47,6 +55,19 @@ erDiagram
 ```
 
 Catalog, order, pharmacy decision, stock movement, and bedside administration are distinct evidence records. They should never be collapsed into one mutable status row.
+
+## Care-team assignment chain
+
+```mermaid
+erDiagram
+    CARE_SHIFT ||--o{ CARE_TEAM : contains
+    CARE_TEAM ||--o{ CARE_TEAM_MEMBER : includes
+    AUTH_USER ||--o{ CARE_TEAM_MEMBER : joins
+    CARE_TEAM ||--o{ PATIENT_CARE_TEAM_ASSIGNMENT : receives
+    PATIENT ||--o| PATIENT_CARE_TEAM_ASSIGNMENT : active_assignment
+```
+
+`CareTeam` is created implicitly when a reviewed staff/patient batch is confirmed. A team can include multiple clinical staff and patients, and a shift can contain multiple teams. The conditional uniqueness constraint on active `PatientCareTeamAssignment.patient` enforces one active care team per patient. Released assignments remain historical records rather than being deleted.
 
 ## Messaging chain
 

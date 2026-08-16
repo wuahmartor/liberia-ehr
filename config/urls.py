@@ -7,6 +7,7 @@ urlpatterns = [
     path("diagnoses/", include("apps.diagnoses.urls")),
     path("ai-cds/", include("apps.decision_support.urls")),
     path("nursing/", include("apps.nursing.urls")),
+    path("flowsheets/", include("apps.flowsheets.urls")),
     path("admin/", admin.site.urls),
 
     path(

@@ -633,6 +633,15 @@ Recommended active_clinical_section:
                             <span>Vital Signs</span>
                         </a>
 
+                        <a
+                            href="{% url 'flowsheets:encounter' encounter_id=active_encounter.pk %}"
+                            hx-boost="false"
+                            class="flex h-8 items-center gap-2 rounded-md border-l-2 px-2 text-[10px] transition {% if active_clinical_module == 'flowsheets' %}border-emerald-600 bg-emerald-50 font-semibold text-emerald-900{% else %}border-transparent font-medium text-slate-600 hover:bg-slate-50{% endif %}"
+                        >
+                            <span class="flex h-5 w-5 items-center justify-center text-slate-400">▦</span>
+                            <span>Flowsheets</span>
+                        </a>
+
 
                         <!-- ENCOUNTER NOTES -->
 

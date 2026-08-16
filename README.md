@@ -2,6 +2,8 @@
 
 Liberia EHR is a modular, server-rendered electronic health record built with Django, HTMX, Alpine.js, and Tailwind CSS.
 
+Current clinical workflow highlights include compact drag/drop care-team assignment, editable multi-patient care teams, a cross-patient hourly Shift MAR, and a patient MAR with shift/custom-range filtering and recurring due-time expansion.
+
 > [!WARNING]
 > This project is under active development and is not certified or validated for production clinical use. Do not load real protected health information until the required security, privacy, clinical-safety, backup, recovery, and regulatory reviews are complete.
 

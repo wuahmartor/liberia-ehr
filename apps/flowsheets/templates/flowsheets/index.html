@@ -1,13 +1,33 @@
 {% extends "layouts/app_shell.html" %}
 
-{% block title %}
-    flowsheets | Liberia EHR
-{% endblock %}
+{% block title %}Flowsheets | Liberia EHR{% endblock %}
 
 {% block workspace %}
-<section>
-    <h1 class="text-2xl font-bold capitalize">
-        flowsheets
-    </h1>
+<section class="mx-auto max-w-6xl space-y-4 p-4">
+    <div>
+        <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Clinical charting</p>
+        <h1 class="text-xl font-bold text-slate-900">Flowsheets</h1>
+        <p class="text-xs text-slate-500">Recent structured observations across patients and encounters.</p>
+    </div>
+    <div class="grid gap-3 md:grid-cols-3">
+        {% for definition in definitions %}
+            <div class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                <p class="text-xs font-semibold text-slate-900">{{ definition.name }}</p>
+                <p class="mt-1 text-[10px] text-slate-500">{{ definition.description|default:definition.get_category_display }}</p>
+            </div>
+        {% empty %}<p class="text-xs text-slate-500">No active flowsheet definitions.</p>{% endfor %}
+    </div>
+    <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-200 px-3 py-2 text-xs font-semibold text-slate-800">Recent entries</div>
+        <div class="divide-y divide-slate-100">
+            {% for entry in entries %}
+                <a href="{{ entry.get_absolute_url }}" class="grid grid-cols-[1.4fr_1fr_auto] gap-3 px-3 py-2 text-[10px] hover:bg-slate-50">
+                    <span><strong>{{ entry.patient.full_name }}</strong><br><span class="text-slate-500">MRN {{ entry.patient.mrn }}</span></span>
+                    <span>{{ entry.flowsheet.name }}<br><span class="text-slate-500">{{ entry.recorded_by.get_full_name|default:entry.recorded_by.username }}</span></span>
+                    <span class="text-right">{{ entry.recorded_at|date:"M j, Y" }}<br><span class="text-slate-500">{{ entry.recorded_at|time:"H:i" }}</span></span>
+                </a>
+            {% empty %}<p class="p-4 text-xs text-slate-500">No flowsheet entries have been charted.</p>{% endfor %}
+        </div>
+    </div>
 </section>
 {% endblock %}

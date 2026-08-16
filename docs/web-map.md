@@ -42,12 +42,14 @@ flowchart TD
     PatientChart --> Notes["Clinical notes"]
     PatientChart --> PatientMeds["Medication record"]
     PatientChart --> PatientVitals["Vital history"]
+    PatientChart --> Flowsheets["Structured flowsheets"]
 
     PatientEncounters --> Encounter["Encounter /encounters/{encounter}/"]
     Encounter --> Nursing["Nursing workspace"]
     Encounter --> Orders["Medication order entry"]
     Encounter --> MAR["Medication administration record"]
     Encounter --> EncounterNotes["Encounter documentation"]
+    Encounter --> EncounterFlowsheets["Flowsheets"]
 
     Pharmacy --> Queue["Order queue and review"]
     Pharmacy --> Dispensing["Dispensing"]
@@ -125,6 +127,8 @@ flowchart LR
 | Medication record | `/medications/patient/<patient UUID>/` |
 | Reconciliation | `/medications/patient/<patient UUID>/reconciliation/` |
 | Vital history | `/vitals/patient/<patient UUID>/` |
+| Flowsheet history | `/flowsheets/patient/<patient UUID>/` |
+| New flowsheet entry | `/flowsheets/patient/<patient UUID>/new/<definition UUID>/` |
 
 ### Encounter-scoped routes
 
@@ -136,7 +140,9 @@ flowchart LR
 | Nursing workspace | `/nursing/patient/<patient UUID>/encounter/<encounter UUID>/` |
 | Medication order | `/orders/patient/<patient UUID>/encounter/<encounter UUID>/medication-order/` |
 | MAR | `/medications/encounter/<encounter UUID>/mar/` |
+| Shift MAR | `/medications/mar/shift/` |
 | Encounter vital history | `/vitals/encounter/<encounter UUID>/` |
+| Encounter flowsheets | `/flowsheets/encounter/<encounter UUID>/` |
 
 Patient and encounter identifiers must be validated as a matching pair on every route containing both.
 
@@ -196,10 +202,10 @@ The unread-count and message-fragment endpoints are support routes. They must no
 | `/diagnoses/` | `diagnoses` | diagnoses, procedures, terminology search |
 | `/clinical-notes/` | `clinical_notes` | note list, create, detail, edit, sign |
 | `/orders/` | `orders` | order list and medication entry |
-| `/medications/` | `medications` | patient medication view, reconciliation, MAR |
+| `/medications/` | `medications` | patient medication view, reconciliation, patient MAR, cross-patient Shift MAR |
 | `/pharmacy/` | `pharmacy` | review, dispensing, inventory, formulary, terminology APIs |
 | `/secure-chat/` | `messaging` | staff messaging and polling |
-| `/care-management/` | `care_management` | shifts, patient-to-staff assignments, workload ratios |
+| `/care-management/` | `care_management` | shifts, implicit care teams, drag/drop patient/staff assignments and editing, workload ratios |
 | `/analytics/` | `analytics` plus a legacy `core` entry | analytics workspaces |
 | `/ai-cds/` | `decision_support` | alerts, recommendations, risk, rules |
 | `/facilities/` | `facilities` | facility hierarchy and dependent options |

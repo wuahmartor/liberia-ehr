@@ -77,6 +77,8 @@ flowchart LR
 | CARE-02 | Allow nurses and patient care aides to self-assign patients for a selected shift | `care_management` | Implemented foundation |
 | CARE-03 | Show patient-to-nurse and aide-to-nurse ratios plus per-staff workload | `care_management` | Implemented foundation; staffing governance required |
 | CARE-04 | Complete an assignment only after shift expiry and recorded staff logout | `care_management`, `accounts` | Implemented |
+| CARE-05 | Create implicit multi-patient care teams from reviewed drag/drop staff and patient batches | `care_management` | Implemented |
+| CARE-06 | Edit existing teams by adding clinical staff or unassigned patients while enforcing one active team per patient | `care_management` | Implemented |
 | DX-01 | Associate coded diagnoses/procedures with patient and encounter | `diagnoses` | Partial |
 | NOTE-01 | Create, edit, sign, amend, void, list, and view notes | `clinical_notes` | Foundation |
 | CDS-01 | Generate and acknowledge rules, alerts, recommendations, and risk scores | `decision_support` | Validation required |
@@ -93,6 +95,8 @@ flowchart LR
 | PHA-03 | Dispense against stock transactionally without negative inventory | `pharmacy` | Foundation |
 | MAR-01 | Present scheduled/PRN orders and record outcomes | `medications` | Implemented |
 | MAR-02 | Enforce timing/PRN checks and retain exception history | `medications` | Foundation |
+| MAR-03 | Provide a cross-patient Shift MAR with one patient row and hourly medication columns | `medications`, `care_management` | Implemented |
+| MAR-04 | Filter patient MAR by care shift or custom time range and expand recurring doses into per-occurrence time columns and statuses | `medications` | Implemented |
 
 ### Secure messaging
 
@@ -117,7 +121,15 @@ flowchart LR
 | ANA-02 | Govern metric definitions, provenance, validation, and access | `analytics` | Partial |
 | LAB-01 | Manage lab orders, specimens, and results | `laboratories` | Scaffold/partial |
 | IMG-01 | Manage imaging orders and results | `imaging` | Scaffold/partial |
-| DOC-01 | Manage patient/encounter documents and flowsheets | `documents`, `flowsheets` | Scaffold |
+| DOC-01 | Manage patient/encounter documents | `documents` | Scaffold |
+| FLOW-01 | Define reusable structured flowsheets and ordered fields | `flowsheets` | Implemented foundation |
+| FLOW-02 | Chart flowsheet values against a patient and optional matching encounter | `flowsheets` | Implemented |
+| FLOW-03 | Review longitudinal values by field and recorded time | `flowsheets` | Implemented |
+| FLOW-04 | Flag configured numeric values outside normal or critical limits | `flowsheets` | Implemented foundation; clinical validation required |
+| FLOW-05 | Preserve erroneous entries with actor, time, and reason | `flowsheets` | Implemented |
+| FLOW-06 | Organize nursing assessments vertically by body system and reveal focused subsections when a system is abnormal | `flowsheets` | Implemented |
+| FLOW-07 | Capture shift, admission, focused, reassessment, transfer, and discharge assessment purpose | `flowsheets` | Implemented |
+| FLOW-08 | Support multi-select findings and conditionally required abnormal detail such as location and laterality | `flowsheets` | Implemented foundation; clinical validation required |
 | INT-01 | Exchange standards-based data with external systems | future integration layer | Planned |
 
 ## Non-functional requirements

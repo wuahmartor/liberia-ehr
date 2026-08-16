@@ -42,15 +42,16 @@ flowchart LR
 | `clinical_notes` | Draft/sign/amend/void documentation | patient, encounter, diagnoses/procedures, author | Implemented foundation |
 | `orders` | Medication authorization and lifecycle | patient, encounter, pharmacy medication catalog | Implemented |
 | `pharmacy` | Catalog, review, dispense, inventory | medication orders | Implemented foundation |
-| `medications` | Medication administration record | order, patient, encounter, administering user | Implemented |
+| `medications` | Patient and shift-wide medication administration records | orders, patients, encounters, administering users, care shifts | Implemented |
 | `messaging` | Direct/broadcast chat and read state | user/profile, optional patients, care team | Implemented foundation |
-| `care_management` | Time-bounded shifts, nurse/aide assignments, workload ratios | accounts, patients, facilities, logout lifecycle | Implemented foundation |
+| `care_management` | Time-bounded shifts, implicit multi-patient care teams, editable clinical-staff membership, workload ratios | accounts, patients, facilities, logout lifecycle | Implemented foundation |
 | `decision_support` | Rules, alerts, recommendations, risk output | nursing and patient/encounter context | Unvalidated foundation |
 | `administration` | Scheduling and configuration workspaces | accounts, facilities, patients | Mixed foundation |
 | `analytics` | Clinical/operational read models | patients, encounters, other selectors | Foundation |
 | `core` | Dashboard, shared helpers, shell aggregates | reads most implemented clinical apps | Aggregation layer |
 | `laboratories`, `imaging` | Diagnostic workflow boundaries | intended patient/encounter/order links | Scaffold/partial |
-| `documents`, `flowsheets` | Document and structured observation boundaries | intended patient/encounter links | Scaffold |
+| `documents` | Clinical document boundary | intended patient/encounter links | Scaffold |
+| `flowsheets` | Reusable structured observations and longitudinal review | patients, encounters, recording users | Implemented foundation |
 | `care_management` | Longitudinal care-management boundary | intended patient/team links | Scaffold |
 | `notifications` | Future system-generated notices | separate from human staff chat | Scaffold |
 | `audit` | Future centralized audit boundary | cross-cutting | Scaffold |
@@ -109,6 +110,8 @@ Conversation membership is the access boundary. Patient context does not grant a
 | Encounter status/provider | patient summary, nursing discharge, orders, care-team resolution, analytics |
 | Medication catalog | order forms, pharmacy review, dispensing, MAR display |
 | Medication-order status | pharmacy queues, actionable MAR, patient view, dashboard |
+| Medication frequency/next-due calculation | patient MAR time columns, recurrence expansion, Shift MAR prioritization |
+| Care-team membership | assignment board, patient care-team display, staff workload/status, messaging recipient resolution |
 | User profile role/title | provider labels, administration, messaging recipient eligibility/labels |
 | Conversation participant rules | inbox, thread, polling, unread count, replies, read receipts |
 | HTMX target/partial | full wrapper, initiating control, view selection, tests |
