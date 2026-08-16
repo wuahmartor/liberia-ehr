@@ -8,6 +8,12 @@ app_name = "medications"
 
 urlpatterns = [
 
+    path(
+        "mar/shift/",
+        views.shift_mar,
+        name="shift-mar",
+    ),
+
     # ============================================================
     # GLOBAL MEDICATION ACTIVITY
     # ============================================================

@@ -1,0 +1,56 @@
+{% extends "layouts/app_shell.html" %}
+
+{% block title %}Shift MAR | Liberia EHR{% endblock %}
+
+{% block workspace %}
+<style>
+    .shift-mar-hour { width: 6rem; min-width: 6rem; max-width: 6rem; }
+    .shift-mar-patient { width: 15rem; min-width: 15rem; max-width: 15rem; }
+    .shift-mar-grid { max-height: calc(100dvh - 15rem); overflow: auto; }
+    .shift-mar-heading { position: sticky; top: 0; z-index: 10; background: #f8fafc; }
+    .shift-mar-med-wrap { position: relative; }
+    .shift-mar-med-wrap:hover, .shift-mar-med-wrap:focus-within { z-index: 30; }
+    .shift-mar-tooltip { position: absolute; top: calc(100% + .3rem); left: 0; z-index: 40; display: none; width: 16rem; white-space: normal; border: 1px solid #cbd5e1; border-radius: .55rem; padding: .55rem; background: #fff; color: #334155; box-shadow: 0 12px 30px rgb(15 23 42 / .2); font-size: .625rem; line-height: 1.45; pointer-events: none; }
+    .shift-mar-med-wrap:hover .shift-mar-tooltip, .shift-mar-med-wrap:focus-within .shift-mar-tooltip { display: block; }
+</style>
+<section class="max-w-6xl space-y-3">
+    <header class="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm lg:flex-row lg:items-end lg:justify-between">
+        <div>
+            <p class="text-[9px] font-bold uppercase tracking-wider text-emerald-700">Clinical · Patients · MAR</p>
+            <h1 class="text-base font-bold text-slate-950">Shift Medication Worklist</h1>
+            <p class="mt-0.5 text-[10px] text-slate-500">All patients with medications due, ordered by clinical priority and scheduled time.</p>
+        </div>
+        <form method="get" class="w-full max-w-sm">
+            <label class="block"><span class="mb-1 block text-[9px] font-bold uppercase text-slate-500">Care shift</span><select name="shift" onchange="this.form.submit()" class="w-full rounded-md border border-slate-300 px-3 py-2 text-xs">{% for shift in shifts %}<option value="{{ shift.pk }}" {% if selected_shift.pk == shift.pk %}selected{% endif %}>{{ shift.name }} · {{ shift.starts_at|date:"M j, g:i A" }}–{{ shift.ends_at|date:"g:i A" }}</option>{% empty %}<option>No care shifts available</option>{% endfor %}</select></label>
+        </form>
+    </header>
+
+    {% if selected_shift %}
+    <div class="flex flex-wrap items-center gap-4 rounded-md border border-slate-200 bg-white px-3 py-2 text-[10px]">
+        <span class="font-bold text-slate-900">{{ selected_shift.name }}</span>
+        <span class="text-slate-500">{{ selected_shift.starts_at|date:"g:i A" }}–{{ selected_shift.ends_at|date:"g:i A" }}</span>
+        <span class="font-semibold text-red-700">{{ overdue_count }} overdue</span>
+        <span class="font-semibold text-amber-700">{{ due_count }} due now</span>
+        <span class="text-slate-600">{{ medication_orders|length }} medication{{ medication_orders|length|pluralize }}</span>
+    </div>
+
+    <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div class="shift-mar-grid">
+            <table class="min-w-full divide-y divide-slate-200 text-left">
+                <thead class="bg-slate-50"><tr><th class="shift-mar-patient shift-mar-heading sticky left-0 z-20 px-2 py-2 text-[9px] font-bold uppercase text-slate-500">Patient</th>{% for column in time_columns %}<th class="shift-mar-hour shift-mar-heading border-l border-slate-200 px-1 py-2 text-center text-[9px] font-bold uppercase text-slate-600">{{ column.label }}</th>{% endfor %}<th class="shift-mar-hour shift-mar-heading border-l border-slate-200 px-1 py-2 text-center text-[9px] font-bold uppercase text-slate-500">PRN</th><th class="shift-mar-heading px-2 py-2 text-right text-[9px] font-bold uppercase text-slate-500">Action</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                {% for row in patient_rows %}
+                    <tr>
+                        <td class="shift-mar-patient sticky left-0 z-[1] bg-white px-2 py-1 align-top"><a href="{% url 'patients:detail' row.patient.pk %}" class="block min-w-0 hover:text-emerald-700"><span class="flex items-baseline gap-1 whitespace-nowrap"><strong class="truncate text-[9px] text-slate-900">{{ row.patient.display_name }}</strong><span class="shrink-0 text-[8px] font-medium text-slate-400">DOB {{ row.patient.date_of_birth|date:"m/d/y" }}</span></span><span class="block truncate text-[8px] font-medium leading-tight text-slate-400">MRN {{ row.patient.mrn }}</span></a></td>
+                        {% for cell in row.cells %}<td class="shift-mar-hour border-l border-slate-100 px-1 py-2 align-top"><div class="space-y-1">{% for order in cell.orders %}<div class="shift-mar-med-wrap"><div tabindex="0" aria-describedby="med-tooltip-{{ order.pk }}" class="block cursor-help overflow-hidden rounded-md px-1.5 py-1 text-left focus:outline-none focus:ring-2 focus:ring-emerald-500 {% if order.timing_status == 'overdue' %}bg-red-100 text-red-900 ring-1 ring-red-200{% elif order.timing_status == 'due' %}bg-amber-100 text-amber-900 ring-1 ring-amber-200{% else %}bg-blue-50 text-blue-900 ring-1 ring-blue-200{% endif %}"><strong class="block truncate whitespace-nowrap text-[8px] leading-tight">{{ order.next_due_at|date:"g:i A" }}</strong><span class="block truncate whitespace-nowrap text-[9px] font-semibold leading-tight">{{ order.medication.display_name }}</span></div><div id="med-tooltip-{{ order.pk }}" role="tooltip" class="shift-mar-tooltip"><strong class="mb-1 block text-[11px] text-slate-900">{{ order.medication.display_name }}</strong>{{ order.shift_mar_detail }}</div></div>{% empty %}<span class="block text-center text-slate-200">·</span>{% endfor %}</div></td>{% endfor %}
+                        <td class="shift-mar-hour border-l border-slate-100 px-1 py-2 align-top"><div class="space-y-1">{% for order in row.prn_orders %}<div class="shift-mar-med-wrap"><div tabindex="0" aria-describedby="med-tooltip-{{ order.pk }}" class="block cursor-help overflow-hidden rounded-md bg-violet-100 px-1.5 py-1 text-left text-violet-900 ring-1 ring-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-500"><span class="block truncate whitespace-nowrap text-[9px] font-semibold">{{ order.medication.display_name }}</span></div><div id="med-tooltip-{{ order.pk }}" role="tooltip" class="shift-mar-tooltip"><strong class="mb-1 block text-[11px] text-slate-900">{{ order.medication.display_name }}</strong>{{ order.shift_mar_detail }}</div></div>{% empty %}<span class="block text-center text-slate-200">·</span>{% endfor %}</div></td>
+                        <td class="px-3 py-2 text-right align-top"><a href="{% url 'medications:mar' encounter_id=row.encounter.pk %}" hx-boost="false" class="inline-flex whitespace-nowrap rounded bg-emerald-700 px-2.5 py-1.5 text-[9px] font-bold text-white">Open MAR</a></td>
+                    </tr>
+                {% empty %}<tr><td colspan="20" class="px-6 py-12 text-center text-xs text-slate-500">No medication doses are due during this shift.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}<div class="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-xs text-slate-500">Create or select a care shift to view the MAR worklist.</div>{% endif %}
+</section>
+{% endblock %}

@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import Exists, OuterRef, Prefetch, Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -16,14 +16,14 @@ from .forms import AssignmentForm, CareShiftForm, SelfAssignmentForm
 from .models import CareShift, CareTeam, PatientCareTeamAssignment, PatientStaffAssignment
 from .services import (
     assign_patients,
-    add_staff_to_care_team,
-    assign_patient_to_care_team,
+    create_care_assignment_batch,
     build_staff_loads,
     calculate_ratios,
     can_manage_staffing,
     can_self_assign,
     reconcile_assignments,
     release_assignment,
+    update_care_assignment,
 )
 
 
@@ -63,11 +63,6 @@ def _board_context(request, shift=None):
     shift = shift or _shift_from_request(request)
     assignments = PatientStaffAssignment.objects.none()
     if shift:
-        default_team, _ = CareTeam.objects.get_or_create(
-            shift=shift,
-            name="Care Team 1",
-            defaults={"created_by": request.user},
-        )
         assignments = list(
             PatientStaffAssignment.objects.effective()
             .filter(shift=shift)
@@ -136,26 +131,46 @@ def _board_context(request, shift=None):
     patients = patients.distinct().order_by("last_name", "first_name")
     if shift and shift.facility_id:
         patients = patients.filter(registration_facility_id=shift.facility_id)
+    patient_pool = patients
     assignment_form = AssignmentForm(actor=request.user, selected_shift=shift)
-    assignment_form.fields["patients"].queryset = patients
     care_teams = []
     if shift:
         care_teams = list(
             CareTeam.objects.filter(shift=shift)
             .prefetch_related(
                 "memberships__staff__profile",
-                "patient_assignments__patient",
+                Prefetch(
+                    "patient_assignments",
+                    queryset=PatientCareTeamAssignment.objects.filter(
+                        status=PatientCareTeamAssignment.Status.ACTIVE
+                    ).select_related("patient"),
+                    to_attr="active_patient_assignments",
+                ),
             )
         )
-        assigned_patient_ids = PatientCareTeamAssignment.objects.filter(
+        assigned_patient_ids = list(PatientCareTeamAssignment.objects.filter(
             status=PatientCareTeamAssignment.Status.ACTIVE
-        ).values_list("patient_id", flat=True)
+        ).values_list("patient_id", flat=True))
         patients = patients.exclude(pk__in=assigned_patient_ids)
+    else:
+        assigned_patient_ids = []
+    staff_team_counts = {}
+    for team in care_teams:
+        for membership in team.memberships.all():
+            staff_team_counts[membership.staff_id] = (
+                staff_team_counts.get(membership.staff_id, 0) + 1
+            )
+    staff_loads = build_staff_loads(assignments, staff)
+    for load in staff_loads:
+        load["care_team_count"] = staff_team_counts.get(load["staff"].pk, 0)
+    assignment_form.fields["patients"].queryset = patients
     return {
         "selected_shift": shift,
         "shifts": _accessible_shifts(request.user).order_by("-starts_at")[:30],
-        "staff_loads": build_staff_loads(assignments, staff),
+        "staff_loads": staff_loads,
         "available_patients": patients,
+        "patient_pool": patient_pool,
+        "assigned_patient_ids": assigned_patient_ids,
         "all_patients": patients,
         "patient_filter": patient_filter,
         "selected_nurse": nurse_id,
@@ -215,25 +230,6 @@ def create_shift(request):
         }
     )
     return render(request, "care_management/dashboard.html", context, status=422)
-
-
-@login_required
-@require_POST
-def create_team(request):
-    if not can_manage_staffing(request.user):
-        raise Http404
-    shift = get_object_or_404(
-        _accessible_shifts(request.user), pk=request.POST.get("shift")
-    )
-    name = request.POST.get("name", "").strip()
-    if not name:
-        messages.error(request, "Enter a care-team name.")
-    elif CareTeam.objects.filter(shift=shift, name__iexact=name).exists():
-        messages.error(request, f"A care team named “{name}” already exists.")
-    else:
-        CareTeam.objects.create(shift=shift, name=name[:120], created_by=request.user)
-        messages.success(request, f"Care team “{name[:120]}” created.")
-    return redirect(f"{reverse('care_management:dashboard')}?shift={shift.pk}")
 
 
 @login_required
@@ -303,27 +299,92 @@ def release(request, assignment_id):
 
 @login_required
 @require_POST
-def team_add_staff(request, team_id):
-    team = get_object_or_404(CareTeam.objects.filter(shift__in=_accessible_shifts(request.user)), pk=team_id)
-    if not can_manage_staffing(request.user):
+def commit_assignment_batch(request):
+    if not can_manage_staffing(request.user) and not can_self_assign(request.user):
         raise Http404
-    staff = get_object_or_404(get_user_model(), pk=request.POST.get("staff"))
+    shift = get_object_or_404(
+        _accessible_shifts(request.user), pk=request.POST.get("shift")
+    )
+    staff_ids = request.POST.getlist("staff")
+    patient_ids = request.POST.getlist("patients")
+    if not can_manage_staffing(request.user) and staff_ids != [str(request.user.pk)]:
+        return JsonResponse(
+            {"ok": False, "error": "You may create an assignment only for yourself."},
+            status=403,
+        )
+    staff = get_user_model().objects.filter(pk__in=staff_ids)
+    patients = Patient.objects.filter(pk__in=patient_ids)
     try:
-        add_staff_to_care_team(care_team=team, staff=staff, actor=request.user)
+        team = create_care_assignment_batch(
+            shift=shift, staff_users=staff, patients=patients, actor=request.user
+        )
     except ValueError as exc:
         return JsonResponse({"ok": False, "error": str(exc)}, status=422)
-    return JsonResponse({"ok": True})
+    return JsonResponse(
+        {
+            "ok": True,
+            "team": team.name,
+            "staff_count": len(staff_ids),
+            "patient_count": len(patient_ids),
+        }
+    )
 
 
 @login_required
 @require_POST
-def team_add_patient(request, team_id):
-    team = get_object_or_404(CareTeam.objects.filter(shift__in=_accessible_shifts(request.user)), pk=team_id)
+def update_assignment_team(request, team_id):
+    if not can_manage_staffing(request.user):
+        raise Http404
+    team = get_object_or_404(
+        CareTeam.objects.select_related("shift").filter(
+            shift__in=_accessible_shifts(request.user)
+        ),
+        pk=team_id,
+    )
+    staff = get_user_model().objects.filter(
+        pk__in=request.POST.getlist("staff"),
+        is_active=True,
+        profile__is_clinical_staff=True,
+        profile__is_active_staff=True,
+        profile__role__in=[
+            UserProfile.Role.NURSE,
+            UserProfile.Role.PATIENT_CARE_AIDE,
+        ],
+    )
+    patients = Patient.objects.filter(pk__in=request.POST.getlist("patients"))
+    try:
+        update_care_assignment(
+            care_team=team,
+            staff_users=staff,
+            patients=patients,
+            actor=request.user,
+        )
+    except ValueError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, f"{team.name} updated.")
+    return redirect(
+        f"{reverse('care_management:dashboard')}?shift={team.shift_id}"
+        f"#care-team-{team.pk}"
+    )
+
+
+@login_required
+@require_POST
+def release_team_patient(request, assignment_id):
+    assignment = get_object_or_404(
+        PatientCareTeamAssignment.objects.select_related("care_team__shift").filter(
+            care_team__shift__in=_accessible_shifts(request.user),
+            status=PatientCareTeamAssignment.Status.ACTIVE,
+        ),
+        pk=assignment_id,
+    )
     if not can_manage_staffing(request.user) and not can_self_assign(request.user):
         raise Http404
-    patient = get_object_or_404(Patient, pk=request.POST.get("patient"))
-    try:
-        assign_patient_to_care_team(care_team=team, patient=patient, actor=request.user)
-    except ValueError as exc:
-        return JsonResponse({"ok": False, "error": str(exc)}, status=422)
-    return JsonResponse({"ok": True})
+    assignment.status = PatientCareTeamAssignment.Status.RELEASED
+    assignment.released_at = timezone.now()
+    assignment.save(update_fields=["status", "released_at"])
+    messages.success(request, "Patient released from the care team.")
+    return redirect(
+        f"{reverse('care_management:dashboard')}?shift={assignment.care_team.shift_id}"
+    )

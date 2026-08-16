@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.encounters.models import Encounter
+from apps.care_management.models import CareShift
 from apps.medications.models import MedicationAdministration
 from apps.medications.views import (
     _attach_next_due_times,
@@ -65,6 +66,103 @@ class MedicationAdministrationRecordTests(TestCase):
             kwargs={"encounter_id": self.encounter.pk},
         )
         self.client.force_login(self.user)
+
+    def test_shift_mar_lists_patients_and_medications_in_due_time_order(self):
+        now = timezone.now()
+        shift = CareShift.objects.create(
+            name="Day shift",
+            starts_at=now - timedelta(hours=1),
+            ends_at=now + timedelta(hours=7),
+            created_by=self.user,
+        )
+        response = self.client.get(
+            reverse("medications:shift-mar"), {"shift": shift.pk}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.patient.display_name)
+        self.assertContains(response, self.patient.display_name, count=1)
+        self.assertContains(response, self.medications[0].display_name)
+        self.assertNotContains(response, ">scheduled<")
+        self.assertEqual(len(response.context["patient_rows"]), 1)
+        self.assertContains(response, "shift-mar-hour")
+        self.assertContains(response, "shift-mar-heading")
+        self.assertContains(response, "cursor-help")
+        self.assertContains(response, 'role="tooltip"')
+        self.assertContains(response, self.patient.date_of_birth.strftime("%m/%d/%y"))
+        self.assertEqual(
+            response.context["time_columns"][0]["end"]
+            - response.context["time_columns"][0]["start"],
+            timedelta(hours=1),
+        )
+        self.assertContains(response, "Open MAR")
+
+    def test_patient_mar_uses_due_times_as_column_headings(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["mar_time_columns"])
+        self.assertContains(
+            response, response.context["mar_time_columns"][0]["time_label"]
+        )
+
+    def test_patient_mar_can_filter_by_shift_or_custom_time_range(self):
+        now = timezone.now()
+        shift = CareShift.objects.create(
+            name="Medication shift",
+            starts_at=now - timedelta(hours=1),
+            ends_at=now + timedelta(hours=7),
+            created_by=self.user,
+        )
+        shift_response = self.client.get(self.url, {"mar_shift": shift.pk})
+        self.assertEqual(shift_response.status_code, 200)
+        self.assertEqual(shift_response.context["selected_mar_shift"], shift)
+        self.assertContains(shift_response, "Showing Medication shift")
+
+        local_start = timezone.localtime(now + timedelta(days=2)).strftime(
+            "%Y-%m-%dT%H:%M"
+        )
+        local_end = timezone.localtime(now + timedelta(days=3)).strftime(
+            "%Y-%m-%dT%H:%M"
+        )
+        range_response = self.client.get(
+            self.url, {"range_start": local_start, "range_end": local_end}
+        )
+        self.assertEqual(range_response.status_code, 200)
+        self.assertContains(range_response, "Showing custom range")
+        self.assertTrue(range_response.context["medication_orders"])
+        self.assertTrue(
+            all(
+                range_response.context["mar_range_start"] <= due_at
+                <= range_response.context["mar_range_end"]
+                for order in range_response.context["medication_orders"]
+                for due_at in order.mar_due_times
+            )
+        )
+
+    def test_patient_mar_expands_every_six_hour_due_times_across_range(self):
+        self.orders[0].frequency = MedicationOrder.Frequency.Q6H
+        self.orders[0].save(update_fields=["frequency"])
+        initial_response = self.client.get(self.url)
+        due_at = next(
+            order.next_due_at
+            for order in initial_response.context["medication_orders"]
+            if order.pk == self.orders[0].pk
+        )
+        start = timezone.localtime(due_at - timedelta(hours=1)).strftime(
+            "%Y-%m-%dT%H:%M"
+        )
+        end = timezone.localtime(due_at + timedelta(hours=13)).strftime(
+            "%Y-%m-%dT%H:%M"
+        )
+        response = self.client.get(
+            self.url, {"range_start": start, "range_end": end}
+        )
+        expanded_order = next(
+            order
+            for order in response.context["medication_orders"]
+            if order.pk == self.orders[0].pk
+        )
+        self.assertEqual(len(expanded_order.mar_due_times), 3)
+        self.assertContains(response, "Scheduled")
 
     def test_create_record_saves_all_selected_medications(self):
         response = self.client.post(

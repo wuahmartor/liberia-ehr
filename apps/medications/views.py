@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from django.contrib import messages
@@ -20,6 +20,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.encounters.models import Encounter
+from apps.care_management.models import CareShift
 from apps.orders.models import MedicationOrder
 from apps.patients.models import Patient
 
@@ -176,6 +177,147 @@ def administration_queryset() -> QuerySet[MedicationAdministration]:
 
         )
 
+    )
+
+
+def _accessible_care_shifts(user):
+    if user.is_superuser or user.is_staff:
+        return CareShift.objects.all()
+    profile = getattr(user, "profile", None)
+    if profile is None:
+        return CareShift.objects.none()
+    return CareShift.objects.filter(
+        Q(facility_id=profile.facility_id) | Q(facility__isnull=True)
+    )
+
+
+@login_required
+def shift_mar(request: HttpRequest) -> HttpResponse:
+    """Cross-patient medication worklist ordered by next dose time."""
+    now = timezone.now()
+    shifts = _accessible_care_shifts(request.user).order_by("-starts_at")[:30]
+    shift_id = request.GET.get("shift")
+    if shift_id:
+        selected_shift = get_object_or_404(_accessible_care_shifts(request.user), pk=shift_id)
+    else:
+        selected_shift = (
+            _accessible_care_shifts(request.user)
+            .filter(starts_at__lte=now, ends_at__gte=now)
+            .order_by("ends_at")
+            .first()
+            or _accessible_care_shifts(request.user)
+            .filter(ends_at__gte=now)
+            .order_by("starts_at")
+            .first()
+        )
+
+    orders = []
+    time_columns = []
+    patient_rows = []
+    if selected_shift:
+        order_query = medication_order_queryset().filter(
+            status__in=(MedicationOrder.Status.ACTIVE, MedicationOrder.Status.ON_HOLD),
+            encounter__is_active=True,
+        )
+        if selected_shift.facility_id:
+            order_query = order_query.filter(
+                patient__registration_facility_id=selected_shift.facility_id
+            )
+        orders = list(order_query.order_by("ordered_at", "pk"))
+        administrations = list(
+            administration_queryset()
+            .filter(medication_order_id__in=[order.pk for order in orders])
+            .order_by("-administered_at", "-pk")
+        )
+        _attach_next_due_times(
+            medication_orders=orders, administrations=administrations
+        )
+        _attach_last_administrations(
+            medication_orders=orders, administrations=administrations
+        )
+        for order in orders:
+            order.timing_status = _mar_timing_status(order, now)
+        orders = [
+            order
+            for order in orders
+            if order.is_prn
+            or (order.next_due_at and order.next_due_at <= selected_shift.ends_at)
+        ]
+        priority = {"overdue": 0, "due": 1, "scheduled": 2, "prn": 3}
+        orders.sort(
+            key=lambda order: (
+                priority.get(order.timing_status, 4),
+                order.next_due_at or selected_shift.ends_at,
+                order.patient.last_name,
+                str(order.pk),
+            )
+        )
+        column_start = selected_shift.starts_at.replace(
+            minute=0, second=0, microsecond=0
+        )
+        cursor = column_start
+        while cursor < selected_shift.ends_at:
+            time_columns.append(
+                {
+                    "start": cursor,
+                    "end": cursor + timedelta(hours=1),
+                    "label": f"{timezone.localtime(cursor):%-I %p}",
+                }
+            )
+            cursor += timedelta(hours=1)
+        rows_by_patient = {}
+        for order in orders:
+            row = rows_by_patient.get(order.patient_id)
+            if row is None:
+                row = {
+                    "patient": order.patient,
+                    "encounter": order.encounter,
+                    "cells": [{"orders": []} for _ in time_columns],
+                    "prn_orders": [],
+                }
+                rows_by_patient[order.patient_id] = row
+                patient_rows.append(row)
+            detail_parts = [
+                f"Dose: {order.dose} {order.get_dose_unit_display() or order.dose_unit}",
+                f"Route: {order.get_route_display() or order.route}",
+                f"Frequency: {order.get_frequency_display() or order.frequency}",
+            ]
+            if order.instructions:
+                detail_parts.append(f"Instructions: {order.instructions}")
+            if order.clinical_indication:
+                detail_parts.append(f"Indication: {order.clinical_indication}")
+            if order.status == MedicationOrder.Status.ON_HOLD:
+                detail_parts.append("Order is on hold")
+            elif order.timing_status == "overdue":
+                detail_parts.append("Overdue")
+            elif order.timing_status == "due":
+                detail_parts.append("Due now")
+            order.shift_mar_detail = " · ".join(detail_parts)
+            if order.is_prn:
+                row["prn_orders"].append(order)
+                continue
+            for index, column in enumerate(time_columns):
+                if (
+                    column["start"] <= order.next_due_at < column["end"]
+                    or (index == 0 and order.next_due_at < column["start"])
+                ):
+                    row["cells"][index]["orders"].append(order)
+                    break
+
+    return render(
+        request,
+        "medications/shift_mar.html",
+        {
+            **medication_context(section="shift-mar"),
+            "selected_shift": selected_shift,
+            "shifts": shifts,
+            "medication_orders": orders,
+            "time_columns": time_columns,
+            "patient_rows": patient_rows,
+            "now": now,
+            "overdue_count": sum(1 for order in orders if order.timing_status == "overdue"),
+            "due_count": sum(1 for order in orders if order.timing_status == "due"),
+        },
     )
 
 def _status_value(
@@ -508,10 +650,13 @@ def _attach_next_due_times(
 def _mar_timing_status(order: MedicationOrder, now) -> str:
     if _order_is_prn(order):
         return "prn"
-    if not order.next_due_at:
+    next_due_at = getattr(
+        order, "next_due_at", order.start_datetime or order.ordered_at
+    )
+    if not next_due_at:
         return "scheduled"
 
-    difference = order.next_due_at - now
+    difference = next_due_at - now
     if difference < -MAR_DUE_WINDOW:
         return "overdue"
     if difference <= MAR_DUE_WINDOW:
@@ -1154,6 +1299,67 @@ def medication_administration_record(
         medication_orders=medication_orders,
         administrations=administrations,
     )
+
+    mar_shifts = _accessible_care_shifts(request.user).order_by("-starts_at")[:30]
+    selected_mar_shift = None
+    mar_range_start = None
+    mar_range_end = None
+    mar_filter_error = ""
+    selected_shift_id = request.GET.get("mar_shift", "").strip()
+    range_start_value = request.GET.get("range_start", "").strip()
+    range_end_value = request.GET.get("range_end", "").strip()
+    if selected_shift_id:
+        selected_mar_shift = get_object_or_404(
+            _accessible_care_shifts(request.user), pk=selected_shift_id
+        )
+        mar_range_start = selected_mar_shift.starts_at
+        mar_range_end = selected_mar_shift.ends_at
+    elif range_start_value or range_end_value:
+        try:
+            if not range_start_value or not range_end_value:
+                raise ValueError
+            mar_range_start = datetime.fromisoformat(range_start_value)
+            mar_range_end = datetime.fromisoformat(range_end_value)
+            if timezone.is_naive(mar_range_start):
+                mar_range_start = timezone.make_aware(
+                    mar_range_start, timezone.get_current_timezone()
+                )
+            if timezone.is_naive(mar_range_end):
+                mar_range_end = timezone.make_aware(
+                    mar_range_end, timezone.get_current_timezone()
+                )
+            if mar_range_end <= mar_range_start:
+                raise ValueError
+        except ValueError:
+            mar_filter_error = "Enter a valid start and end time. End must be later than start."
+            mar_range_start = None
+            mar_range_end = None
+
+    for order in medication_orders:
+        order.mar_due_times = []
+        if order.is_prn or order.next_due_at is None:
+            continue
+        if not mar_range_start or not mar_range_end:
+            order.mar_due_times = [order.next_due_at]
+            continue
+        due_at = order.next_due_at
+        interval = MAR_FREQUENCY_INTERVALS.get(_normalized_frequency(order))
+        if due_at < mar_range_start and interval:
+            elapsed = mar_range_start - due_at
+            steps = max(0, elapsed // interval)
+            due_at += interval * steps
+            while due_at < mar_range_start:
+                due_at += interval
+        while mar_range_start <= due_at <= mar_range_end:
+            order.mar_due_times.append(due_at)
+            if not interval or len(order.mar_due_times) >= 200:
+                break
+            due_at += interval
+
+    if mar_range_start and mar_range_end:
+        medication_orders = [
+            order for order in medication_orders if order.is_prn or order.mar_due_times
+        ]
 
     now = timezone.now()
     status_priority = {"overdue": 0, "due": 1, "scheduled": 2, "prn": 3}
@@ -1872,6 +2078,41 @@ def medication_administration_record(
 
     )
 
+    mar_due_times = sorted(
+        {
+            due_at
+            for order in medication_orders
+            for due_at in order.mar_due_times
+        }
+    )
+    mar_time_columns = [
+        {
+            "due_at": due_at,
+            "time_label": timezone.localtime(due_at).strftime("%-I:%M %p"),
+            "date_label": timezone.localtime(due_at).strftime("%m/%d"),
+        }
+        for due_at in mar_due_times
+    ]
+
+    def recurrence_status(due_at):
+        difference = due_at - now
+        if difference < -MAR_DUE_WINDOW:
+            return "overdue"
+        if difference <= MAR_DUE_WINDOW:
+            return "due"
+        return "scheduled"
+
+    for order in medication_orders:
+        order.mar_time_cells = [
+            {
+                "due": due_at in order.mar_due_times,
+                "status": recurrence_status(due_at)
+                if due_at in order.mar_due_times
+                else "",
+            }
+            for due_at in mar_due_times
+        ]
+
     history_administrations = (
 
         _compact_administration_history(
@@ -1935,6 +2176,22 @@ def medication_administration_record(
             "medication_orders":
 
                 medication_orders,
+
+            "mar_time_columns": mar_time_columns,
+
+            "mar_shifts": mar_shifts,
+
+            "selected_mar_shift": selected_mar_shift,
+
+            "mar_range_start": mar_range_start,
+
+            "mar_range_end": mar_range_end,
+
+            "range_start_value": range_start_value,
+
+            "range_end_value": range_end_value,
+
+            "mar_filter_error": mar_filter_error,
 
             "administrations":
 

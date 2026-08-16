@@ -38,6 +38,45 @@ def assign_patient_to_care_team(*, care_team, patient, actor):
     return assignment
 
 
+@transaction.atomic
+def create_care_assignment_batch(*, shift, staff_users, patients, actor):
+    """Create one implicit care team from a reviewed staff/patient batch."""
+    staff_users = list(staff_users)
+    patients = list(patients)
+    if not staff_users or not patients:
+        raise ValueError("Select at least one clinical staff member and one patient.")
+    existing = PatientCareTeamAssignment.objects.filter(
+        patient__in=patients, status=PatientCareTeamAssignment.Status.ACTIVE
+    ).select_related("patient", "care_team").first()
+    if existing:
+        raise ValueError(
+            f"{existing.patient} already belongs to {existing.care_team.name}."
+        )
+    number = shift.care_teams.count() + 1
+    while shift.care_teams.filter(name=f"Care Team {number}").exists():
+        number += 1
+    team = shift.care_teams.create(name=f"Care Team {number}", created_by=actor)
+    for staff in staff_users:
+        add_staff_to_care_team(care_team=team, staff=staff, actor=actor)
+    for patient in patients:
+        assign_patient_to_care_team(care_team=team, patient=patient, actor=actor)
+    return team
+
+
+@transaction.atomic
+def update_care_assignment(*, care_team, staff_users, patients, actor):
+    """Add reviewed staff and patients to an existing care assignment."""
+    staff_users = list(staff_users)
+    patients = list(patients)
+    if not staff_users and not patients:
+        raise ValueError("Select at least one clinical staff member or patient.")
+    for staff in staff_users:
+        add_staff_to_care_team(care_team=care_team, staff=staff, actor=actor)
+    for patient in patients:
+        assign_patient_to_care_team(care_team=care_team, patient=patient, actor=actor)
+    return care_team
+
+
 def profile_role(user):
     return (
         UserProfile.objects.filter(user_id=user.pk)

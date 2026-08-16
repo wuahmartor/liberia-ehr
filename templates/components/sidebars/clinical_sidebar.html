@@ -110,7 +110,6 @@ Recommended active_clinical_section:
                 {% empty %}
                     <p class="text-[9px] leading-4 text-slate-500">No active care-team assignment.</p>
                 {% endfor %}
-                <a href="{% url 'care_management:dashboard' %}" hx-boost="false" class="block pt-1 text-[9px] font-bold text-emerald-700">Open Care Assignments →</a>
             </div>
         </details>
 
@@ -929,8 +928,6 @@ Recommended active_clinical_section:
 
             </a>
 
-            <a href="{% url 'care_management:dashboard' %}" hx-boost="false" class="flex h-8 items-center gap-2 rounded-md border-l-2 px-2 text-[10px] {% if active_clinical_module == 'care-management' %}border-emerald-600 bg-emerald-50 font-semibold text-emerald-900{% else %}border-transparent font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-800{% endif %}"><span class="flex h-5 w-5 items-center justify-center">⇄</span><span>Care Assignments</span></a>
-
         </section>
 
 
@@ -1044,6 +1041,7 @@ Recommended active_clinical_section:
                         <a href="{% url 'patients:list' %}?care_status=active" hx-boost="false" class="block rounded px-2 py-1 text-[9px] font-medium text-slate-500 hover:bg-emerald-50 hover:text-emerald-800">Active patients</a>
                         <a href="{% url 'patients:list' %}?care_status=discharged" hx-boost="false" class="block rounded px-2 py-1 text-[9px] font-medium text-slate-500 hover:bg-emerald-50 hover:text-emerald-800">Discharged</a>
                         <a href="{% url 'patients:list' %}?care_status=mine" hx-boost="false" class="block rounded px-2 py-1 text-[9px] font-medium text-slate-500 hover:bg-emerald-50 hover:text-emerald-800">My assigned patients</a>
+                        <a href="{% url 'medications:shift-mar' %}" hx-boost="false" class="block rounded px-2 py-1 text-[9px] font-medium {% if active_clinical_section == 'shift-mar' %}bg-emerald-50 font-bold text-emerald-800{% else %}text-slate-500 hover:bg-emerald-50 hover:text-emerald-800{% endif %}">Shift MAR</a>
                     </div>
 
 

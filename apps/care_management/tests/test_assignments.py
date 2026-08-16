@@ -8,7 +8,13 @@ from django.utils import timezone
 from apps.accounts.models import UserProfile
 from apps.patients.models import Patient
 
-from ..models import CareShift, CareTeam, PatientStaffAssignment
+from ..models import (
+    CareShift,
+    CareTeam,
+    CareTeamMember,
+    PatientCareTeamAssignment,
+    PatientStaffAssignment,
+)
 from ..services import (
     assign_patient_to_care_team,
     assign_patients,
@@ -146,19 +152,70 @@ class CareAssignmentTests(TestCase):
                 care_team=second_team, patient=self.patient, actor=self.manager
             )
 
-    def test_manager_can_create_multiple_care_teams_for_a_shift(self):
-        self.client.force_login(self.manager)
-        for name in ("Red Team", "Blue Team"):
-            response = self.client.post(
-                reverse("care_management:team-create"),
-                {"shift": self.shift.pk, "name": name},
-            )
-            self.assertRedirects(
-                response,
-                f"{reverse('care_management:dashboard')}?shift={self.shift.pk}",
-                fetch_redirect_response=False,
-            )
-        self.assertEqual(
-            CareTeam.objects.filter(shift=self.shift).count(),
-            2,
+    def test_confirmed_batch_creates_one_team_for_multiple_patients(self):
+        second_patient = Patient.objects.create(
+            mrn="CARE-0002",
+            first_name="Second",
+            last_name="Patient",
+            date_of_birth=date(1990, 1, 1),
+            created_by=self.manager,
+            updated_by=self.manager,
         )
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse("care_management:team-commit"),
+            {
+                "shift": self.shift.pk,
+                "staff": [self.nurse.pk, self.aide.pk],
+                "patients": [self.patient.pk, second_patient.pk],
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        team = CareTeam.objects.get(shift=self.shift)
+        self.assertEqual(CareTeamMember.objects.filter(care_team=team).count(), 2)
+        self.assertEqual(
+            PatientCareTeamAssignment.objects.filter(care_team=team).count(), 2
+        )
+
+    def test_existing_team_can_add_staff_and_patient(self):
+        team = CareTeam.objects.create(
+            shift=self.shift, name="Care Team 1", created_by=self.manager
+        )
+        second_patient = Patient.objects.create(
+            mrn="CARE-EDIT-2",
+            first_name="Added",
+            last_name="Patient",
+            date_of_birth=date(1991, 2, 2),
+            created_by=self.manager,
+            updated_by=self.manager,
+        )
+        self.client.force_login(self.manager)
+        board = self.client.get(
+            reverse("care_management:dashboard"), {"shift": self.shift.pk}
+        )
+        self.assertContains(board, "Drop staff or unassigned patients here")
+        self.assertContains(board, "stageTeamDrop")
+        self.assertContains(board, '@dragenter.prevent="dragOver = true"')
+        response = self.client.post(
+            reverse("care_management:team-update", args=[team.pk]),
+            {"staff": [self.nurse.pk], "patients": [second_patient.pk]},
+        )
+        self.assertRedirects(
+            response,
+            f"{reverse('care_management:dashboard')}?shift={self.shift.pk}"
+            f"#care-team-{team.pk}",
+        )
+        self.assertTrue(
+            CareTeamMember.objects.filter(care_team=team, staff=self.nurse).exists()
+        )
+        self.assertTrue(
+            PatientCareTeamAssignment.objects.filter(
+                care_team=team, patient=second_patient,
+                status=PatientCareTeamAssignment.Status.ACTIVE,
+            ).exists()
+        )
+        refreshed_board = self.client.get(
+            reverse("care_management:dashboard"), {"shift": self.shift.pk}
+        )
+        self.assertContains(refreshed_board, "Assigned")
+        self.assertContains(refreshed_board, "Unassigned")

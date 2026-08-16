@@ -531,6 +531,17 @@ MAR | Liberia EHR
 
         >
 
+            <form method="get" action="{{ request.path }}" class="flex flex-wrap items-end gap-1.5" data-workspace-width="wide">
+                <label class="block"><span class="mb-0.5 block text-[8px] font-bold uppercase text-slate-500">Care shift</span><select name="mar_shift" class="h-7 max-w-48 rounded border border-slate-300 bg-white px-2 text-[9px]"><option value="">Custom / all times</option>{% for shift in mar_shifts %}<option value="{{ shift.pk }}" {% if selected_mar_shift.pk == shift.pk %}selected{% endif %}>{{ shift.name }} · {{ shift.starts_at|date:"M j g:i A" }}</option>{% endfor %}</select></label>
+                <label class="block"><span class="mb-0.5 block text-[8px] font-bold uppercase text-slate-500">From</span><input type="datetime-local" name="range_start" value="{% if range_start_value %}{{ range_start_value }}{% elif mar_range_start and not selected_mar_shift %}{{ mar_range_start|date:'Y-m-d\TH:i' }}{% endif %}" class="h-7 rounded border border-slate-300 px-2 text-[9px]"></label>
+                <label class="block"><span class="mb-0.5 block text-[8px] font-bold uppercase text-slate-500">To</span><input type="datetime-local" name="range_end" value="{% if range_end_value %}{{ range_end_value }}{% elif mar_range_end and not selected_mar_shift %}{{ mar_range_end|date:'Y-m-d\TH:i' }}{% endif %}" class="h-7 rounded border border-slate-300 px-2 text-[9px]"></label>
+                <button class="h-7 rounded bg-emerald-700 px-2.5 text-[9px] font-bold text-white hover:bg-emerald-800">Apply time</button>
+                {% if selected_mar_shift or mar_range_start %}<a href="{{ request.path }}" class="inline-flex h-7 items-center rounded border border-slate-300 px-2 text-[9px] font-semibold text-slate-600 hover:bg-slate-50">Clear</a>{% endif %}
+            </form>
+
+            {% if mar_filter_error %}<p class="w-full text-[9px] font-semibold text-red-600">{{ mar_filter_error }}</p>{% endif %}
+            {% if selected_mar_shift %}<p class="w-full text-[8px] text-slate-500">Showing {{ selected_mar_shift.name }}: {{ mar_range_start|date:"M j, g:i A" }}–{{ mar_range_end|date:"M j, g:i A" }}</p>{% elif mar_range_start and mar_range_end %}<p class="w-full text-[8px] text-slate-500">Showing custom range: {{ mar_range_start|date:"M j, g:i A" }}–{{ mar_range_end|date:"M j, g:i A" }}</p>{% endif %}
+
             <!-- =============================================
 
                  ALL OPTIONS ON ONE ROW
@@ -1086,25 +1097,13 @@ MAR | Liberia EHR
 
                             </th>
 
-                            <th
-
-                                class="
-
-                                    whitespace-nowrap
-
-                                    px-2 py-1.5
-
-                                    text-left
-
-                                    font-semibold
-
-                                "
-
-                            >
-
-                                Due
-
+                            {% for column in mar_time_columns %}
+                            <th class="min-w-20 whitespace-nowrap border-l border-slate-200 px-2 py-1.5 text-center font-semibold">
+                                <span class="block text-slate-800">{{ column.time_label }}</span>
+                                <span class="block text-[7px] font-medium text-slate-400">{{ column.date_label }}</span>
                             </th>
+                            {% endfor %}
+                            <th class="min-w-14 whitespace-nowrap border-l border-slate-200 px-2 py-1.5 text-center font-semibold text-purple-700">PRN</th>
 
                             <th
 
@@ -1614,96 +1613,26 @@ MAR | Liberia EHR
 
                                 </td>
 
-                                <!-- =========================
-
-                                     DUE
-
-                                ========================== -->
-
-                                <td
-
-                                    class="
-
-                                        whitespace-nowrap
-
-                                        px-2 py-1.5
-
-                                        align-middle
-
-                                    "
-
-                                >
-
-                                    {% if order.status == "on_hold" %}
-
-                                        <span class="text-amber-700">
-
-                                            Held
-
-                                        </span>
-
-                                    {% elif order.is_prn %}
-
-                                        <span
-
-                                            class="
-
-                                                font-semibold
-
-                                                text-purple-700
-
-                                            "
-
-                                        >
-
-                                            As needed
-
-                                        </span>
-
-                                    {% elif order.next_due_at %}
-
-                                        <span
-
-                                            class="
-
-                                                font-semibold
-
-                                                text-slate-800
-
-                                            "
-
-                                        >
-
-                                            {{ order.next_due_at|date:"h:i A" }}
-
-                                        </span>
-
-                                        <span
-
-                                            class="
-
-                                                ml-1
-
-                                                text-slate-400
-
-                                            "
-
-                                        >
-
-                                            {{ order.next_due_at|date:"m/d" }}
-
-                                        </span>
-
+                                <!-- Scheduled time is expressed by the column heading. -->
+                                {% for cell in order.mar_time_cells %}
+                                <td class="border-l border-slate-100 px-2 py-1.5 text-center align-middle">
+                                    {% if cell.due %}
+                                        {% if order.status == "on_hold" %}
+                                            <span title="Medication held" class="inline-flex h-5 min-w-5 items-center justify-center rounded bg-amber-100 px-1 text-[8px] font-bold text-amber-800">Held</span>
+                                        {% elif cell.status == "overdue" %}
+                                            <span title="Medication overdue" class="inline-flex h-5 items-center justify-center rounded bg-red-100 px-1.5 text-[8px] font-bold text-red-700">Overdue</span>
+                                        {% elif cell.status == "due" %}
+                                            <span title="Medication due now" class="inline-flex h-5 items-center justify-center rounded bg-emerald-100 px-1.5 text-[8px] font-bold text-emerald-700">Due</span>
+                                        {% else %}
+                                            <span title="Scheduled in this time slot" class="inline-flex h-5 items-center justify-center rounded bg-blue-100 px-1.5 text-[8px] font-bold text-blue-700">Scheduled</span>
+                                        {% endif %}
                                     {% else %}
-
-                                        <span class="text-slate-400">
-
-                                            —
-
-                                        </span>
-
+                                        <span class="text-slate-200">·</span>
                                     {% endif %}
-
+                                </td>
+                                {% endfor %}
+                                <td class="border-l border-slate-100 px-2 py-1.5 text-center align-middle">
+                                    {% if order.is_prn %}<span class="rounded bg-purple-100 px-1.5 py-0.5 font-bold text-purple-700">PRN</span>{% else %}<span class="text-slate-200">·</span>{% endif %}
                                 </td>
 
                                 <!-- =========================

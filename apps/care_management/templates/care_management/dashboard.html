@@ -4,16 +4,43 @@
 
 {% block workspace %}
 <style>
-    .care-management-page { width: min(100%, 52rem); margin: 0 auto 0 0; }
-    .care-assignment-grid { display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: .5rem; }
+    #workspace-content:has(.care-management-page) { height: 100%; overflow: hidden; }
+    .care-management-page { width: min(100%, 52rem); height: 100%; min-height: 0; margin: 0 auto 0 0; color: #0f172a; }
+    .care-assignment-grid { display: grid; height: 100%; min-height: 0; grid-template-columns: 14rem minmax(0, 1fr); grid-template-rows: 9.75rem minmax(0, 1fr); gap: .65rem; }
     .care-patient-column { grid-row: 1 / span 2; }
+    #care-assignment-board { min-height: 0; flex: 1 1 auto; }
+    .care-board-patient-list { height: calc(100% - 3.25rem); max-height: none; }
+    .care-assignment-main { display: flex; min-height: 0; flex-direction: column; }
+    .care-assignment-content { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; }
+    .care-compact-popover { position: relative; flex: 0 0 auto; }
+    .care-compact-popover[open] { z-index: 30; }
+    .care-compact-popover > form { position: absolute; top: calc(100% + .25rem); left: 0; z-index: 30; max-height: min(32rem, 70vh); overflow-y: auto; border: 1px solid #cbd5e1; border-radius: .65rem; background: #fff; padding: .75rem; box-shadow: 0 18px 45px rgb(15 23 42 / .18); }
+    .care-panel { overflow: hidden; border: 1px solid #dbe3ec; border-radius: .8rem; background: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .04), 0 8px 24px rgb(15 23 42 / .035); }
+    .care-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: .5rem; border-bottom: 1px solid #e5eaf0; padding: .6rem .7rem; background: linear-gradient(180deg, #fff, #f8fafc); }
+    .care-section-icon { display: grid; width: 1.65rem; height: 1.65rem; flex: 0 0 auto; place-items: center; border-radius: .55rem; font-size: .72rem; font-weight: 800; }
+    .care-source-card { position: relative; transition: border-color .16s ease, background-color .16s ease, transform .16s ease, box-shadow .16s ease; }
+    .care-source-card[draggable="true"]:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgb(15 23 42 / .07); }
+    .care-avatar { display: grid; width: 1.65rem; height: 1.65rem; flex: 0 0 auto; place-items: center; border-radius: 999px; font-size: .58rem; font-weight: 800; letter-spacing: .02em; }
+    .care-grip { color: #94a3b8; font-size: .75rem; letter-spacing: -1px; }
+    .care-stage { background: radial-gradient(circle at top right, rgb(16 185 129 / .09), transparent 42%), #f8fffc; }
+    .care-stage-drop { transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease; }
+    .care-stage-drop:hover { border-color: #10b981; background: rgb(255 255 255 / .92); box-shadow: inset 0 0 0 1px rgb(16 185 129 / .08); }
+    .care-confirm-button { box-shadow: 0 5px 12px rgb(4 120 87 / .18); transition: transform .16s ease, box-shadow .16s ease; }
+    .care-confirm-button:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 7px 16px rgb(4 120 87 / .25); }
+    @media (prefers-reduced-motion: reduce) { .care-source-card, .care-stage-drop, .care-confirm-button { transition: none; } }
     @media (max-width: 760px) {
-        .care-assignment-grid { grid-template-columns: minmax(0, 1fr); }
+        #workspace-content:has(.care-management-page) { height: auto; overflow: visible; }
+        .care-management-page { height: auto; }
+        .care-assignment-grid { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
         .care-patient-column { grid-row: auto; }
+        .care-board-patient-list { height: auto; max-height: 24rem; }
+        .care-compact-popover > form { position: static; max-height: none; overflow: visible; border: 0; box-shadow: none; }
     }
 </style>
-<section class="care-management-page space-y-2" x-data="careAssignmentBoard()">
-    <header class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+<section class="care-management-page flex flex-col gap-2" x-data="careAssignmentBoard()">
+    <header class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="h-1 bg-gradient-to-r from-ehr-700 via-emerald-500 to-sky-500"></div>
+        <div class="p-3">
         <div class="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
             <p class="text-[9px] font-bold uppercase tracking-wider text-ehr-700">Care management</p>
@@ -26,10 +53,11 @@
             <label class="block"><span class="mb-1 block text-[9px] font-bold uppercase text-slate-500">Nurse</span><select name="nurse" class="w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-[11px]" onchange="this.form.patients.value='nurse'; this.form.submit()"><option value="">Any nurse</option>{% for nurse in nurses %}<option value="{{ nurse.pk }}" {% if selected_nurse == nurse.pk|stringformat:'s' %}selected{% endif %}>{{ nurse.get_full_name|default:nurse.username }}</option>{% endfor %}</select></label>
         </form>
         </div>
+        </div>
     </header>
 
     {% if can_manage_staffing %}
-    <details class="rounded-md border border-slate-200 bg-white px-3 py-2">
+    <details class="care-compact-popover rounded-md border border-slate-200 bg-white px-3 py-1.5">
         <summary class="cursor-pointer text-[10px] font-bold text-ehr-800">＋ New shift</summary>
         <form method="post" action="{% url 'care_management:shift-create' %}" class="mt-3 grid gap-3 md:grid-cols-2" data-workspace-width="wide">
             {% csrf_token %}
@@ -53,7 +81,7 @@
             {% include "care_management/partials/assignment_board.html" %}
         </div>
 
-        <details class="rounded-md border border-slate-200 bg-white px-3 py-2">
+        <details class="care-compact-popover rounded-md border border-slate-200 bg-white px-3 py-1.5">
             <summary title="Assign using dropdown and list selection" class="cursor-pointer text-[10px] font-bold text-slate-700">List assignment</summary>
             <form method="post" action="{% url 'care_management:assign' %}" class="mt-3 grid gap-3 md:grid-cols-2" data-workspace-width="wide">
                 {% csrf_token %}
@@ -77,77 +105,103 @@ function careAssignmentBoard() {
     return {
         draggingPatient: null,
         draggingStaff: null,
-        focusedStaff: null,
+        draggingPatientData: null,
+        draggingStaffData: null,
+        stagedPatients: [],
+        stagedStaff: [],
+        teamEdits: {},
         busy: false,
-        startDrag(event, patientId) {
+        startDrag(event, patientId, name, mrn) {
             this.draggingPatient = patientId;
+            this.draggingPatientData = {id: patientId, name, detail: mrn};
             event.dataTransfer.effectAllowed = 'move';
             event.dataTransfer.setData('application/x-care-patient', patientId);
+            event.dataTransfer.setData('application/x-care-patient-data', JSON.stringify(this.draggingPatientData));
         },
-        startStaffDrag(event, staffId) {
+        startStaffDrag(event, staffId, name, role) {
             this.draggingStaff = staffId;
+            this.draggingStaffData = {id: staffId, name, detail: role};
             event.dataTransfer.effectAllowed = 'copy';
             event.dataTransfer.setData('application/x-care-staff', staffId);
+            event.dataTransfer.setData('application/x-care-staff-data', JSON.stringify(this.draggingStaffData));
         },
-        dropStaff(event) {
+        stageDrop(event) {
             event.preventDefault();
-            const staffId = event.dataTransfer.getData('application/x-care-staff') || this.draggingStaff;
-            if (!staffId) return;
-            this.focusedStaff = staffId;
-            this.draggingStaff = null;
-        },
-        async dropToTeam(event, staffUrl, patientUrl) {
-            event.preventDefault();
-            if (this.busy) return;
             const staffId = event.dataTransfer.getData('application/x-care-staff') || this.draggingStaff;
             const patientId = event.dataTransfer.getData('application/x-care-patient') || this.draggingPatient;
-            if (!staffId && !patientId) return;
+            if (staffId && this.draggingStaffData && !this.stagedStaff.some(item => item.id === staffId)) {
+                this.stagedStaff.push(this.draggingStaffData);
+            } else if (patientId && this.draggingPatientData && !this.stagedPatients.some(item => item.id === patientId)) {
+                this.stagedPatients.push(this.draggingPatientData);
+            }
+            this.draggingStaff = null;
+            this.draggingPatient = null;
+            this.draggingStaffData = null;
+            this.draggingPatientData = null;
+        },
+        removeStaff(id) {
+            this.stagedStaff = this.stagedStaff.filter(item => item.id !== id);
+        },
+        removePatient(id) {
+            this.stagedPatients = this.stagedPatients.filter(item => item.id !== id);
+        },
+        clearStage() {
+            this.stagedStaff = [];
+            this.stagedPatients = [];
+        },
+        teamEdit(teamId) {
+            if (!this.teamEdits[teamId]) {
+                this.teamEdits[teamId] = {staff: [], patients: []};
+            }
+            return this.teamEdits[teamId];
+        },
+        stageTeamDrop(event, teamId) {
+            event.preventDefault();
+            const edit = this.teamEdit(teamId);
+            const staffId = event.dataTransfer.getData('application/x-care-staff') || this.draggingStaff;
+            const patientId = event.dataTransfer.getData('application/x-care-patient') || this.draggingPatient;
+            let staffData = this.draggingStaffData;
+            let patientData = this.draggingPatientData;
+            try {
+                const transferredStaff = event.dataTransfer.getData('application/x-care-staff-data');
+                const transferredPatient = event.dataTransfer.getData('application/x-care-patient-data');
+                staffData = staffData || (transferredStaff ? JSON.parse(transferredStaff) : null);
+                patientData = patientData || (transferredPatient ? JSON.parse(transferredPatient) : null);
+            } catch (error) {
+                // The plain ID payload still allows the drop to fail safely.
+            }
+            if (staffId && staffData && !edit.staff.some(item => item.id === staffId)) {
+                edit.staff.push({...staffData, id: staffId});
+            } else if (patientId && patientData && !edit.patients.some(item => item.id === patientId)) {
+                edit.patients.push({...patientData, id: patientId});
+            }
+            this.draggingStaff = null;
+            this.draggingPatient = null;
+            this.draggingStaffData = null;
+            this.draggingPatientData = null;
+        },
+        removeTeamEditItem(teamId, type, id) {
+            const edit = this.teamEdit(teamId);
+            edit[type] = edit[type].filter(item => item.id !== id);
+        },
+        async confirmBatch(url, csrfToken) {
+            if (!this.stagedStaff.length || !this.stagedPatients.length || this.busy) return;
             this.busy = true;
             const payload = new FormData();
-            payload.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-            const url = staffId ? staffUrl : patientUrl;
-            payload.append(staffId ? 'staff' : 'patient', staffId || patientId);
+            payload.append('csrfmiddlewaretoken', csrfToken);
+            payload.append('shift', '{{ selected_shift.pk|default:"" }}');
+            this.stagedStaff.forEach(item => payload.append('staff', item.id));
+            this.stagedPatients.forEach(item => payload.append('patients', item.id));
             try {
                 const response = await fetch(url, {method: 'POST', headers: {'Accept': 'application/json'}, body: payload});
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Care-team update failed.');
+                if (!response.ok) throw new Error(result.error || 'Care assignment failed.');
+                this.clearStage();
                 window.location.reload();
             } catch (error) {
                 window.alert(error.message);
             } finally {
                 this.busy = false;
-                this.draggingStaff = null;
-                this.draggingPatient = null;
-            }
-        },
-        dropOnStaff(event, staffId, allowed) {
-            if (event.dataTransfer.getData('application/x-care-staff')) {
-                this.dropStaff(event);
-                return;
-            }
-            this.dropPatient(event, staffId, allowed);
-        },
-        async dropPatient(event, staffId, allowed) {
-            event.preventDefault();
-            if (!allowed || this.busy) return;
-            const patientId = event.dataTransfer.getData('application/x-care-patient') || this.draggingPatient;
-            if (!patientId) return;
-            this.busy = true;
-            const payload = new FormData();
-            payload.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-            payload.append('shift', '{{ selected_shift.pk|default:"" }}');
-            payload.append('staff', staffId);
-            payload.append('patients', patientId);
-            try {
-                const response = await fetch('{% url "care_management:assign" %}', {method: 'POST', headers: {'Accept': 'application/json'}, body: payload});
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Assignment failed.');
-                window.location.reload();
-            } catch (error) {
-                window.alert(error.message);
-            } finally {
-                this.busy = false;
-                this.draggingPatient = null;
             }
         }
     }
