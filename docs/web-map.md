@@ -32,6 +32,7 @@ flowchart TD
     Clinical --> Admission["Register / admission /patients/new/"]
     Clinical --> Encounters["Encounters /encounters/"]
     Clinical --> Pharmacy["Pharmacy /pharmacy/"]
+    Clinical --> Laboratory["Laboratory /laboratory/"]
     Clinical --> CareAssignments["Care assignments /care-management/"]
 
     Patients --> PatientChart["Patient chart /patients/{patient}/"]
@@ -127,6 +128,7 @@ flowchart LR
 | Medication record | `/medications/patient/<patient UUID>/` |
 | Reconciliation | `/medications/patient/<patient UUID>/reconciliation/` |
 | Vital history | `/vitals/patient/<patient UUID>/` |
+| Laboratory results | `/laboratory/patient/<patient UUID>/` |
 | Flowsheet history | `/flowsheets/patient/<patient UUID>/` |
 | New flowsheet entry | `/flowsheets/patient/<patient UUID>/new/<definition UUID>/` |
 
@@ -143,6 +145,7 @@ flowchart LR
 | Shift MAR | `/medications/mar/shift/` |
 | Encounter vital history | `/vitals/encounter/<encounter UUID>/` |
 | Encounter flowsheets | `/flowsheets/encounter/<encounter UUID>/` |
+| Order laboratory panel | `/laboratory/patient/<patient UUID>/encounter/<encounter UUID>/order/` |
 
 Patient and encounter identifiers must be validated as a matching pair on every route containing both.
 

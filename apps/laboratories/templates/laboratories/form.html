@@ -1,26 +1,7 @@
 {% extends "layouts/app_shell.html" %}
 
-{% block title %}
-    laboratories Form | Liberia EHR
-{% endblock %}
+{% block title %}New laboratory order | Liberia EHR{% endblock %}
 
 {% block workspace %}
-<section class="max-w-3xl">
-    <h1 class="text-2xl font-bold capitalize">
-        laboratories Form
-    </h1>
-
-    <form method="post" class="mt-6 space-y-4">
-        {% csrf_token %}
-
-        {% include "laboratories/partials/form_fields.html" %}
-
-        <button
-            type="submit"
-            class="rounded-lg bg-ehr-800 px-4 py-2 font-semibold text-white"
-        >
-            Save
-        </button>
-    </form>
-</section>
+<section class="max-w-3xl space-y-3 p-4"><div><p class="text-[10px] font-bold text-emerald-700">{{ patient.full_name }} · MRN {{ patient.mrn }}</p><h1 class="text-lg font-bold">Order laboratory tests</h1><p class="text-[10px] text-slate-500">Choose an ICD-coded indication, then a panel, standalone tests, or both.</p></div><form method="post" class="space-y-3 rounded-lg border bg-white p-4">{% csrf_token %}{{ form.non_field_errors }}{% for field in form %}<label class="block"><span class="mb-1 block text-[10px] font-semibold">{{ field.label }}</span>{{ field }}{% if field.help_text %}<span class="mt-1 block text-[9px] text-slate-500">{{ field.help_text }}</span>{% endif %}{% for error in field.errors %}<span class="text-[9px] text-red-600">{{ error }}</span>{% endfor %}</label>{% endfor %}<button class="rounded bg-emerald-700 px-4 py-2 text-xs font-bold text-white">Place laboratory order</button></form></section>
 {% endblock %}

@@ -8,6 +8,7 @@ urlpatterns = [
     path("ai-cds/", include("apps.decision_support.urls")),
     path("nursing/", include("apps.nursing.urls")),
     path("flowsheets/", include("apps.flowsheets.urls")),
+    path("laboratory/", include("apps.laboratories.urls")),
     path("admin/", admin.site.urls),
 
     path(
@@ -51,6 +52,8 @@ urlpatterns = [
 
     path("administration/", include("apps.administration.urls"),
          ),
+
+    path("inventory/", include("apps.inventory.urls")),
 
     path(
             "",

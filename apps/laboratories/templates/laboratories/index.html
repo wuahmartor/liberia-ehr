@@ -1,13 +1,7 @@
 {% extends "layouts/app_shell.html" %}
 
-{% block title %}
-    laboratories | Liberia EHR
-{% endblock %}
+{% block title %}Laboratory | Liberia EHR{% endblock %}
 
 {% block workspace %}
-<section>
-    <h1 class="text-2xl font-bold capitalize">
-        laboratories
-    </h1>
-</section>
+<section class="space-y-3 p-4"><div><p class="text-[10px] font-bold uppercase tracking-wide text-emerald-700">Diagnostic services</p><h1 class="text-xl font-bold">Laboratory</h1><p class="text-xs text-slate-500">Panel orders, specimens, verified results, reference intervals and critical-result intelligence.</p></div><div class="grid gap-3 lg:grid-cols-[1fr_18rem]"><div class="overflow-hidden rounded-lg border bg-white"><div class="border-b bg-slate-50 px-3 py-2 text-xs font-bold">Orders</div>{% for order in orders %}<a href="{{ order.get_absolute_url }}" class="grid grid-cols-[1fr_1fr_auto] gap-2 border-b px-3 py-2 text-[10px] hover:bg-slate-50"><span><b>{{ order.patient.full_name }}</b><br>MRN {{ order.patient.mrn }}</span><span>{{ order.panel.name }}<br><span class="text-slate-500">{{ order.accession_number }}</span></span><span class="text-right font-semibold">{{ order.get_priority_display }}<br>{{ order.get_status_display }}</span></a>{% empty %}<p class="p-4 text-xs text-slate-500">No laboratory orders.</p>{% endfor %}</div><aside class="space-y-3"><div class="rounded-lg border border-red-200 bg-white"><div class="border-b border-red-100 bg-red-50 px-3 py-2 text-xs font-bold text-red-800">Critical results</div>{% for result in critical_results %}<a href="{{ result.order_item.order.get_absolute_url }}" class="block border-b px-3 py-2 text-[10px]"><b>{{ result.order_item.test.short_name }}</b> {{ result.display_value }}<br>{{ result.order_item.order.patient.full_name }}</a>{% empty %}<p class="p-3 text-[10px] text-slate-500">No critical results.</p>{% endfor %}</div><div class="rounded-lg border bg-white p-3"><p class="text-xs font-bold">Available panels</p>{% for panel in panels %}<p class="mt-1 text-[10px]">{{ panel.name }}</p>{% endfor %}</div></aside></div></section>
 {% endblock %}

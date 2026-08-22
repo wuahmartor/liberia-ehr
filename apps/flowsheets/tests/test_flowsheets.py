@@ -106,6 +106,7 @@ class FlowSheetWorkflowTests(TestCase):
         )
         response = self.client.get(reverse("flowsheets:create", args=[self.patient.pk, self.definition.pk]))
         self.assertContains(response, "Respiratory")
+        self.assertContains(response, "<details", html=False)
         self.assertContains(response, "Focused abnormal assessment")
         self.assertContains(response, "values['respiratory-status'] === 'Abnormal'")
 
@@ -118,7 +119,7 @@ class FlowSheetWorkflowTests(TestCase):
         self.assertTrue(entry.values.filter(field=status_field, value_text="WNL").exists())
         self.assertFalse(entry.values.filter(field=detail_field).exists())
 
-    def test_abnormal_required_multiselect_accepts_multiple_findings(self):
+    def test_abnormal_assessment_can_be_saved_partially_and_accepts_multiple_findings(self):
         status_field = FlowSheetFieldDefinition.objects.create(
             flowsheet=self.definition, key="edema-status", label="Edema",
             data_type=FlowSheetFieldDefinition.DataType.CHOICE, choices=["None", "Present"],
@@ -134,8 +135,8 @@ class FlowSheetWorkflowTests(TestCase):
         url = reverse("flowsheets:create", args=[self.patient.pk, self.definition.pk])
         base_data = {"assessment_type": "shift", "recorded_at": "2026-08-15T12:00", f"value_{status_field.pk}": "Present"}
         response = self.client.post(url, base_data)
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "This detail is required")
+        self.assertEqual(response.status_code, 302)
+        FlowSheetEntry.objects.all().delete()
 
         response = self.client.post(url, {**base_data, f"value_{locations.pk}": ["Left leg", "Right leg"]})
         self.assertEqual(response.status_code, 302)
@@ -190,3 +191,162 @@ class FlowSheetWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Assessment signed")
         self.assertContains(response, "Return to flowsheet")
+
+    def test_new_entry_shows_previous_recordings_and_requires_deviation_acknowledgement(self):
+        previous = FlowSheetEntry.objects.create(
+            patient=self.patient,
+            encounter=self.encounter,
+            flowsheet=self.definition,
+            recorded_by=self.user,
+        )
+        FlowSheetValue.objects.create(
+            entry=previous,
+            field=self.numeric_field,
+            value_number=Decimal("2"),
+        )
+        url = reverse("flowsheets:create", args=[self.patient.pk, self.definition.pk])
+        response = self.client.get(url)
+        self.assertContains(response, "Previous recordings for comparison")
+        self.assertContains(response, "2 /10")
+
+        data = {
+            "assessment_type": "reassessment",
+            "recorded_at": "2026-08-15T14:00",
+            f"value_{self.numeric_field.pk}": "3",
+        }
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Deviation verification required")
+        self.assertContains(response, "50.0% deviation")
+        self.assertEqual(FlowSheetEntry.objects.count(), 1)
+
+        response = self.client.post(url, {**data, "acknowledge_deviation": "true"})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(FlowSheetEntry.objects.count(), 2)
+
+    def test_neurological_dictionary_has_complete_gcs_and_four_limb_assessment(self):
+        neurological = FlowSheetDefinition.objects.get(slug="neurological-checks")
+        fields = {field.key: field for field in neurological.fields.all()}
+        self.assertEqual(
+            fields["gcs-eye"].choices,
+            ["4 — Spontaneous", "3 — To sound", "2 — To pressure", "1 — None", "NT — Non-testable"],
+        )
+        self.assertIn("6 — Obeys commands", fields["gcs-motor"].choices)
+        for limb in ("rue", "lue", "rle", "lle"):
+            self.assertIn(f"{limb}-motor-strength", fields)
+            self.assertIn(f"{limb}-sensation", fields)
+
+    def test_gcs_total_is_derived_from_components(self):
+        neurological = FlowSheetDefinition.objects.get(slug="neurological-checks")
+        fields = {field.key: field for field in neurological.fields.all()}
+        response = self.client.post(
+            reverse("flowsheets:create", args=[self.patient.pk, neurological.pk]),
+            {
+                "assessment_type": "focused",
+                "recorded_at": "2026-08-15T15:00",
+                f"value_{fields['gcs-eye'].pk}": "4 — Spontaneous",
+                f"value_{fields['gcs-verbal'].pk}": "5 — Orientated",
+                f"value_{fields['gcs-motor'].pk}": "6 — Obeys commands",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        entry = FlowSheetEntry.objects.get(flowsheet=neurological)
+        self.assertEqual(entry.values.get(field=fields["gcs-total"]).value_number, Decimal("15"))
+
+    def test_neurological_form_uses_vertical_rows_and_live_gcs_calculation(self):
+        neurological = FlowSheetDefinition.objects.get(slug="neurological-checks")
+        response = self.client.get(
+            reverse("flowsheets:create", args=[self.patient.pk, neurological.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "calculateGcsTotal()")
+        self.assertContains(response, "sm:grid-cols-[4rem_6rem_3rem]")
+        content = response.content.decode()
+        self.assertLess(content.index("LUE motor strength"), content.index("RUE motor strength"))
+        self.assertContains(response, "4 — Spontaneous")
+        self.assertContains(response, "NT — Non-testable")
+
+    def test_nursing_extremity_findings_are_unified_and_laterality_specific(self):
+        nursing = FlowSheetDefinition.objects.get(slug="nursing-systems-assessment")
+        fields = {field.key: field for field in nursing.fields.all()}
+        finding_keys = [
+            "neuro-lue-findings", "neuro-rue-findings",
+            "neuro-lle-findings", "neuro-rle-findings",
+        ]
+        self.assertTrue(all(fields[key].subsection == "Extremity findings" for key in finding_keys))
+        self.assertTrue(all(fields[key].is_active for key in finding_keys))
+        self.assertTrue(all("WNL" in fields[key].choices for key in finding_keys))
+        self.assertEqual(
+            [fields[key].label for key in sorted(finding_keys, key=lambda key: fields[key].display_order)],
+            ["LUE", "RUE", "LLE", "RLE"],
+        )
+        self.assertFalse(fields["neuro-motor"].is_active)
+        self.assertFalse(fields["neuro-sensation"].is_active)
+
+    def test_hidden_extremity_findings_do_not_crash_partial_save(self):
+        nursing = FlowSheetDefinition.objects.get(slug="nursing-systems-assessment")
+        cardiovascular = nursing.fields.get(key="cardiovascular-status")
+        response = self.client.post(
+            reverse("flowsheets:create", args=[self.patient.pk, nursing.pk]),
+            {
+                "assessment_type": "shift",
+                "recorded_at": "2026-08-21T21:30",
+                f"value_{cardiovascular.pk}": "WNL",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            FlowSheetValue.objects.filter(field=cardiovascular, value_text="WNL").exists()
+        )
+
+    def test_respiratory_assessment_maps_sounds_to_each_lung_lobe(self):
+        nursing = FlowSheetDefinition.objects.get(slug="nursing-systems-assessment")
+        fields = {field.key: field for field in nursing.fields.all()}
+        lobe_keys = (
+            "lung-sounds-rul", "lung-sounds-rml", "lung-sounds-rll",
+            "lung-sounds-lul", "lung-sounds-lll",
+        )
+        for key in lobe_keys:
+            field = fields[key]
+            self.assertEqual(field.subsection, "Breath sounds by lobe")
+            self.assertEqual(field.data_type, FlowSheetFieldDefinition.DataType.MULTI_CHOICE)
+            self.assertIn("Wheeze", field.choices)
+            self.assertIn("Fine crackles", field.choices)
+
+    def test_cardiovascular_assessment_localizes_pulses_and_keeps_edema_details_together(self):
+        nursing = FlowSheetDefinition.objects.get(slug="nursing-systems-assessment")
+        fields = {field.key: field for field in nursing.fields.all()}
+        pulse_keys = (
+            "pulse-left-radial", "pulse-right-radial",
+            "pulse-left-dorsalis-pedis", "pulse-right-dorsalis-pedis",
+            "pulse-left-posterior-tibial", "pulse-right-posterior-tibial",
+        )
+        self.assertTrue(fields["peripheral-pulses"].is_active)
+        self.assertEqual(fields["peripheral-pulses"].choices, ["WNL", "Abnormal"])
+        self.assertTrue(all(not fields[key].is_active for key in pulse_keys))
+        self.assertEqual(fields["peripheral-pulse-site"].show_when_field_key, "peripheral-pulses")
+        self.assertEqual(fields["peripheral-pulse-site"].show_when_value, "Abnormal")
+        self.assertEqual(fields["peripheral-pulse-site"].data_type, FlowSheetFieldDefinition.DataType.MULTI_CHOICE)
+        self.assertIn("Left radial", [choice.lower().capitalize() for choice in fields["peripheral-pulse-site"].choices])
+        self.assertIn("Right dorsalis pedis (pedal)", [choice.lower().capitalize() for choice in fields["peripheral-pulse-site"].choices])
+        self.assertFalse(fields["peripheral-pulse-laterality"].is_active)
+        self.assertFalse(fields["peripheral-pulse-grade"].is_active)
+        self.assertEqual(fields["pulse-grade-left-radial"].show_when_value, "Left Radial")
+        self.assertIn(fields["pulse-grade-left-radial"].show_when_value, fields["peripheral-pulse-site"].choices)
+        self.assertEqual(fields["pulse-grade-right-dorsalis-pedis"].show_when_value, "Right Dorsalis pedis (pedal)")
+        self.assertIn(fields["pulse-grade-right-dorsalis-pedis"].show_when_value, fields["peripheral-pulse-site"].choices)
+        self.assertEqual(fields["peripheral-pulse-grade"].show_when_field_key, "peripheral-pulse-site")
+        self.assertEqual(fields["peripheral-pulse-grade"].show_when_value, "*")
+        edema_keys = ("edema", "edema-location", "edema-grade")
+        self.assertEqual(
+            sorted(edema_keys, key=lambda key: fields[key].display_order),
+            list(edema_keys),
+        )
+        self.assertEqual(fields["edema"].subsection, "Focused abnormal assessment")
+        self.assertTrue(all(fields[key].subsection == "Edema details" for key in edema_keys[1:]))
+        self.assertFalse(fields["edema-laterality"].is_active)
+        self.assertFalse(fields["edema-grade"].is_active)
+        self.assertEqual(fields["edema-location"].data_type, FlowSheetFieldDefinition.DataType.MULTI_CHOICE)
+        self.assertEqual(fields["edema-grade-left-leg"].show_when_value, "Left leg")
+        self.assertIn(fields["edema-grade-left-leg"].show_when_value, fields["edema-location"].choices)
+        self.assertEqual(fields["edema-grade-generalized"].show_when_value, "Generalized")

@@ -119,7 +119,12 @@ flowchart LR
 | ADM-01 | Provide user, group, facility, scheduling, audit, settings, integration, and health workspaces | `administration` | Mixed foundation/scaffold |
 | ANA-01 | Provide live operational aggregates for a selected period | `core`, `analytics` | Foundation |
 | ANA-02 | Govern metric definitions, provenance, validation, and access | `analytics` | Partial |
-| LAB-01 | Manage lab orders, specimens, and results | `laboratories` | Scaffold/partial |
+| LAB-01 | Manage panel-based lab orders, specimens, and results | `laboratories` | Implemented foundation |
+| LAB-02 | Apply patient-matched, versioned, sourced reference intervals and preserve result-time snapshots | `laboratories` | Implemented; local validation required |
+| LAB-03 | Detect high, low, and critical results and require documented critical acknowledgement | `laboratories` | Implemented foundation |
+| LAB-04 | Expose coded structured result payloads and governed recommendations to decision support | `laboratories`, `decision_support` | Implemented foundation; clinical validation required |
+| LAB-05 | Order panels or standalone analytes using a patient-owned active ICD diagnosis as the indication | `laboratories`, `diagnoses` | Implemented |
+| LAB-06 | Display recent abnormal and critical results on the patient overview with access to full history | `laboratories`, `patients` | Implemented |
 | IMG-01 | Manage imaging orders and results | `imaging` | Scaffold/partial |
 | DOC-01 | Manage patient/encounter documents | `documents` | Scaffold |
 | FLOW-01 | Define reusable structured flowsheets and ordered fields | `flowsheets` | Implemented foundation |

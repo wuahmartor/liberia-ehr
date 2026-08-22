@@ -1,0 +1,21 @@
+{% extends "layouts/app_shell.html" %}
+{% block title %}Inventory | Liberia EHR{% endblock %}
+{% block workspace %}
+<div class="space-y-5 p-5 lg:p-7">
+    <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div><p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Supply chain control</p><h1 class="mt-1 text-2xl font-bold text-slate-950">Inventory command center</h1><p class="mt-1 text-sm text-slate-500">Monitor availability, expirations, equipment readiness and clinical consumption.</p></div>
+        <div class="flex gap-2"><a href="{% url 'inventory:transaction-create' %}" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Record usage</a><a href="{% url 'inventory:lot-create' %}" class="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Receive stock</a></div>
+    </header>
+    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div class="rounded-xl border border-slate-200 bg-white p-4"><p class="text-xs font-semibold text-slate-500">Catalog items</p><p class="mt-2 text-3xl font-bold text-slate-950">{{ item_count }}</p></div>
+        <div class="rounded-xl border border-red-200 bg-red-50 p-4"><p class="text-xs font-semibold text-red-700">Low / out of stock</p><p class="mt-2 text-3xl font-bold text-red-900">{{ low_stock_count }}</p></div>
+        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4"><p class="text-xs font-semibold text-amber-700">Expiring in 90 days</p><p class="mt-2 text-3xl font-bold text-amber-900">{{ expiring_count }}</p></div>
+        <div class="rounded-xl border border-red-200 bg-white p-4"><p class="text-xs font-semibold text-red-700">Expired lots on hand</p><p class="mt-2 text-3xl font-bold text-red-900">{{ expired_count }}</p></div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4"><p class="text-xs font-semibold text-slate-500">Equipment / service due</p><p class="mt-2 text-3xl font-bold text-slate-950">{{ asset_count }} <span class="text-sm font-medium text-amber-700">/ {{ maintenance_due_count }} due</span></p></div>
+    </section>
+    <section class="grid gap-5 xl:grid-cols-2">
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white"><div class="flex items-center justify-between border-b border-slate-200 px-4 py-3"><h2 class="font-bold text-slate-900">Reorder attention</h2><a href="{% url 'inventory:item-list' %}?stock=low" class="text-xs font-semibold text-emerald-700">View catalog</a></div><div class="divide-y divide-slate-100">{% for item in low_stock %}<a href="{% url 'inventory:item-detail' item.pk %}" class="flex items-center justify-between px-4 py-3 hover:bg-slate-50"><div><p class="text-sm font-semibold text-slate-900">{{ item.name }}</p><p class="text-xs text-slate-500">{{ item.sku }} · reorder at {{ item.reorder_level }}</p></div><span class="rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-800">{{ item.on_hand }} {{ item.unit_of_measure }}</span></a>{% empty %}<p class="p-6 text-center text-sm text-slate-500">No reorder alerts.</p>{% endfor %}</div></div>
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white"><div class="flex items-center justify-between border-b border-slate-200 px-4 py-3"><h2 class="font-bold text-slate-900">Expiry watchlist</h2><a href="{% url 'inventory:analytics' %}" class="text-xs font-semibold text-emerald-700">Analyze risk</a></div><div class="divide-y divide-slate-100">{% for lot in expiring %}<div class="flex items-center justify-between px-4 py-3"><div><p class="text-sm font-semibold text-slate-900">{{ lot.item.name }}</p><p class="text-xs text-slate-500">Lot {{ lot.lot_number|default:'—' }} · {{ lot.location.name }}</p></div><div class="text-right"><p class="text-xs font-bold text-amber-800">{{ lot.expiration_date|date:'M j, Y' }}</p><p class="text-xs text-slate-500">{{ lot.quantity_on_hand }} remaining</p></div></div>{% empty %}<p class="p-6 text-center text-sm text-slate-500">No lots expire within 90 days.</p>{% endfor %}</div></div>
+    </section>
+</div>
+{% endblock %}

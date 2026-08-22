@@ -60,6 +60,7 @@ class FlowSheetFieldDefinition(models.Model):
     show_when_value = models.CharField(max_length=100, blank=True)
     display_order = models.PositiveSmallIntegerField(default=0)
     is_required = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True, db_index=True)
     normal_min = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)
     normal_max = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)
     critical_min = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)

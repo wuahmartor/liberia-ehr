@@ -1,17 +1,7 @@
 {% extends "layouts/app_shell.html" %}
 
-{% block title %}
-    laboratories Details | Liberia EHR
-{% endblock %}
+{% block title %}{{ order.accession_number }} | Liberia EHR{% endblock %}
 
 {% block workspace %}
-<section>
-    <h1 class="text-2xl font-bold capitalize">
-        laboratories Details
-    </h1>
-
-    <div id="laboratories-detail" class="mt-5">
-        {% include "laboratories/partials/detail_content.html" %}
-    </div>
-</section>
+<section class="space-y-3 p-4"><div class="flex justify-between"><div><p class="text-[10px] font-bold text-emerald-700">{{ order.patient.full_name }} · MRN {{ order.patient.mrn }}</p><h1 class="text-lg font-bold">{{ order.panel.name }}</h1><p class="text-[10px] text-slate-500">{{ order.accession_number }} · {{ order.get_priority_display }} · {{ order.get_status_display }}</p></div>{% if order.status == 'ordered' %}<form method="post" action="{% url 'laboratories:collect-specimen' order.pk %}">{% csrf_token %}<button class="rounded bg-blue-700 px-3 py-2 text-[10px] font-bold text-white">Document collection</button></form>{% endif %}</div><div class="overflow-hidden rounded-lg border bg-white"><table class="w-full text-[10px]"><thead class="bg-slate-50"><tr><th class="p-2 text-left">Test</th><th>Result</th><th>Reference interval</th><th>Flag</th><th></th></tr></thead><tbody>{% for item in order.items.all %}<tr class="border-t"><td class="p-2"><b>{{ item.test.name }}</b><br><span class="text-slate-400">LOINC {{ item.test.loinc_code|default:"—" }}</span></td>{% if item.result %}<td class="text-center font-bold">{{ item.result.display_value }}</td><td class="text-center">{{ item.result.reference_range.display_interval|default:"Not configured" }}{% if item.result.reference_range and not item.result.reference_range.is_locally_validated %}<br><span class="text-amber-700">Local validation pending</span>{% endif %}</td><td class="text-center font-bold {% if 'critical' in item.result.flag %}text-red-700{% elif item.result.flag != 'normal' %}text-amber-700{% endif %}">{{ item.result.get_flag_display }}</td><td class="p-2 text-right">{% if not item.result.verified_at %}<form method="post" action="{% url 'laboratories:verify-result' item.result.pk %}">{% csrf_token %}<button class="text-emerald-700">Verify</button></form>{% else %}Verified{% endif %}</td>{% else %}<td colspan="3" class="text-center text-slate-400">Pending</td><td class="p-2 text-right"><a class="font-bold text-emerald-700" href="{% url 'laboratories:enter-result' item.pk %}">Enter result</a></td>{% endif %}</tr>{% if item.result and 'critical' in item.result.flag and not item.result.critical_acknowledged_at %}<tr class="border-t bg-red-50"><td colspan="5" class="p-2"><form method="post" action="{% url 'laboratories:acknowledge-critical' item.result.pk %}" class="flex gap-2">{% csrf_token %}<input required minlength="5" name="note" class="flex-1 rounded border px-2 py-1" placeholder="Who was notified and what action was taken?"><button class="rounded bg-red-700 px-2 py-1 font-bold text-white">Acknowledge critical result</button></form></td></tr>{% endif %}{% if item.result %}{% for recommendation in item.result.recommendations.all %}<tr class="border-t bg-amber-50"><td colspan="5" class="p-2 text-amber-900"><b>{{ recommendation.title }}</b> — {{ recommendation.recommendation }} <span class="font-semibold">Clinician review required.</span></td></tr>{% endfor %}{% endif %}{% endfor %}</tbody></table></div><div class="rounded border bg-white p-3 text-[10px]"><b>Clinical indication:</b> {{ order.clinical_indication }}</div></section>
 {% endblock %}

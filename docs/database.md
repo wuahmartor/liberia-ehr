@@ -34,6 +34,14 @@ erDiagram
     FLOWSHEET_DEFINITION ||--o{ FLOWSHEET_ENTRY : structures
     FLOWSHEET_ENTRY ||--|{ FLOWSHEET_VALUE : contains
     FLOWSHEET_FIELD_DEFINITION ||--o{ FLOWSHEET_VALUE : identifies
+    PATIENT ||--o{ LAB_ORDER : receives
+    ENCOUNTER ||--o{ LAB_ORDER : contextualizes
+    LAB_PANEL ||--|{ LAB_PANEL_TEST : defines
+    LAB_ORDER ||--|{ LAB_ORDER_ITEM : contains
+    LAB_ORDER ||--o{ LAB_SPECIMEN : collects
+    LAB_ORDER_ITEM ||--o| LAB_RESULT : produces
+    LAB_TEST_DEFINITION ||--o{ LAB_REFERENCE_RANGE : interprets
+    LAB_RESULT ||--o{ LAB_CLINICAL_RECOMMENDATION : supports
 ```
 
 The patient is longitudinal. An encounter is one care episode and may be optional for records that can be documented outside a visit, where the model permits it.

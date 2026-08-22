@@ -1,6 +1,7 @@
 from django.contrib import messages
 import json
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -53,12 +54,20 @@ def patient_flowsheet(request, patient_id, definition_slug=None):
         selected_definition = next((item for item in definitions if str(item.pk) == definition_id), None)
     if selected_definition is None:
         selected_definition = next((item for item in definitions if item.slug == "nursing-systems-assessment"), definitions[0] if definitions else None)
-    entries = list(_patient_entries(patient, scoped_encounter).filter(flowsheet=selected_definition)[:24]) if selected_definition else []
+    entries = list(
+        _patient_entries(patient, scoped_encounter)
+        .filter(flowsheet=selected_definition)
+        .order_by("recorded_at", "created_at")
+    ) if selected_definition else []
     matrix_rows = []
     matrix_sections = []
     if selected_definition:
         current_section = None
-        for field in selected_definition.fields.all():
+        historical_entry_ids = [entry.pk for entry in entries]
+        fields = selected_definition.fields.filter(
+            Q(is_active=True) | Q(values__entry_id__in=historical_entry_ids)
+        ).distinct()
+        for field in fields:
             cells = []
             for entry in entries:
                 cells.append(next((value for value in entry.values.all() if value.field_id == field.pk), None))
@@ -94,14 +103,26 @@ def create_entry(request, patient_id, definition_id):
     requested_type = request.GET.get("assessment_type", FlowSheetEntry.AssessmentType.SHIFT)
     valid_types = {value for value, _label in FlowSheetEntry.AssessmentType.choices}
     initial = {"assessment_type": requested_type if requested_type in valid_types else FlowSheetEntry.AssessmentType.SHIFT, "recorded_at": timezone.localtime().strftime("%Y-%m-%dT%H:%M")}
-    form = FlowSheetEntryForm(request.POST or None, definition=definition, initial=initial)
+    previous_entries = list(
+        FlowSheetEntry.objects.active()
+        .filter(patient=patient, flowsheet=definition)
+        .select_related("recorded_by")
+        .prefetch_related("values__field")[:5]
+    )
+    previous_entry = previous_entries[0] if previous_entries else None
+    form = FlowSheetEntryForm(
+        request.POST or None,
+        definition=definition,
+        previous_entry=previous_entry,
+        initial=initial,
+    )
     if request.method == "POST" and form.is_valid():
         entry = form.save(patient=patient, encounter=encounter, actor=request.user)
         messages.success(request, f"{definition.name} recorded.")
         if request.headers.get("HX-Request") == "true":
             return render(request, "flowsheets/partials/entry_saved.html", {"entry": entry, "patient": patient, "definition": definition, "active_encounter": encounter})
         return redirect(entry)
-    return render(request, "flowsheets/form.html", {**_base_context(patient, encounter), "patient": patient, "definition": definition, "form": form, "organized_sections": form.organized_sections(), "inline": request.headers.get("HX-Request") == "true" or request.GET.get("inline") == "1"})
+    return render(request, "flowsheets/form.html", {**_base_context(patient, encounter), "patient": patient, "definition": definition, "form": form, "organized_sections": form.organized_sections(), "previous_entries": previous_entries, "previous_entry": previous_entry, "deviation_alerts": form.deviation_alerts, "inline": request.headers.get("HX-Request") == "true" or request.GET.get("inline") == "1"})
 
 
 @login_required

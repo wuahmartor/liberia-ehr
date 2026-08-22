@@ -57,6 +57,7 @@ LOCAL_APPS = [
     "apps.pharmacy",
     'apps.administration',
     "apps.clinical_notes",
+    "apps.inventory.apps.InventoryConfig",
 ]
 
 

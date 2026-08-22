@@ -433,6 +433,11 @@ Important navigation behavior:
                                 </span>
                             </a>
 
+                            <a href="{% url 'laboratories:dashboard' %}" hx-boost="false" class="primary-dropdown-link {% if active_clinical_module == 'laboratory' and not selected_patient %}primary-dropdown-link-active{% endif %}" role="menuitem" @click="openMenu = null">
+                                <span class="primary-dropdown-icon">⚗</span>
+                                <span class="primary-dropdown-label">Laboratory Management</span>
+                            </a>
+
                             <a
                                 href="{% url 'care_management:dashboard' %}"
                                 hx-boost="false"
@@ -1170,6 +1175,16 @@ Important navigation behavior:
                 {% endif %}
 
 
+                <a
+                    href="{% url 'inventory:dashboard' %}"
+                    hx-boost="false"
+                    class="primary-nav-link {% if active_primary_nav == 'inventory' %}primary-nav-link-active{% endif %}"
+                    {% if active_primary_nav == "inventory" %}aria-current="page"{% endif %}
+                >
+                    <span aria-hidden="true">▣</span>
+                    <span>Inventory</span>
+                </a>
+
             {% endwith %}
 
         </nav>
@@ -1724,6 +1739,8 @@ Important navigation behavior:
                             Pharmacy
                         </a>
 
+                        <a href="{% url 'laboratories:dashboard' %}" hx-boost="false" class="mobile-primary-nav-link {% if active_clinical_module == 'laboratory' and not selected_patient %}mobile-primary-nav-link-active{% endif %}" @click="mobileMenuOpen = false">Laboratory Management</a>
+
                         <a
                             href="{% url 'care_management:dashboard' %}"
                             hx-boost="false"
@@ -2168,6 +2185,15 @@ Important navigation behavior:
                     </div>
                 </div>
             {% endif %}
+
+            <a
+                href="{% url 'inventory:dashboard' %}"
+                hx-boost="false"
+                class="mobile-primary-nav-link {% if active_primary_nav == 'inventory' %}mobile-primary-nav-link-active{% endif %}"
+                @click="mobileMenuOpen = false"
+            >
+                Inventory
+            </a>
         </nav>
 
 

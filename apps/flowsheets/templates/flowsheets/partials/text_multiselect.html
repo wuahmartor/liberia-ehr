@@ -1,0 +1,45 @@
+<span
+    class="block"
+    x-data="{
+        selected: [],
+        sync() {
+            this.$refs.stored.querySelectorAll('option').forEach(option => {
+                option.selected = this.selected.includes(option.value);
+            });
+            values['{{ item.definition.key }}'] = [...this.selected];
+        },
+        add(value) {
+            if (!value) return;
+            if (value === 'WNL') this.selected = ['WNL'];
+            else {
+                this.selected = this.selected.filter(item => item !== 'WNL');
+                if (!this.selected.includes(value)) this.selected.push(value);
+            }
+            this.sync();
+            this.$refs.picker.value = '';
+        },
+        remove(value) {
+            this.selected = this.selected.filter(item => item !== value);
+            this.sync();
+        }
+    }"
+    x-init="selected = [...$refs.stored.selectedOptions].map(option => option.value)"
+>
+    {{ item.bound }}
+    <select
+        x-ref="picker"
+        @click.stop
+        @keydown.stop
+        @change="add($event.target.value)"
+        class="w-24 max-w-full rounded-md border border-slate-300 bg-white px-1.5 py-1 text-[10px] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+        aria-label="Select {{ item.bound.label }}"
+    >
+        <option value="">Select…</option>
+        {% for value, label in item.bound.field.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+    <span x-show="selected.length" class="mt-1 flex flex-wrap gap-1">
+        <template x-for="value in selected" :key="value">
+            <button type="button" @click.stop.prevent="remove(value)" class="rounded bg-emerald-50 px-1 py-0.5 text-[8px] text-emerald-900" :title="'Remove ' + value"><span x-text="value"></span> ×</button>
+        </template>
+    </span>
+</span>

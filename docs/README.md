@@ -66,7 +66,8 @@ The repository contains both operational workflows and scaffold applications. â€
 | Clinical dashboard | Live database statistics implemented |
 | Analytics dashboards | Implemented foundations; metric governance and validation remain ongoing |
 | Flowsheets | Implemented reusable definitions, vertical body-system assessments, conditional abnormal subsections, patient/encounter linkage, longitudinal grid, threshold flags, and entered-in-error audit workflow |
-| Laboratory, imaging, documents | Application scaffolds/partial foundations; not complete workflows |
+| Laboratory | Implemented LOINC-aligned panels and standalone tests, ICD-linked indications, specimens, results, sourced reference intervals, abnormal/critical flags, patient-profile summaries, acknowledgement, verification, CDS payloads, and governed recommendations |
+| Imaging, documents | Application scaffolds/partial foundations; not complete workflows |
 | Clinical decision support | Rules, alerts, acknowledgement/override, recommendations, and risk-score foundation implemented; not clinically validated |
 | AI assistant | Application shell only; no production model workflow or autonomous clinical decision-making |
 | Billing, patient portal, integrations | Placeholder or early foundation |

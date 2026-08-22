@@ -44,8 +44,12 @@ from apps.core.htmx import is_htmx
 from apps.diagnoses.models import PatientDiagnosis
 from apps.encounters.models import Encounter
 from apps.accounts.models import UserProfile
-from apps.care_management.models import PatientStaffAssignment
+from apps.care_management.models import (
+    PatientCareTeamAssignment,
+    PatientStaffAssignment,
+)
 from apps.orders.models import MedicationOrder
+from apps.laboratories.models import LabResult
 
 from .forms import (
     EmergencyContactForm,
@@ -346,6 +350,9 @@ def patient_list(
         Q(staff_assignments__shift__ends_at__gt=now)
         | Q(staff_assignments__staff_logged_out_at__isnull=True)
     )
+    active_team_assignment = Q(
+        care_team_assignments__status=PatientCareTeamAssignment.Status.ACTIVE,
+    )
     if care_status == "active":
         patients = patients.filter(has_open_encounter=True)
     elif care_status == "discharged":
@@ -353,15 +360,40 @@ def patient_list(
             has_open_encounter=False, has_completed_encounter=True
         )
     elif care_status == "mine":
-        patients = patients.filter(effective_assignment, staff_assignments__staff=request.user)
+        patients = patients.filter(
+            (
+                effective_assignment
+                & Q(staff_assignments__staff=request.user)
+            )
+            | (
+                active_team_assignment
+                & Q(
+                    care_team_assignments__care_team__memberships__staff=(
+                        request.user
+                    )
+                )
+            )
+        )
     elif care_status != "all":
         care_status = "all"
 
     if assigned_nurse_id:
+        direct_nurse_assignment = (
+            effective_assignment
+            & Q(staff_assignments__staff_id=assigned_nurse_id)
+            & Q(
+                staff_assignments__assignment_role=(
+                    PatientStaffAssignment.AssignmentRole.NURSE
+                )
+            )
+        )
+        team_nurse_assignment = active_team_assignment & Q(
+            care_team_assignments__care_team__memberships__staff_id=(
+                assigned_nurse_id
+            ),
+        )
         patients = patients.filter(
-            effective_assignment,
-            staff_assignments__staff_id=assigned_nurse_id,
-            staff_assignments__assignment_role=PatientStaffAssignment.AssignmentRole.NURSE,
+            direct_nurse_assignment | team_nurse_assignment
         )
 
     patients = patients.distinct()
@@ -542,6 +574,15 @@ def patient_detail(
         .select_related("medication")
         .order_by("medication__generic_name")[:8]
     )
+    recent_lab_results = list(
+        LabResult.objects.filter(order_item__order__patient=patient)
+        .exclude(status=LabResult.Status.ENTERED_IN_ERROR)
+        .select_related("order_item__test", "order_item__order", "reference_range")
+        .order_by("-resulted_at")[:6]
+    )
+    abnormal_lab_count = LabResult.objects.filter(order_item__order__patient=patient).exclude(
+        flag=LabResult.Flag.NORMAL
+    ).exclude(status=LabResult.Status.ENTERED_IN_ERROR).count()
 
     # ========================================================
     # PAGE CONTEXT
@@ -567,7 +608,9 @@ def patient_detail(
         "active_medication_count": patient.medication_orders.filter(
             status=MedicationOrder.Status.ACTIVE
         ).count(),
-        "structured_labs_available": False,
+        "structured_labs_available": True,
+        "recent_lab_results": recent_lab_results,
+        "abnormal_lab_count": abnormal_lab_count,
         "structured_procedures_available": True,
         "physicians": [],
         "diagnoses": diagnoses,
