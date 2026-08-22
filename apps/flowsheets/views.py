@@ -97,7 +97,7 @@ def encounter_flowsheet(request, encounter_id):
 @require_http_methods(["GET", "POST"])
 def create_entry(request, patient_id, definition_id):
     patient = get_object_or_404(Patient, pk=patient_id)
-    definition = get_object_or_404(FlowSheetDefinition.objects.filter(is_active=True).prefetch_related("fields"), pk=definition_id)
+    definition = get_object_or_404(FlowSheetDefinition.objects.prefetch_related("fields"), pk=definition_id)
     encounter_id = request.GET.get("encounter") or request.POST.get("encounter")
     encounter = get_object_or_404(Encounter, pk=encounter_id, patient=patient) if encounter_id else Encounter.objects.filter(patient=patient, is_active=True).order_by("-start_datetime", "-created_at").first()
     requested_type = request.GET.get("assessment_type", FlowSheetEntry.AssessmentType.SHIFT)

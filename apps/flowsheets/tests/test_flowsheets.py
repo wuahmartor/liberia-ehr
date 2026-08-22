@@ -160,7 +160,7 @@ class FlowSheetWorkflowTests(TestCase):
     def test_each_definition_tab_has_a_distinct_route_and_selects_its_definition(self):
         definitions = list(FlowSheetDefinition.objects.filter(is_active=True))
         response = self.client.get(reverse("flowsheets:patient", args=[self.patient.pk]))
-        self.assertEqual(response.context["selected_definition"].slug, "nursing-systems-assessment")
+        self.assertEqual(response.context["selected_definition"], definitions[0])
         for definition in definitions:
             url = reverse("flowsheets:patient-definition", args=[self.patient.pk, definition.slug])
             self.assertContains(response, url)
@@ -350,3 +350,10 @@ class FlowSheetWorkflowTests(TestCase):
         self.assertEqual(fields["edema-grade-left-leg"].show_when_value, "Left leg")
         self.assertIn(fields["edema-grade-left-leg"].show_when_value, fields["edema-location"].choices)
         self.assertEqual(fields["edema-grade-generalized"].show_when_value, "Generalized")
+
+    def test_redundant_standalone_flowsheets_are_retired_from_navigation(self):
+        retired = FlowSheetDefinition.objects.filter(
+            slug__in=("neurological-checks", "nursing-systems-assessment")
+        )
+        self.assertEqual(retired.count(), 2)
+        self.assertTrue(all(not definition.is_active for definition in retired))
